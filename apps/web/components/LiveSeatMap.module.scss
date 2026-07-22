@@ -1,0 +1,102 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.map {
+  width: 100%;
+  max-width: 480px;
+  background: #0a0a0a;
+  border-radius: 8px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: #404040;
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.available {
+  fill: #486581;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid #e11d48;
+    outline-offset: 2px;
+  }
+}
+
+.selected {
+  fill: #e11d48;
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.held {
+  fill: #d97706;
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+
+.sold {
+  fill: #525252;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.unavailable {
+  fill: #333;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.seatLabel {
+  fill: #a3a3a3;
+  font-size: 7px;
+  pointer-events: none;
+}
+
+.priceRange {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #171717;
+  font-weight: 600;
+}
+
+.zones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  color: #525252;
+}
+
+.focusHint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #e11d48;
+}
+
+.empty {
+  color: #737373;
+  font-size: 0.9rem;
+}

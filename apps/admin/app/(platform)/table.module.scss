@@ -1,0 +1,47 @@
+.table {
+  width: 100%;
+  margin-top: 1.5rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  :global(th),
+  :global(td) {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  :global(th) {
+    color: #737373;
+    font-weight: 500;
+  }
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+
+  :global(article) {
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+
+    :global(span) {
+      display: block;
+      font-size: 0.75rem;
+      color: #737373;
+      margin-bottom: 0.25rem;
+    }
+
+    :global(strong) {
+      font-size: 1.25rem;
+    }
+  }
+}
+.muted {
+  color: #737373;
+  margin-top: 0.5rem;
+}

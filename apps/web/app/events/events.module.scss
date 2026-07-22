@@ -1,0 +1,96 @@
+.page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  
+  :global(a) {
+    font-size: 0.875rem;
+    color: #737373;
+  }
+  
+  :global(h1) {
+    font-size: 1.75rem;
+    margin-top: 0.5rem;
+    font-weight: 600;
+  }
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  display: block;
+  padding: 1.25rem;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  transition: border-color 0.15s;
+  
+  &:hover {
+    border-color: #171717;
+  }
+  
+  :global(h2) {
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  :global(p) {
+    font-size: 0.875rem;
+    color: #737373;
+  }
+}
+
+.price {
+  margin-top: 0.5rem;
+  color: #171717;
+  font-weight: 500;
+}
+
+.empty {
+  color: #737373;
+}
+
+.searchBar {
+  margin-bottom: 1.5rem;
+  
+  :global(input) {
+    width: 100%;
+    max-width: 32rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d4d4d4;
+    border-radius: 8px;
+    font-size: 1rem;
+    
+    &:focus {
+      outline: none;
+      border-color: #171717;
+    }
+  }
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #525252;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+  color: #525252;
+}

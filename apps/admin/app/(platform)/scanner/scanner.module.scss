@@ -1,0 +1,57 @@
+.page {
+  max-width: 480px;
+
+  :global(textarea) {
+    width: 100%;
+    margin: 1rem 0;
+    padding: 0.75rem;
+    border: 1px solid #d4d4d4;
+    border-radius: 8px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8125rem;
+  }
+
+  :global(button) {
+    padding: 0.625rem 1.25rem;
+    background: #171717;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+}
+.hint {
+  color: #737373;
+  font-size: 0.875rem;
+}
+.error {
+  margin-top: 1rem;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+.camera {
+  margin: 1rem 0;
+}
+.video {
+  width: 100%;
+  max-height: 240px;
+  margin-top: 0.75rem;
+  border-radius: 8px;
+  background: #000;
+}
+.ok {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+
+  :global(code) {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+  }
+}

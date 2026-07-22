@@ -1,0 +1,29 @@
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+  color: #171717;
+  line-height: 1.6;
+}
+
+.updated {
+  color: #737373;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.page h1 {
+  font-family: var(--font-display, 'Bebas Neue', sans-serif);
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.25rem;
+}
+
+.page h2 {
+  font-size: 1.125rem;
+  margin: 2rem 0 0.5rem;
+}
+
+.page a {
+  color: #e11d48;
+}

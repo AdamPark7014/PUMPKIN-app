@@ -1,0 +1,9 @@
+@use '../styles/tokens' as *;
+
+.card {
+  background: $paper-0;
+  border: 1px solid $ink-300;
+  border-radius: $radius-lg;
+  padding: 1.25rem;
+  box-shadow: $shadow-sm;
+}

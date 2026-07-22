@@ -1,0 +1,89 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  :global(button) {
+    padding: 0.5rem 0.875rem;
+    border: 1px solid #e5e5e5;
+    background: #fff;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    &:hover {
+      border-color: #a3a3a3;
+    }
+  }
+}
+.primary {
+  background: #102a43 !important;
+  color: #fff !important;
+  border-color: #102a43 !important;
+}
+.ai {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+
+  :global(input) {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    font-size: 0.875rem;
+  }
+}
+.sectionTabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+
+  :global(button) {
+    padding: 0.35rem 0.75rem;
+    border: 1px solid #e5e5e5;
+    background: #fafafa;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+}
+.tabActive {
+  background: #102a43 !important;
+  color: #fff !important;
+  border-color: #102a43 !important;
+}
+.canvas {
+  width: 100%;
+  height: auto;
+  min-height: 320px;
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+}
+.seat {
+  cursor: pointer;
+}
+.hint {
+  font-size: 0.8125rem;
+  color: #737373;
+  margin: 0;
+}
+.colorPick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+
+  :global(input) {
+    width: 2rem;
+    height: 1.75rem;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+  }
+}

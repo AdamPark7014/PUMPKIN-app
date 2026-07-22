@@ -1,0 +1,1450 @@
+// Prisma Schema for Boletera Platform - Mega-Heavy Enterprise Ticketing
+// Supports ALL ticketing business models globally
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// CORE ENTITIES
+// ============================================================================
+
+model Organization {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  description      String?
+  type             OrgType  @default(PROMOTER) // PROMOTER, VENUE, BOLETERA, ARTIST
+  website          String?
+  logoUrl          String?
+  bannerUrl        String?
+  email            String
+  phone            String?
+  country          String
+  timezone         String   @default("UTC")
+  currency         Currency @default(USD)
+  
+  // Contact & Address
+  address          String?
+  city             String?
+  state            String?
+  postalCode       String?
+  
+  // Banking & Settlement
+  bankAccountName  String?
+  bankCode         String?
+  bankRoutingNumber String?
+  bankAccountNumber String?
+  paypalEmail      String?
+  /// Legacy unused — Banorte is the active gateway. Kept for schema compatibility.
+  stripeAccountId  String?
+  taxId            String?
+  
+  // Verification
+  verified         Boolean   @default(false)
+  verifiedAt       DateTime?
+  kycStatus        KYCStatus @default(PENDING) // PENDING, VERIFIED, REJECTED
+  amlStatus        AMLStatus @default(PENDING) // PENDING, VERIFIED, REJECTED
+  
+  // Commission & Settings
+  commissionRate   Float     @default(0.15) // 15% default commission
+  feesInclusive    Boolean   @default(false) // Fees included in ticket price
+  allowResale      Boolean   @default(true)
+  resaleCommission Float     @default(0.08)
+  
+  // Relations
+  venues           Venue[]
+  events           Event[]
+  users            User[]      @relation("OrgUsers")
+  orders           Order[]     @relation("OrgOrders")
+  promoterPayouts  PromoterPayout[]
+  tenantTheme      TenantTheme?
+  posTerminals     PosTerminal[]
+  apiKeys          ApiKey[]
+  fiscalProfile    FiscalProfile?
+  cfdiInvoices     CfdiInvoice[]
+  seasonPasses     SeasonPass[]
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([slug])
+  @@index([type])
+  @@index([verified])
+}
+
+model Venue {
+  id               String   @id @default(cuid())
+  externalId       String?  @unique
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  name             String
+  slug             String   @unique
+  description      String?
+  address          String
+  city             String
+  state            String
+  country          String
+  postalCode       String?
+  latitude         Float?
+  longitude        Float?
+  timezone         String
+  
+  // Capacity & Configuration
+  totalCapacity    Int
+  accessibilitySeats Int @default(0)
+  premiumSeats     Int @default(0)
+  generalSeats     Int @default(0)
+  
+  // Contact
+  phone            String?
+  email            String?
+  website          String?
+  image            String?
+  
+  // Relations
+  events           Event[]
+  layouts          VenueLayout[]
+  seasonPasses     SeasonPass[]
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([organizationId])
+  @@index([slug])
+  @@index([city])
+}
+
+model VenueLayout {
+  id               String   @id @default(cuid())
+  venueId          String
+  venue            Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name             String
+  version          Int      @default(1)
+  mapData          Json     // sections, seats geometry
+  isActive         Boolean  @default(true)
+  sections         Section[]
+  eventMaps        EventSeatMap[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([venueId])
+}
+
+model Section {
+  id               String   @id @default(cuid())
+  layoutId         String
+  layout           VenueLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  name             String
+  slug             String
+  color            String   @default("#737373")
+  sortOrder        Int      @default(0)
+  rows             SeatRow[]
+  seats            Seat[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([layoutId, slug])
+  @@index([layoutId])
+}
+
+model SeatRow {
+  id               String   @id @default(cuid())
+  sectionId        String
+  section          Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  label            String
+  sortOrder        Int      @default(0)
+  seats            Seat[]
+  createdAt        DateTime @default(now())
+
+  @@unique([sectionId, label])
+  @@index([sectionId])
+}
+
+model Seat {
+  id               String   @id @default(cuid())
+  sectionId        String
+  section          Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  rowId            String?
+  row              SeatRow? @relation(fields: [rowId], references: [id], onDelete: SetNull)
+  label            String
+  x                Float
+  y                Float
+  rotation         Float    @default(0)
+  coord3d          Json?
+  tier             String?
+  viewQuality      Float?
+  accessible       Boolean  @default(false)
+  tickets          Ticket[]
+  holds            SeatHold[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([sectionId, label])
+  @@index([sectionId])
+  @@index([rowId])
+}
+
+model EventSeatMap {
+  id               String   @id @default(cuid())
+  eventId          String   @unique
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  layoutId         String
+  layout           VenueLayout @relation(fields: [layoutId], references: [id])
+  snapshotData     Json
+  publishedAt      DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  @@index([layoutId])
+}
+
+model SeatHold {
+  id               String   @id @default(cuid())
+  eventId          String
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  seatId           String?
+  seat             Seat?    @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  offerId          String?
+  userId           String?
+  sessionId        String?
+  channel          SalesChannel @default(WEB)
+  cashierId        String?
+  quantity         Int      @default(1)
+  expiresAt        DateTime
+  releasedAt       DateTime?
+  status           HoldStatus @default(ACTIVE)
+  createdAt        DateTime @default(now())
+
+  @@index([eventId])
+  @@index([seatId])
+  @@index([expiresAt])
+  @@index([status])
+}
+
+model TenantTheme {
+  id               String   @id @default(cuid())
+  organizationId   String   @unique
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  primaryColor     String   @default("#171717")
+  secondaryColor   String   @default("#737373")
+  logoUrl          String?
+  faviconUrl       String?
+  customDomain     String?  @unique
+  subdomain        String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model AccessZone {
+  id               String   @id @default(cuid())
+  venueId          String
+  name             String
+  slug             String
+  capacity         Int?
+  scans            TicketScan[]
+  createdAt        DateTime @default(now())
+
+  @@unique([venueId, slug])
+}
+
+model TicketScan {
+  id               String   @id @default(cuid())
+  ticketId         String
+  zoneId           String?
+  zone             AccessZone? @relation(fields: [zoneId], references: [id])
+  scannedBy        String
+  channel          SalesChannel
+  success          Boolean
+  reason           String?
+  scannedAt        DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([scannedAt])
+}
+
+model PaymentIntent {
+  id               String   @id @default(cuid())
+  orderId          String?
+  provider         PaymentGateway
+  externalId       String?
+  amount           Decimal  @db.Decimal(12, 2)
+  currency         Currency
+  status           PaymentStatus @default(PENDING)
+  channel          SalesChannel @default(WEB)
+  metadata         Json?
+  idempotencyKey   String?  @unique
+  expiresAt        DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([externalId])
+}
+
+model AuditEvent {
+  id               String   @id @default(cuid())
+  organizationId   String?
+  userId           String?
+  action           String
+  entityType       String
+  entityId         String?
+  metadata         Json?
+  ipAddress        String?
+  createdAt        DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model CashierShift {
+  id               String   @id @default(cuid())
+  userId           String
+  organizationId   String
+  openedAt         DateTime @default(now())
+  closedAt         DateTime?
+  openingCash      Decimal  @db.Decimal(12, 2)
+  closingCash      Decimal? @db.Decimal(12, 2)
+  totalSales       Decimal  @default(0) @db.Decimal(12, 2)
+  metadata         Json?
+
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Event {
+  id               String   @id @default(cuid())
+  externalId       String?  @unique
+  slug             String   @unique
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  venueId          String
+  venue            Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  
+  title            String
+  description      String?
+  image            String?
+  bannerImage      String?
+  
+  // Event Classification
+  category         EventCategory @default(MUSIC) // MUSIC, SPORTS, THEATER, COMEDY, etc.
+  genre            String?
+  rating           String? // G, PG, PG-13, R, NC-17
+  
+  // Dates & Times
+  startsAt         DateTime
+  endsAt           DateTime?
+  timezone         String
+  
+  // Status
+  status           EventStatus @default(DRAFT) // DRAFT, SCHEDULED, LIVE, COMPLETED, CANCELLED
+  publishedAt      DateTime?
+  cancelledAt      DateTime?
+  
+  // Pricing
+  minPrice         Decimal @default(0) @db.Decimal(10, 2)
+  maxPrice         Decimal @default(1000) @db.Decimal(10, 2)
+  currency         Currency @default(USD)
+  
+  // Inventory
+  totalCapacity    Int
+  holdableCapacity Int?
+  
+  // Policies
+  allowResale      Boolean   @default(true)
+  transferAllowed  Boolean   @default(true)
+  refundable       Boolean   @default(true)
+  nonTransferable  Boolean   @default(false)
+  holdExpiration   Int       @default(900) // Seconds (15 mins default)
+  
+  // Dynamic Pricing
+  enableDynamic    Boolean   @default(false)
+  surgeThreshold   Float     @default(0.8) // Surge at 80% sold
+  surgePriceMultiplier Float @default(1.25) // 25% markup
+
+  // Extended config (channels, campaigns, pricing rules, event kind)
+  metadata         Json?
+  
+  // Relations
+  offers           Offer[]
+  tickets          Ticket[]
+  orders           Order[]
+  dynamicPrices    DynamicPrice[]
+  reviews          Review[]
+  fraudFlags       FraudFlag[]
+  seatMap          EventSeatMap?
+  holds            SeatHold[]
+  waitlistEntries  WaitlistEntry[]
+  seasonPassEvents SeasonPassEvent[]
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([organizationId])
+  @@index([venueId])
+  @@index([slug])
+  @@index([startsAt])
+  @@index([status])
+  @@index([category])
+}
+
+model Offer {
+  id               String   @id @default(cuid())
+  eventId          String
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  name             String   // "General Admission", "VIP", "Early Bird", "Upper Mezzanine"
+  zone             String   // Seat section or zone
+  description      String?
+  
+  // Pricing
+  basePrice        Decimal @db.Decimal(10, 2)
+  fees             Decimal @default(0) @db.Decimal(10, 2)
+  currency         Currency @default(USD)
+  
+  // Inventory
+  totalQuantity    Int
+  remainingQuantity Int
+  soldQuantity     Int @default(0)
+  holdQuantity     Int @default(0)
+  
+  // Restrictions
+  minPerOrder      Int @default(1)
+  maxPerOrder      Int @default(10)
+  minAge           Int?
+  restrictedCards  String[] // For VIP sections etc
+  
+  // Availability
+  startDate        DateTime
+  endDate          DateTime
+  isAvailable      Boolean @default(true)
+  
+  // Relations
+  tickets          Ticket[]
+  orderItems       OrderItem[]
+  dynamicPrices    DynamicPrice[]
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@unique([eventId, zone])
+  @@index([eventId])
+  @@index([isAvailable])
+}
+
+model Ticket {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  eventId          String
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  offerId          String
+  offer            Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  
+  // Status
+  status           TicketStatus @default(AVAILABLE) // AVAILABLE, HELD, SOLD, USED, REFUNDED, TRANSFERRED
+  
+  // Holder Information
+  orderItemId      String?
+  orderItem        OrderItem? @relation(fields: [orderItemId], references: [id])
+  buyerName        String?
+  buyerEmail       String?
+  
+  // Seat Information
+  seatId           String?
+  seat             Seat?    @relation(fields: [seatId], references: [id], onDelete: SetNull)
+  seatNumber       String?
+  row              String?
+  section          String?
+  
+  // Resale
+  isResale         Boolean   @default(false)
+  originalPrice    Decimal? @db.Decimal(10, 2)
+  resalePrice      Decimal? @db.Decimal(10, 2)
+  resaleListing    ResaleListing?
+  
+  // Check-in
+  checkedInAt      DateTime?
+  usedAt           DateTime?
+  
+  // Relations
+  fraudFlags       FraudFlag[]
+  transfers        TicketTransfer[]
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([eventId])
+  @@index([offerId])
+  @@index([status])
+  @@index([code])
+  @@index([seatId])
+}
+
+model Order {
+  id               String   @id @default(cuid())
+  publicId         String   @unique // Public-facing order ID
+  organizationId   String
+  organization     Organization @relation("OrgOrders", fields: [organizationId], references: [id])
+  eventId          String
+  event            Event    @relation(fields: [eventId], references: [id])
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  
+  // Status
+  status           OrderStatus @default(PENDING) // PENDING, COMPLETED, FAILED, REFUNDED, CANCELLED
+  
+  // Buyer Information
+  buyerEmail       String   @db.VarChar(255)
+  buyerName        String
+  buyerPhone       String?
+  billingAddress   String?
+  
+  // Pricing
+  subtotal         Decimal @db.Decimal(12, 2)
+  fees             Decimal @db.Decimal(10, 2)
+  discountAmount   Decimal @default(0) @db.Decimal(10, 2)
+  taxAmount        Decimal @db.Decimal(10, 2)
+  totalAmount      Decimal @db.Decimal(12, 2)
+  currency         Currency @default(USD)
+  
+  // Promo & Commission
+  promotionId      String?
+  promotion        Promotion? @relation(fields: [promotionId], references: [id])
+  commissionAmount Decimal @db.Decimal(10, 2)
+  
+  // Payment
+  paymentId        String?
+  payment          Payment? @relation(fields: [paymentId], references: [id])
+  paymentMethod    PaymentMethod @default(CARD) // CARD, BANK_TRANSFER, CRYPTO, PAYPAL, etc.
+  
+  // Channel
+  channel          SalesChannel @default(WEB)
+  cashierId        String?
+
+  // Expiration
+  expiresAt        DateTime
+  completedAt      DateTime?
+  refundedAt       DateTime?
+  
+  // Relations
+  items            OrderItem[]
+  refunds          Refund[]
+  fraudFlags       FraudFlag[] @relation("OrderFraudFlags")
+  cfdiInvoices     CfdiInvoice[]
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([organizationId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@index([publicId])
+  @@index([buyerEmail])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id               String   @id @default(cuid())
+  orderId          String
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  offerId          String
+  offer            Offer    @relation(fields: [offerId], references: [id])
+  
+  quantity         Int
+  unitPrice        Decimal @db.Decimal(10, 2)
+  unitFees         Decimal @db.Decimal(10, 2)
+  subtotal         Decimal @db.Decimal(12, 2)
+  
+  // Relations
+  tickets          Ticket[]
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([orderId])
+  @@index([offerId])
+}
+
+model Payment {
+  id               String   @id @default(cuid())
+  orders           Order[]
+  
+  // Gateway Information
+  gateway          PaymentGateway @default(BANORTE)
+  externalId       String   @unique // Stripe ID, PayPal ID, etc.
+  status           PaymentStatus @default(PENDING) // PENDING, COMPLETED, FAILED, REFUNDED
+  
+  // Amount
+  amount           Decimal @db.Decimal(12, 2)
+  currency         Currency
+  
+  // Payment Method
+  method           PaymentMethod
+  lastFourDigits   String?
+  brand            String?
+  
+  // Response Data (JSON)
+  metadata         Json?
+  errorMessage     String?
+  
+  // Audit
+  processedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([gateway])
+  @@index([status])
+  @@index([externalId])
+}
+
+model Refund {
+  id               String   @id @default(cuid())
+  orderId          String
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  amount           Decimal @db.Decimal(12, 2)
+  reason           RefundReason @default(CUSTOMER_REQUEST)
+  status           RefundStatus @default(PENDING) // PENDING, COMPLETED, FAILED
+  
+  // Metadata
+  notes            String?
+  requestedBy      String // Admin email or customer ID
+  processedBy      String?
+  
+  // Audit
+  requestedAt      DateTime  @default(now())
+  processedAt      DateTime?
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([orderId])
+  @@index([status])
+}
+
+// ============================================================================
+// USER & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique @db.VarChar(255)
+  emailVerified    Boolean  @default(false)
+  emailVerifiedAt  DateTime?
+  
+  firstName        String
+  lastName         String
+  profileImage     String?
+  phone            String?
+  
+  // Role
+  role             UserRole @default(CUSTOMER) // CUSTOMER, PROMOTER, VENUE_MANAGER, ADMIN, SUPER_ADMIN
+  
+  // Organization
+  organizationId   String?
+  organization     Organization? @relation("OrgUsers", fields: [organizationId], references: [id], onDelete: SetNull)
+  
+  // Authentication
+  password         String?
+  passwordResetToken String?
+  passwordResetAt  DateTime?
+  
+  // Provider
+  provider         String? // 'email', 'google', 'apple', 'spotify'
+  providerId       String?
+  
+  // Two-Factor Auth
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorSecret  String?
+  
+  // Status
+  active           Boolean  @default(true)
+  lastLogin        DateTime?
+  
+  // Relations
+  orders           Order[]
+  reviews          Review[]
+  fraudFlags       FraudFlag[] @relation("UserFraudFlags")
+  cart             Cart?
+  wishlist         Wishlist[]
+  sessions         Session[]
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([email])
+  @@index([organizationId])
+  @@index([role])
+}
+
+model Session {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  token            String   @unique
+  userAgent        String?
+  ipAddress        String?
+  
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([token])
+}
+
+model PosTerminal {
+  id               String   @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name             String
+  locationName     String
+  status           String   @default("READY")
+  hardwareConfig   Json?
+  offlineMode      Boolean  @default(false)
+  lastSyncAt       DateTime?
+  cacheMetadata    Json?
+  sessions         PosCashierSession[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model PosCashierSession {
+  id               String   @id @default(cuid())
+  terminalId       String
+  terminal         PosTerminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+  cashierId        String
+  status           String   @default("ACTIVE")
+  startedAt        DateTime @default(now())
+  endedAt          DateTime?
+  metadata         Json?
+
+  @@index([terminalId])
+  @@index([cashierId])
+}
+
+// ============================================================================
+// RESALE MARKETPLACE
+// ============================================================================
+
+model ResaleListing {
+  id               String   @id @default(cuid())
+  ticketId         String   @unique
+  ticket           Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  sellerId         String
+  sellerName       String
+  
+  // Pricing
+  askingPrice      Decimal @db.Decimal(10, 2)
+  currency         Currency @default(USD)
+  fee              Decimal @db.Decimal(10, 2)
+  
+  // Status
+  status           ResaleStatus @default(ACTIVE) // ACTIVE, SOLD, CANCELLED, DELISTED
+  
+  // Holds & Restrictions
+  delisted         Boolean  @default(false)
+  delistedReason   String?
+  
+  // Relations
+  offers           ResaleOffer[]
+  
+  // Audit
+  listedAt         DateTime  @default(now())
+  soldAt           DateTime?
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([sellerId])
+  @@index([status])
+}
+
+model ResaleOffer {
+  id               String   @id @default(cuid())
+  listingId        String
+  listing          ResaleListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  buyerId          String
+  buyerEmail       String
+  
+  offerPrice       Decimal @db.Decimal(10, 2)
+  status           ResaleOfferStatus @default(PENDING) // PENDING, ACCEPTED, REJECTED, EXPIRED
+  
+  expiresAt        DateTime
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  respondedAt      DateTime?
+  
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([status])
+}
+
+// ============================================================================
+// PRICING & PROMOTIONS
+// ============================================================================
+
+model DynamicPrice {
+  id               String   @id @default(cuid())
+  eventId          String
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  offerId          String
+  offer            Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  
+  // Pricing
+  adjustedPrice    Decimal @db.Decimal(10, 2)
+  priceMultiplier  Float @default(1.0) // 1.25 = 25% markup
+  reason           String // "demand_surge", "low_inventory", "time_based"
+  
+  // Dates
+  activeFrom       DateTime
+  activeTo         DateTime
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([eventId])
+  @@index([offerId])
+  @@index([activeFrom, activeTo])
+}
+
+model Promotion {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  organizationId   String
+  
+  name             String
+  description      String?
+  type             PromotionType @default(PERCENTAGE) // PERCENTAGE, FIXED_AMOUNT, BOGO, FREE_SHIPPING
+  
+  // Value
+  value            Decimal @db.Decimal(10, 2)
+  maxDiscount      Decimal? @db.Decimal(10, 2)
+  minOrderAmount   Decimal @default(0) @db.Decimal(10, 2)
+  
+  // Limits
+  usageLimit       Int?
+  usageCount       Int @default(0)
+  usagePerCustomer Int @default(1)
+  
+  // Validity
+  startDate        DateTime
+  endDate          DateTime
+  
+  // Relations
+  orders           Order[]
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([code])
+  @@index([organizationId])
+  @@index([startDate, endDate])
+}
+
+// ============================================================================
+// FRAUD & COMPLIANCE
+// ============================================================================
+
+model FraudFlag {
+  id               String   @id @default(cuid())
+  
+  // Subject
+  eventId          String?
+  event            Event? @relation(fields: [eventId], references: [id])
+  orderId          String?
+  order            Order? @relation("OrderFraudFlags", fields: [orderId], references: [id])
+  ticketId         String?
+  ticket           Ticket? @relation(fields: [ticketId], references: [id])
+  userId           String?
+  user             User? @relation("UserFraudFlags", fields: [userId], references: [id])
+  
+  // Flag Information
+  type             FraudType @default(SUSPICIOUS_ACTIVITY)
+  severity         FraudSeverity @default(MEDIUM) // LOW, MEDIUM, HIGH, CRITICAL
+  score            Float @default(0) // 0-100 risk score
+  reason           String
+  
+  // Status
+  status           FraudStatus @default(FLAGGED) // FLAGGED, INVESTIGATING, RESOLVED, FALSE_POSITIVE
+  resolved         Boolean @default(false)
+  resolvedBy       String?
+  resolution       String?
+  
+  // Context
+  ipAddress        String?
+  deviceFingerprint String?
+  metadata         Json?
+  
+  // Audit
+  createdAt        DateTime  @default(now())
+  resolvedAt       DateTime?
+  
+  @@index([eventId])
+  @@index([orderId])
+  @@index([userId])
+  @@index([severity])
+  @@index([status])
+}
+
+// ============================================================================
+// ANALYTICS & REPORTING
+// ============================================================================
+
+model EventAnalytics {
+  id               String   @id @default(cuid())
+  eventId          String   @unique
+  
+  // Sales Metrics
+  totalTicketsSold Int
+  totalRevenue     Decimal @db.Decimal(15, 2)
+  totalFees        Decimal @db.Decimal(12, 2)
+  averagePrice     Decimal @db.Decimal(10, 2)
+  
+  // Customer Metrics
+  uniqueBuyers     Int
+  repeatBuyers     Int
+  
+  // Time Series
+  date             DateTime @default(now())
+  
+  @@index([eventId])
+  @@index([date])
+}
+
+model PromoterPayout {
+  id               String   @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Period
+  periodStart      DateTime
+  periodEnd        DateTime
+  
+  // Settlement
+  grossRevenue     Decimal @db.Decimal(15, 2)
+  commission       Decimal @db.Decimal(12, 2)
+  netAmount        Decimal @db.Decimal(15, 2)
+  
+  // Status
+  status           PayoutStatus @default(PENDING) // PENDING, PROCESSING, COMPLETED, FAILED
+  
+  // Payment
+  method           PaymentMethod @default(BANK_TRANSFER)
+  referenceId      String?
+  
+  // Audit
+  processedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([organizationId])
+  @@index([status])
+}
+
+// ============================================================================
+// CUSTOMER FEATURES
+// ============================================================================
+
+model Cart {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  items            Json // Array of { offerId, quantity, addedAt }
+  
+  expiresAt        DateTime
+  
+  @@index([userId])
+}
+
+model Wishlist {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId          String
+  
+  createdAt        DateTime  @default(now())
+  
+  @@unique([userId, eventId])
+  @@index([userId])
+}
+
+model Review {
+  id               String   @id @default(cuid())
+  eventId          String
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  rating           Int @default(5) // 1-5
+  comment          String?
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+// ============================================================================
+// SAAS ENTERPRISE — WAITLIST, TRANSFERS, API PARTNERS
+// ============================================================================
+
+model WaitlistEntry {
+  id               String         @id @default(cuid())
+  eventId          String
+  event            Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  email            String
+  phone            String?
+  firstName        String?
+  lastName         String?
+  quantity         Int            @default(1)
+  offerId          String?
+  status           WaitlistStatus @default(PENDING)
+  priority         Int            @default(0)
+  notifiedAt       DateTime?
+  convertedAt      DateTime?
+  metadata         Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([eventId, email])
+  @@index([eventId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model TicketTransfer {
+  id               String         @id @default(cuid())
+  ticketId         String
+  ticket           Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromUserId       String?
+  toEmail          String
+  toUserId         String?
+  transferCode     String         @unique
+  status           TransferStatus @default(PENDING)
+  message          String?
+  acceptedAt       DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime       @default(now())
+
+  @@index([ticketId])
+  @@index([toEmail])
+  @@index([transferCode])
+  @@index([status])
+}
+
+model ApiKey {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name             String
+  keyHash          String       @unique
+  keyPrefix        String
+  scopes           String[]     @default(["read:events", "read:inventory"])
+  rateLimit        Int          @default(1000)
+  lastUsedAt       DateTime?
+  expiresAt        DateTime?
+  active           Boolean      @default(true)
+  createdById      String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([keyPrefix])
+  @@index([active])
+}
+
+// ============================================================================
+// FISCAL / CFDI 4.0 (Mexico)
+// ============================================================================
+
+model FiscalProfile {
+  id               String       @id @default(cuid())
+  organizationId   String       @unique
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  rfc              String
+  legalName        String
+  regimenFiscal    String       @default("601")
+  codigoPostal     String
+  serie            String       @default("A")
+  nextFolio        Int          @default(1)
+
+  /** PAC credentials — sandbox when pacMode=sandbox */
+  pacMode          String       @default("sandbox") // sandbox | production
+  pacProvider      String?      // e.g. facturapi, sw-sapien
+  pacApiKey        String?
+
+  active           Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model CfdiInvoice {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  orderId          String?
+  order            Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  uuid             String?      @unique // UUID timbre fiscal
+  serie            String
+  folio            Int
+  tipo             String       @default("I") // I ingreso, E egreso (NC)
+  status           CfdiStatus   @default(DRAFT)
+
+  receptorRfc      String
+  receptorNombre   String
+  receptorUsoCfdi  String       @default("G03")
+  subtotal         Decimal      @db.Decimal(12, 2)
+  iva              Decimal      @db.Decimal(12, 2)
+  total            Decimal      @db.Decimal(12, 2)
+  currency         Currency     @default(MXN)
+
+  xmlUrl           String?
+  pdfUrl           String?
+  pacRaw           Json?
+  errorMessage     String?
+  stampedAt        DateTime?
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([organizationId, serie, folio])
+  @@index([organizationId])
+  @@index([orderId])
+  @@index([status])
+  @@index([receptorRfc])
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum OrgType {
+  PROMOTER
+  VENUE
+  BOLETERA
+  ARTIST
+  DISTRIBUTOR
+}
+
+enum EventCategory {
+  MUSIC
+  SPORTS
+  THEATER
+  COMEDY
+  CONFERENCE
+  WORKSHOP
+  FESTIVAL
+  FAMILY
+  STANDUP
+  CINEMA
+  OTHER
+}
+
+enum EventStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum TicketStatus {
+  AVAILABLE
+  HELD
+  SOLD
+  USED
+  REFUNDED
+  TRANSFERRED
+  RESOLD
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentGateway {
+  /// Legacy enum value — do not use for new payments (Banorte-first).
+  STRIPE
+  PAYPAL
+  ADYEN
+  SQUARE
+  RAZORPAY
+  WORLDPAY
+  BANORTE
+  CLIP
+  OXXO
+  SPEI
+  CASH
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  PAYPAL
+  APPLE_PAY
+  GOOGLE_PAY
+  CRYPTO
+  LOCAL_PAYMENT
+  CASH
+  OXXO
+  SPEI
+  CLIP
+}
+
+enum SalesChannel {
+  WEB
+  TAQUILLA
+  API
+  ADMIN
+}
+
+enum HoldStatus {
+  ACTIVE
+  CONVERTED
+  EXPIRED
+  RELEASED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+  DISPUTE
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  MXN
+  CAD
+  AUD
+  JPY
+  CNY
+  BRL
+  INR
+  AED
+  CHF
+  SGD
+  HKD
+  NZD
+}
+
+enum UserRole {
+  CUSTOMER
+  PROMOTER
+  VENUE_MANAGER
+  ARTIST
+  ADMIN
+  SUPER_ADMIN
+  TAQUILLA
+  SCANNER
+}
+
+enum RefundReason {
+  CUSTOMER_REQUEST
+  PAYMENT_ERROR
+  DUPLICATE
+  FRAUD
+  EVENT_CANCELLED
+  TICKET_NOT_RECEIVED
+  CUSTOMER_CHANGED_MIND
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  DISPUTED
+}
+
+enum FraudType {
+  SUSPICIOUS_ACTIVITY
+  DUPLICATE_PURCHASE
+  HIGH_VELOCITY
+  UNLIKELY_LOCATION
+  MULTIPLE_DECLINED
+  CHARGEBACK
+  ACCOUNT_BREACH
+  BOT_ACTIVITY
+  SCALPING_VIOLATION
+  KYC_MISMATCH
+}
+
+enum FraudSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FraudStatus {
+  FLAGGED
+  INVESTIGATING
+  RESOLVED
+  FALSE_POSITIVE
+}
+
+enum ResaleStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+  DELISTED
+  EXPIRED
+}
+
+enum ResaleOfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum PromotionType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  BOGO
+  FREE_SHIPPING
+  CASHBACK
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum KYCStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum AMLStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  WATCHLIST
+}
+
+enum WaitlistStatus {
+  PENDING
+  NOTIFIED
+  CONVERTED
+  EXPIRED
+  CANCELLED
+}
+
+enum TransferStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+  EXPIRED
+}
+
+enum CfdiStatus {
+  DRAFT
+  STAMPED
+  CANCELLED
+  ERROR
+}
+
+// ============================================================================
+// SEASON / ABONOS
+// ============================================================================
+
+model SeasonPass {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  venueId          String?
+  venue            Venue?       @relation(fields: [venueId], references: [id], onDelete: SetNull)
+
+  name             String
+  slug             String
+  description      String?
+  seasonLabel      String       // e.g. "2026-2027"
+  startsAt         DateTime
+  endsAt           DateTime
+  price            Decimal      @db.Decimal(12, 2)
+  currency         Currency     @default(MXN)
+  maxQuantity      Int          @default(100)
+  soldQuantity     Int          @default(0)
+  benefits         Json?
+  active           Boolean      @default(true)
+
+  events           SeasonPassEvent[]
+  purchases        SeasonPassPurchase[]
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([active])
+}
+
+model SeasonPassEvent {
+  id             String     @id @default(cuid())
+  seasonPassId   String
+  seasonPass     SeasonPass @relation(fields: [seasonPassId], references: [id], onDelete: Cascade)
+  eventId        String
+  event          Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonPassId, eventId])
+  @@index([eventId])
+}
+
+model SeasonPassPurchase {
+  id             String     @id @default(cuid())
+  seasonPassId   String
+  seasonPass     SeasonPass @relation(fields: [seasonPassId], references: [id], onDelete: Cascade)
+  userId         String?
+  buyerEmail     String
+  buyerName      String
+  quantity       Int        @default(1)
+  totalAmount    Decimal    @db.Decimal(12, 2)
+  status         String     @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  seatSection    String?
+  createdAt      DateTime   @default(now())
+
+  @@index([seasonPassId])
+  @@index([buyerEmail])
+}

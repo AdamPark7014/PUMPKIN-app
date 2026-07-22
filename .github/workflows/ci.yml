@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: boletera
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/boletera?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-test-secret
+      INTERNAL_API_SECRET: ci-internal-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm db:generate
+
+      - name: Apply schema
+        run: pnpm --filter @boletera/database exec prisma db push --skip-generate
+
+      - name: Typecheck API
+        run: pnpm --filter @boletera/api run check-types
+
+      - name: Build payments package
+        run: pnpm --filter @boletera/payments run build
+
+      - name: API unit tests
+        run: pnpm --filter @boletera/api test -- --passWithNoTests

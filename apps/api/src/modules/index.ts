@@ -1,0 +1,33 @@
+export { CommonModule } from '../common/common.module';
+export { TenantModule } from './tenant/tenant.module';
+export { PrismaModule } from './prisma/prisma.module';
+export { PrismaService } from './prisma/prisma.service';
+export { AuthModule } from './auth/auth.module';
+export { DiscoveryModule } from './discovery/discovery.module';
+export { InventoryModule } from './inventory/inventory.module';
+export { PricingModule } from './pricing/pricing.module';
+export { OrdersModule } from './orders/orders.module';
+export { PaymentModule } from './payment/payment.module';
+export { ResaleModule } from './resale/resale.module';
+export { FraudModule } from './fraud/fraud.module';
+export { AnalyticsModule } from './analytics/analytics.module';
+export { AdminModule } from './admin/admin.module';
+export { NotificationModule } from './notification/notification.module';
+export { AccessModule } from './access/access.module';
+export { SeatMapping3DModule } from './seat-mapping-3d/seat-mapping-3d.module';
+export { EventManagementModule } from './event-management/event-management.module';
+export { ChannelManagementModule } from './channel-management/channel-management.module';
+export { TaquillaPosModule } from './taquilla-pos/taquilla-pos.module';
+export { LayoutManagementModule } from './layout-management/layout-management.module';
+export { SearchModule } from './search-service/search.module';
+export { ReportingModule } from './reporting-service/reporting.module';
+export { CampaignExecutionModule } from './campaign-execution/campaign-execution.module';
+export { VenueLayoutModule } from './venue-layout/venue-layout.module';
+export { OrganizationModule } from './organization/organization.module';
+export { WaitlistModule } from './waitlist/waitlist.module';
+export { TicketTransferModule } from './ticket-transfer/ticket-transfer.module';
+export { PartnersModule } from './partners/partners.module';
+export { BillingModule } from './billing/billing.module';
+export { SeasonModule } from './season/season.module';
+
+

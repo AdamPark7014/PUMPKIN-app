@@ -1,0 +1,49 @@
+.page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+
+  :global(ul) {
+    list-style: none;
+    padding: 0;
+  }
+
+  :global(li) {
+    border: 1px solid #d9e2ec;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+}
+
+.expired {
+  opacity: 0.6;
+}
+
+.timer {
+  font-variant-numeric: tabular-nums;
+  color: #486581;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+
+  :global(button) {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  :global(button:first-child) {
+    background: #102a43;
+    color: #fff;
+    border: none;
+  }
+
+  :global(button:last-child) {
+    background: transparent;
+    border: 1px solid #bcccdc;
+  }
+}

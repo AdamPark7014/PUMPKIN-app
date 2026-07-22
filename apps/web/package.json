@@ -1,0 +1,39 @@
+{
+  "name": "@boletera/web",
+  "version": "1.0.0",
+  "description": "Boletera Platform - Customer-facing Marketplace (Next.js 16)",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@boletera/ui": "workspace:*",
+    "@boletera/venue-3d": "workspace:*",
+    "@boletera/venue-engine": "workspace:*",
+    "@react-three/drei": "^9.117.0",
+    "@react-three/fiber": "^8.17.0",
+    "axios": "^1.6.7",
+    "next": "^16.2.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-query": "^3.39.3",
+    "three": "^0.170.0",
+    "zustand": "^4.4.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^8.56.0",
+    "sass": "^1.71.1",
+    "typescript": "^5.9.2"
+  }
+}

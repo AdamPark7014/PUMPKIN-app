@@ -1,0 +1,253 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid transparent;
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.scrolled {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
+.dark {
+  background: rgba(10, 10, 10, 0.5);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+  color: #fafafa;
+
+  &.scrolled {
+    background: rgba(10, 10, 10, 0.85);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .navLink,
+  .iconLink,
+  .userLink,
+  .menuBtn {
+    color: rgba(250, 250, 250, 0.7);
+  }
+
+  .navLink:hover,
+  .iconLink:hover,
+  .userLink:hover {
+    color: #fafafa;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .navActive {
+    color: #fafafa;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .cta {
+    color: #0a0a0a;
+    background: #fafafa;
+
+    &:hover {
+      background: #fff;
+    }
+  }
+
+  .brand {
+    color: #fafafa;
+  }
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  height: 64px;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+/* Brand */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: #0a0a0a;
+  text-decoration: none;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.brandText {
+  font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+  font-weight: 400;
+  font-size: 1.25rem;
+  letter-spacing: 0.18em;
+}
+
+/* Nav */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  @media (max-width: 768px) {
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.5rem 1rem 1rem;
+    background: inherit;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    transform: translateY(-10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+}
+
+.navOpen {
+  @media (max-width: 768px) {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.navLink,
+.navActive {
+  padding: 0.4375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #525252;
+  text-decoration: none;
+  border-radius: 7px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.navLink:hover {
+  color: #0a0a0a;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.navActive {
+  color: #0a0a0a;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+}
+
+.iconLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: #525252;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    color: #0a0a0a;
+    background: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.userLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 0.75rem 0.3125rem 0.3125rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #404040;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.08);
+  }
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fafafa;
+  background: linear-gradient(135deg, #e11d48, #fb7185);
+  border-radius: 50%;
+}
+
+.userText {
+  @media (max-width: 480px) {
+    display: none;
+  }
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #fff;
+  background: #0a0a0a;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #262626;
+  }
+}
+
+.menuBtn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  color: #525252;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    color: #0a0a0a;
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  @media (max-width: 768px) {
+    display: inline-flex;
+  }
+}

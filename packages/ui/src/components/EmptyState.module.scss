@@ -1,0 +1,22 @@
+@use '../styles/tokens' as *;
+
+.empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: $ink-500;
+
+  :global(h3) {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $ink-700;
+    margin-bottom: 0.5rem;
+  }
+
+  :global(p) {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+}
+.action {
+  margin-top: 1rem;
+}

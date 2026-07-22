@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./*"],
+      "@boletera/ui": ["../../packages/ui/src"],
+      "@boletera/venue-3d": ["../../packages/venue-3d/src"],
+      "@boletera/venue-engine": ["../../packages/venue-engine/dist"]
+    }
+  },
+  "include": ["next-env.d.ts", "types/**/*.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,35 @@
+@use '../styles/tokens' as *;
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: $ink-700;
+}
+
+.input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid $ink-300;
+  border-radius: $radius-md;
+  font-family: $font-sans;
+  font-size: 0.875rem;
+  background: $paper-0;
+  color: $ink-950;
+  &:focus {
+    outline: none;
+    border-color: $ink-700;
+  }
+  &.error {
+    border-color: $ink-900;
+  }
+}
+
+.errorText {
+  font-size: 0.75rem;
+  color: $ink-700;
+}

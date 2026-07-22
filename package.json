@@ -1,0 +1,51 @@
+{
+  "name": "boletera-platform",
+  "version": "1.0.0",
+  "description": "Enterprise-grade ticketing platform for B2B ticket operations - mega heavy, impeccable, serving all ticketing business models",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.30.3"
+  },
+  "scripts": {
+    "predev": "pnpm db:generate",
+    "dev": "turbo run dev --parallel",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:api": "turbo run dev --filter=api",
+    "dev:admin": "turbo run dev --filter=admin",
+    "dev:taquilla": "turbo run dev --filter=taquilla",
+    "dev:worker": "turbo run dev --filter=worker",
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=web",
+    "build:api": "turbo run build --filter=api",
+    "build:admin": "turbo run build --filter=admin",
+    "check-types": "turbo run check-types",
+    "lint": "turbo run lint",
+    "format": "pnpm --recursive exec prettier --write .",
+    "format:check": "pnpm --recursive exec prettier --check .",
+    "db:generate": "pnpm --filter @boletera/database prisma:generate",
+    "postinstall": "pnpm db:generate",
+    "db:migrate:dev": "pnpm --filter @boletera/database prisma:migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @boletera/database prisma:migrate:deploy",
+    "db:seed": "pnpm --filter @boletera/database prisma:seed",
+    "db:studio": "pnpm --filter @boletera/database prisma:studio",
+    "db:reset": "pnpm --filter @boletera/database prisma:reset",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f postgres"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^22.10.0",
+    "prettier": "^3.3.3",
+    "turbo": "^2.9.14"
+  }
+}

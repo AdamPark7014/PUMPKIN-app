@@ -1,0 +1,138 @@
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  color: #171717;
+}
+
+.user {
+  color: #525252;
+}
+
+.logout {
+  margin: 1rem 0 2rem;
+  background: transparent;
+  border: 1px solid #d4d4d4;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #171717;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+
+  :global(li) {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.status {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #e11d48;
+}
+
+.section {
+  margin: 2rem 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e5e5;
+
+  :global(h2) {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+  }
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: #737373;
+  margin-bottom: 0.75rem;
+}
+
+.orderLinks {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+
+  :global(a) {
+    color: #e11d48;
+    font-size: 0.875rem;
+  }
+}
+
+.toastOk,
+.toastErr {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 20;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.toastOk {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.toastErr {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.formRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+
+  :global(input) {
+    flex: 1;
+    min-width: 160px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #d4d4d4;
+  }
+
+  :global(button) {
+    padding: 0.5rem 1rem;
+    background: #171717;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+}
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 400px;
+
+  :global(select),
+  :global(input) {
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #d4d4d4;
+  }
+
+  :global(button) {
+    padding: 0.5rem 1rem;
+    background: #e11d48;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 0.25rem;
+  }
+}
+

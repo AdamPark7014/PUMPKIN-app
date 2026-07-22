@@ -1,0 +1,27 @@
+@use '../styles/tokens' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: $paper-0;
+  border-radius: $radius-lg;
+  padding: 1.5rem;
+  max-width: 32rem;
+  width: 90%;
+  box-shadow: $shadow-md;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: $ink-950;
+}

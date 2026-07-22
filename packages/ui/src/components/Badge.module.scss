@@ -1,0 +1,20 @@
+@use '../styles/tokens' as *;
+
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: $radius-sm;
+  background: $paper-50;
+  color: $ink-700;
+  border: 1px solid $ink-300;
+}
+.success {
+  background: $paper-50;
+  color: $ink-900;
+}
+.warning {
+  background: $ink-200;
+  color: $ink-900;
+}

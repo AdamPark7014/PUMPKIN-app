@@ -1,0 +1,21 @@
+{
+  "name": "@boletera/venue-3d",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": { "check-types": "tsc --noEmit" },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@react-three/fiber": "^8.17.0",
+    "@react-three/drei": "^9.117.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/three": "^0.170.0",
+    "typescript": "^5.9.2"
+  }
+}
+

@@ -445,7 +445,7 @@ $hero-bg: #08080c;
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba($accent, 0.12), rgba($violet, 0.1));
+  background: linear-gradient(135deg, rgba($accent, 0.12), rgba($accent-soft, 0.1));
   color: $accent;
   margin-bottom: 1rem;
 }
@@ -1025,7 +1025,7 @@ $hero-bg: #08080c;
   margin: 0 auto 3rem;
   padding: 2.5rem;
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba($accent, 0.08), rgba($violet, 0.08));
+  background: linear-gradient(135deg, rgba($accent, 0.08), rgba($accent-soft, 0.08));
   border: 1px solid rgba($accent, 0.2);
   text-align: center;
 

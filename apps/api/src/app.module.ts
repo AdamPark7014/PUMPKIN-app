@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import {
   PrismaModule,
   CommonModule,
@@ -47,7 +49,16 @@ import { AppService } from './app.service';
         '../../.env',
       ],
     }),
-    
+    ThrottlerModule.forRoot([
+      {
+        // Generous default so normal browsing/polling isn't affected;
+        // brute-force-sensitive routes (login, manager PIN) set their own
+        // tighter @Throttle() limits.
+        ttl: 60_000,
+        limit: 120,
+      },
+    ]),
+
   CommonModule,
     TenantModule,
     PrismaModule,
@@ -85,7 +96,7 @@ import { AppService } from './app.service';
     SeasonModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
   exports: [AppService],
 })
 export class AppModule {}

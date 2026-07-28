@@ -630,122 +630,66 @@ RESPONSE (200 OK):
 }
 ```
 
-### 15. Get AI Seat Recommendations
+### 15. Get Seat Recommendations (canonical)
 ```
-GET /api/v1/layouts/{layoutId}/recommendations
+POST /api/v1/3d/events/{eventId}/recommendations
 Authorization: Bearer {token}
 
 REQUEST BODY:
 {
-  "budget": 300,
-  "preferences": "BEST_VIEW",  // BEST_VIEW, PREMIUM, STANDARD, BUDGET
-  "partySize": 2,
-  "accessibilityNeeds": {
-    "wheelchairAccessible": false,
-    "aslInterpreter": false,
-    "assistiveListening": false
-  }
+  "count": 2,
+  "viewQuality": "best",
+  "tier": "premium"
 }
 
 RESPONSE (200 OK):
 {
-  "layoutId": "layout_msg_2026_main",
   "eventId": "evt_taylor_2026",
   "recommendations": [
     {
       "seatId": "seat_A_25_50",
-      "seatNumber": "A-25-50",
-      "price": 225,
       "score": 95.5,
-      "coordinates": {
-        "x": 12.5,
-        "y": 8.3,
-        "z": 2.1,
-        "sectionId": "A"
-      },
-      "sightlineScore": 95.5
-    },
-    {
-      "seatId": "seat_A_26_50",
-      "seatNumber": "A-26-50",
-      "price": 225,
-      "score": 94.2,
-      "coordinates": {...}
+      "tier": "premium"
     }
-  ],
-  "topRecommendations": 2
+  ]
 }
 ```
 
-### 16. Get Occupancy Heatmap
+> Removed: `GET /layouts/{layoutId}/recommendations/:eventId` (use this endpoint).
+
+### 16. Get Occupancy Heatmap (canonical)
 ```
-GET /api/v1/layouts/{layoutId}/heatmap/{eventId}
-Authorization: Bearer {token}
+GET /api/v1/3d/events/{eventId}/heatmap
 
 RESPONSE (200 OK):
 {
-  "layoutId": "layout_msg_2026_main",
   "eventId": "evt_taylor_2026",
   "heatmap": {
-    "A": {
-      "occupied": 4750,
-      "available": 250,
-      "percentage": 95.0,
-      "status": "near_sold_out"
-    },
-    "B": {
-      "occupied": 2800,
-      "available": 1200,
-      "percentage": 70.0,
-      "status": "popular"
-    },
-    "C": {
-      "occupied": 4000,
-      "available": 4000,
-      "percentage": 50.0,
-      "status": "moderate"
-    },
-    "D": {
-      "occupied": 1200,
-      "available": 1800,
-      "percentage": 40.0,
-      "status": "available"
-    }
+    "A": { "occupied": 4750, "available": 250, "percentage": 95.0 },
+    "B": { "occupied": 2800, "available": 1200, "percentage": 70.0 }
   }
 }
 ```
 
-### 17. Get 3D Visualization Data
+> Removed: `GET /layouts/{layoutId}/heatmap/{eventId}`.
+
+### 17. Live Interactive Seat Status (canonical)
 ```
-GET /api/v1/layouts/{layoutId}/3d/{eventId}
-Authorization: Bearer {token}
+GET /api/v1/3d/events/{eventId}/interactive
 
 RESPONSE (200 OK):
 {
-  "layoutId": "layout_msg_2026_main",
-  "venueName": "Madison Square Garden",
-  "capacity": 20000,
-  "seats": [
-    {
-      "id": "seat_A_1_1",
-      "number": "A-1-1",
-      "coordinates": {
-        "x": 50.5,
-        "y": 30.2,
-        "z": 0.0
-      },
-      "priceMultiplier": 1.5,
-      "status": "SOLD",
-      "sightlineScore": 92.3,
-      "accessibility": {
-        "wheelchairAccessible": false,
-        "aslInterpreter": false
-      }
-    },
-    {...more seats...}
-  ]
+  "eventId": "evt_taylor_2026",
+  "statusBySeat": {
+    "seat_A_1_1": "available",
+    "seat_A_1_2": "sold"
+  }
 }
 ```
+
+Geometry is projected client-side from published `SeatMapData` via `@boletera/venue-3d`.
+
+> Removed: `GET /layouts/{layoutId}/3d/{eventId}`.
 
 ### 18. Hold Seats
 ```

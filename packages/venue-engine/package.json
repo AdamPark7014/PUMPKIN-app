@@ -3,9 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "scripts": { "build": "tsc", "check-types": "tsc --noEmit" },
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "require": "./dist/index.js",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --noEmit",
+    "smoke": "node scripts/run-smokes.cjs"
+  },
   "dependencies": { "@boletera/shared": "workspace:*" },
   "devDependencies": { "typescript": "^5.9.2" }
 }
-

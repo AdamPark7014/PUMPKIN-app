@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -11,8 +11,12 @@ import {
   publishEvent,
   updateOffer,
   setEventPricing,
+  getVenueLayout,
   type EventHub,
 } from '@/lib/platform-api';
+import { flatSeats, normalizeSeatMap, resolveOfferForSection } from '@boletera/venue-engine';
+import type { SeatMapData } from '@boletera/shared';
+import { useToast } from '@/components/Toast/ToastProvider';
 import platform from '../../_styles/platform.module.scss';
 
 const Venue3DViewer = dynamic(
@@ -47,11 +51,10 @@ export default function EventHubPage() {
   const [channels, setChannels] = useState<ChannelPct>({ web: 50, taquilla: 35, api: 15 });
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [publishMsg, setPublishMsg] = useState<string | null>(null);
-  const [channelError, setChannelError] = useState<string | null>(null);
   const [offerEdits, setOfferEdits] = useState<Record<string, string>>({});
   const [pricingSaving, setPricingSaving] = useState<string | null>(null);
   const [dynamicPricing, setDynamicPricing] = useState(false);
+  const toast = useToast();
 
   function reload() {
     const token = localStorage.getItem('boletera_token');
@@ -73,12 +76,15 @@ export default function EventHubPage() {
     const token = localStorage.getItem('boletera_token');
     if (!token || !id || !hub) return;
     const base = Number(hub.event.offers?.[0]?.basePrice ?? 100);
-    await setEventPricing(token, id, {
-      basePrice: base,
-      dynamicPricingEnabled: dynamicPricing,
-    });
-    setPricingSaving('Pricing dinámico actualizado');
-    setTimeout(() => setPricingSaving(null), 2500);
+    try {
+      await setEventPricing(token, id, {
+        basePrice: base,
+        dynamicPricingEnabled: dynamicPricing,
+      });
+      toast.success('Pricing dinámico actualizado');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al guardar el pricing dinámico');
+    }
   }
 
   useEffect(() => {
@@ -88,10 +94,9 @@ export default function EventHubPage() {
   async function saveChannels() {
     const total = channels.web + channels.taquilla + channels.api;
     if (total !== 100) {
-      setChannelError(`La suma debe ser 100% (actual: ${total}%)`);
+      toast.error(`La suma debe ser 100% (actual: ${total}%)`);
       return;
     }
-    setChannelError(null);
     const token = localStorage.getItem('boletera_token');
     if (!token || !id) return;
     setSaving(true);
@@ -101,9 +106,10 @@ export default function EventHubPage() {
         taquilla: { enabled: true, allocation: channels.taquilla, locations: [] },
         api: { enabled: true, allocation: channels.api },
       });
+      toast.success('Canales guardados');
       reload();
     } catch (e) {
-      setChannelError(e instanceof Error ? e.message : 'Error al guardar');
+      toast.error(e instanceof Error ? e.message : 'Error al guardar');
     } finally {
       setSaving(false);
     }
@@ -117,24 +123,71 @@ export default function EventHubPage() {
     setPricingSaving(offerId);
     try {
       await updateOffer(token, id, offerId, { basePrice: price });
+      toast.success('Precio actualizado');
       reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al guardar el precio');
     } finally {
       setPricingSaving(null);
     }
   }
 
-  const [seatPreview, setSeatPreview] = useState<{ x: number; y: number; z: number } | undefined>();
+  const [seats3dStatus, setSeats3dStatus] = useState<Record<string, string>>({});
+  const [venueMapData, setVenueMapData] = useState<SeatMapData | null>(null);
 
   useEffect(() => {
-    if (tab === 'map3d' && id) {
-      fetch(`${API}/3d/events/${id}/interactive`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data: { venue?: { seats: { x: number; y: number; z: number; status: string }[] }[] } | null) => {
-          const first = data?.venue?.[0]?.seats?.find((s) => s.status === 'available');
-          if (first) setSeatPreview({ x: first.x / 50, y: first.z / 20, z: first.y / 50 });
-        });
-    }
+    if (tab !== 'map3d' || !id) return;
+    fetch(`${API}/3d/events/${id}/interactive`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { statusBySeat?: Record<string, string> } | null) => {
+        if (data?.statusBySeat) setSeats3dStatus(data.statusBySeat);
+      })
+      .catch(() => {});
   }, [tab, id]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('boletera_token');
+    const vId = (hub?.event as { venue?: { id?: string } } | undefined)?.venue?.id;
+    if (tab !== 'map3d' || !token || !vId) return;
+    getVenueLayout(token, vId).then((data) => setVenueMapData(data.layout.mapData));
+  }, [tab, hub]);
+
+  const normalizedVenueMap = useMemo(
+    () => (venueMapData ? normalizeSeatMap(venueMapData) : null),
+    [venueMapData],
+  );
+
+  const seatsFor3d = useMemo(() => {
+    const normalized = normalizedVenueMap;
+    if (!normalized) return [];
+    const offers = hub?.event.offers ?? [];
+    return flatSeats(normalized).map((seat) => {
+      const sec = normalized.sections.find((s) => s.id === seat.sectionId);
+      const offer = resolveOfferForSection(offers, sec?.slug ?? '', seat.sectionName);
+      return {
+        id: seat.id,
+        label: seat.label,
+        x: seat.x,
+        y: seat.y,
+        z: seat.position?.y ?? seat.elevation ?? 0,
+        rotation: seat.rotation,
+        row: seat.row,
+        elevation: seat.elevation,
+        position: seat.position,
+        rotation3d: seat.rotation3d,
+        coord3d: seat.coord3d,
+        visibility: seat.visibility,
+        section: seat.sectionName,
+        color: seat.sectionColor,
+        price: offer ? Number(offer.basePrice) : undefined,
+        levelId: seat.levelId,
+        status:
+          seat.visibility?.blocked
+            ? ('blocked' as const)
+            : (seats3dStatus[seat.id] as 'available' | 'held' | 'sold' | 'blocked') || 'available',
+      };
+    });
+  }, [normalizedVenueMap, hub, seats3dStatus]);
 
   if (!hub) {
     return <p>Cargando evento…</p>;
@@ -160,16 +213,16 @@ export default function EventHubPage() {
             className={platform.primaryBtn}
             disabled={publishing}
             onClick={async () => {
+              if (!confirm('¿Publicar el inventario de este evento? Esto genera los boletos vendibles a partir del mapa guardado.')) return;
               const token = localStorage.getItem('boletera_token');
               if (!token || !id) return;
               setPublishing(true);
-              setPublishMsg(null);
               try {
                 const r = await publishEvent(token, id);
-                setPublishMsg(`Publicado: ${r.totalSeats} boletos en ${r.sections} zonas`);
+                toast.success(`Publicado: ${r.totalSeats} boletos en ${r.sections} zonas`);
                 reload();
               } catch (e) {
-                setPublishMsg(e instanceof Error ? e.message : 'Error al publicar');
+                toast.error(e instanceof Error ? e.message : 'Error al publicar');
               } finally {
                 setPublishing(false);
               }
@@ -187,9 +240,6 @@ export default function EventHubPage() {
           </Link>
         </div>
       </header>
-      {publishMsg && (
-        <p style={{ marginBottom: '1rem', fontSize: '0.875rem', color: '#404040' }}>{publishMsg}</p>
-      )}
 
       <div className={platform.cardGrid}>
         <article className={platform.statCard}>
@@ -290,7 +340,6 @@ export default function EventHubPage() {
           <p style={{ fontSize: '0.8125rem', color: channelTotal === 100 ? '#404040' : '#b91c1c' }}>
             Total: {channelTotal}% {channelTotal !== 100 && '— ajusta hasta 100%'}
           </p>
-          {channelError && <p style={{ color: '#b91c1c', fontSize: '0.875rem' }}>{channelError}</p>}
           <button
             type="button"
             className={platform.primaryBtn}
@@ -321,7 +370,26 @@ export default function EventHubPage() {
       {tab === 'map3d' && (
         <section className={platform.panel}>
           <h2>Vista 3D + asientos en vivo</h2>
-          <Venue3DViewer mode={seatPreview ? 'seat' : 'orbit'} selectedSeat={seatPreview} />
+          {venueMapData && seatsFor3d.length === 0 ? (
+            <p style={{ fontSize: '0.8125rem', color: '#737373' }}>
+              El venue todavía no tiene asientos en su layout.
+            </p>
+          ) : (
+            <Venue3DViewer
+              mode="orbit"
+              seats={seatsFor3d}
+              currency="MXN"
+              stage={normalizedVenueMap?.venue?.stage}
+              aisles={normalizedVenueMap?.venue?.aisles}
+              obstacles={normalizedVenueMap?.venue?.obstacles}
+              stairs={normalizedVenueMap?.venue?.stairs}
+              exits={normalizedVenueMap?.venue?.exits}
+              furniture={normalizedVenueMap?.venue?.furniture}
+              focusPoints={normalizedVenueMap?.venue?.focusPoints}
+              levels={normalizedVenueMap?.venue?.levels}
+              mapData={normalizedVenueMap}
+            />
+          )}
           <p style={{ marginTop: '0.75rem', fontSize: '0.8125rem', color: '#737373' }}>
             Publica inventario antes de vender. Editor:{' '}
             <Link href={`/venues/${venueId}/map`}>mapa del venue</Link>

@@ -1,138 +1,382 @@
-.page {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-  color: #171717;
-}
-
-.user {
-  color: #525252;
-}
-
-.logout {
-  margin: 1rem 0 2rem;
-  background: transparent;
-  border: 1px solid #d4d4d4;
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #171717;
-}
-
-.list {
-  list-style: none;
-  padding: 0;
-
-  :global(li) {
-    border: 1px solid #e5e5e5;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
-  }
-}
-
-.status {
-  margin-left: 0.5rem;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: #e11d48;
-}
-
-.section {
-  margin: 2rem 0;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e5e5e5;
-
-  :global(h2) {
-    font-size: 1.125rem;
-    margin-bottom: 1rem;
-  }
-}
-
-.hint {
-  font-size: 0.875rem;
-  color: #737373;
-  margin-bottom: 0.75rem;
-}
-
-.orderLinks {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.5rem;
-
-  :global(a) {
-    color: #e11d48;
-    font-size: 0.875rem;
-  }
-}
-
-.toastOk,
-.toastErr {
-  position: sticky;
-  top: 0.75rem;
-  z-index: 20;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-}
-
-.toastOk {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-}
-
-.toastErr {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.formRow {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-
-  :global(input) {
-    flex: 1;
-    min-width: 160px;
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    border: 1px solid #d4d4d4;
-  }
-
-  :global(button) {
-    padding: 0.5rem 1rem;
-    background: #171717;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-}
-
-.formStack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-width: 400px;
-
-  :global(select),
-  :global(input) {
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    border: 1px solid #d4d4d4;
-  }
-
-  :global(button) {
-    padding: 0.5rem 1rem;
-    background: #e11d48;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-top: 0.25rem;
-  }
-}
-
+.shell {
+  min-height: 100vh;
+  color: #0a0a0a;
+  background:
+    radial-gradient(110% 70% at 0% -5%, rgba(225, 29, 72, 0.05), transparent 50%),
+    linear-gradient(180deg, #fafafa 0%, #f4f4f5 55%, #fafafa 100%);
+}
+
+.page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1.75rem clamp(1rem, 3vw, 2rem) 3rem;
+}
+
+.hero {
+  margin-bottom: 1.75rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #737373;
+}
+
+.hero h1 {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+  font-size: clamp(2.3rem, 5vw, 3.2rem);
+  letter-spacing: 0.03em;
+  line-height: 0.92;
+}
+
+.user {
+  margin: 0;
+  color: #525252;
+  font-size: 0.92rem;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.browse {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.9rem;
+  background: #e11d48;
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    background: #be123c;
+  }
+}
+
+.logout {
+  padding: 0.55rem 0.9rem;
+  background: transparent;
+  border: 1px solid #e5e5e5;
+  cursor: pointer;
+  color: #404040;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.wallet {
+  margin-bottom: 1.5rem;
+}
+
+.walletHead {
+  margin-bottom: 0.85rem;
+
+  h2 {
+    margin: 0 0 0.25rem;
+    font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+    font-size: 1.55rem;
+    letter-spacing: 0.04em;
+  }
+}
+
+.loading {
+  color: #737373;
+  font-size: 0.9rem;
+}
+
+.walletList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.walletCard {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.9rem;
+  align-items: start;
+  border: 1px solid #e5e5e5;
+  padding: 1rem 1.05rem;
+  background: #fff;
+
+  @media (max-width: 620px) {
+    grid-template-columns: auto 1fr;
+  }
+}
+
+.walletDateBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3rem;
+  padding: 0.4rem 0.45rem;
+  background: #0a0a0a;
+  color: #fff;
+  line-height: 1.05;
+
+  strong {
+    font-size: 1.15rem;
+  }
+
+  span {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #fb7185;
+    font-weight: 700;
+  }
+}
+
+.walletBody {
+  min-width: 0;
+}
+
+.walletDate {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #737373;
+}
+
+.walletTitle {
+  display: block;
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.walletMeta {
+  margin: 0.3rem 0 0;
+  font-size: 0.8125rem;
+  color: #525252;
+}
+
+.walletSeat {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: #737373;
+}
+
+.walletActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: stretch;
+  min-width: 7.5rem;
+
+  @media (max-width: 620px) {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  a {
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #525252;
+    text-decoration: none;
+
+    &:hover {
+      color: #e11d48;
+    }
+  }
+}
+
+.qrCta {
+  display: inline-block;
+  padding: 0.55rem 0.85rem;
+  background: #171717;
+  color: #fff !important;
+  text-decoration: none;
+  font-weight: 700 !important;
+  font-size: 0.82rem !important;
+
+  &:hover {
+    background: #e11d48 !important;
+    color: #fff !important;
+  }
+}
+
+.emptyWallet {
+  padding: 1.35rem 1.2rem;
+  border: 1px dashed #d4d4d4;
+  background: rgba(255, 255, 255, 0.7);
+  text-align: center;
+
+  strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 0 0 0.85rem;
+    color: #737373;
+    font-size: 0.9rem;
+  }
+
+  a {
+    color: #e11d48;
+    font-weight: 700;
+    font-size: 0.88rem;
+  }
+}
+
+.toolsToggle {
+  width: 100%;
+  margin: 0.5rem 0 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #404040;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    border: 1px solid #e5e5e5;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: #fff;
+  }
+}
+
+.status {
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #e11d48;
+  font-weight: 700;
+}
+
+.section {
+  margin: 1.75rem 0;
+  padding-top: 1.35rem;
+  border-top: 1px solid #e5e5e5;
+
+  h2 {
+    font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+    font-size: 1.45rem;
+    letter-spacing: 0.04em;
+    margin: 0 0 0.85rem;
+  }
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: #737373;
+  margin: 0 0 0.75rem;
+}
+
+.orderLinks {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+
+  a {
+    color: #e11d48;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+}
+
+.toastOk,
+.toastErr {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 20;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.toastOk {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.toastErr {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.formRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+
+  input {
+    flex: 1;
+    min-width: 160px;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid #d4d4d4;
+    font: inherit;
+  }
+
+  button {
+    padding: 0.55rem 1rem;
+    background: #171717;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+}
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 400px;
+
+  select,
+  input {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid #d4d4d4;
+    font: inherit;
+  }
+
+  button {
+    align-self: flex-start;
+    padding: 0.55rem 1rem;
+    background: #171717;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+}
+
+  button {
+    padding: 0.6rem 1rem;
+    background: #e11d48;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    margin-top: 0.25rem;
+    font-weight: 700;
+  }
+}

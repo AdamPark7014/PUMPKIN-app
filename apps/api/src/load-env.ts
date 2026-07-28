@@ -18,7 +18,8 @@ export function loadEnvFiles() {
   const loaded: string[] = [];
   for (const file of candidates) {
     if (!existsSync(file)) continue;
-    const result = config({ path: file, override: false });
+    // Prefer file values over stale machine/user env (e.g. wrong Postgres port).
+    const result = config({ path: file, override: true });
     if (!result.error) loaded.push(file);
   }
 

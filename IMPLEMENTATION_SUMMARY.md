@@ -99,11 +99,10 @@ BOLETERA has been implemented as a **HYBRID MEGA-POTENT** ticketing platform com
 
 **Key Services:**
 - `createVenueLayout()` - Generate layout from sections
-- `calculateSightlineScores()` - ML-based view quality scoring
-- `getAISeatRecommendations()` - Smart seat suggestions
-- `getOccupancyHeatmap()` - Real-time occupancy by section
-- `get3DVisualizationData()` - 3D venue model data
+- `calculateSightlineScores()` - View quality scoring (venue-engine)
 - `holdSeats()` / `releaseSeats()` - Inventory locking
+
+Live 3D / occupancy / recommendations live under **SeatMapping3D** (`/3d/events/...`), not layout proxies.
 
 ---
 

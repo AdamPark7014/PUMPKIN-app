@@ -1,0 +1,201 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+
+  button {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid #e5e5e5;
+    background: #fafafa;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #0a0a0a;
+
+    &:hover {
+      border-color: #a3a3a3;
+    }
+  }
+}
+
+.monthTitle {
+  flex: 1;
+  text-align: center;
+  font-size: 1.05rem;
+  text-transform: capitalize;
+  min-width: 10rem;
+}
+
+.todayBtn {
+  width: auto !important;
+  padding: 0 0.75rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #737373;
+  padding: 0.35rem 0;
+}
+
+.emptyCell {
+  min-height: 5.5rem;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.dayCell {
+  min-height: 5.5rem;
+  padding: 0.4rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font: inherit;
+  color: inherit;
+
+  &:hover {
+    border-color: #a3a3a3;
+  }
+
+  @media (max-width: 800px) {
+    min-height: 3.5rem;
+  }
+}
+
+.today {
+  border-color: #e11d48;
+  box-shadow: inset 0 0 0 1px #e11d48;
+}
+
+.selected {
+  background: #fff1f2;
+  border-color: #e11d48;
+}
+
+.dayNum {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #404040;
+}
+
+.dots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-height: 0;
+
+  @media (max-width: 800px) {
+    display: none;
+  }
+}
+
+.dots li {
+  display: flex;
+  gap: 0.25rem;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  color: #525252;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dotTime {
+  font-weight: 700;
+  color: #e11d48;
+  flex-shrink: 0;
+}
+
+.dotTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.more {
+  font-size: 0.62rem;
+  color: #737373;
+  font-weight: 600;
+}
+
+.detail {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+
+  h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+  }
+}
+
+.muted {
+  color: #737373;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.eventList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+  }
+
+  strong {
+    display: block;
+    font-size: 0.9rem;
+  }
+
+  span {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.78rem;
+    color: #737373;
+  }
+}

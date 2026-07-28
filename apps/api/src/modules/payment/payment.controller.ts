@@ -92,7 +92,7 @@ export class PaymentController {
 
   @Post('refunds/:refundId/complete')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'SUPER_ADMIN')
+  @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Mark pending Banorte-portal refund as completed and release inventory',

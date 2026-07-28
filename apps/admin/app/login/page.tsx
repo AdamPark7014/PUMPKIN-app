@@ -82,8 +82,8 @@ function Sparkline() {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@demo.boletera.com');
-  const [password, setPassword] = useState('Admin123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
@@ -144,24 +144,24 @@ export default function LoginPage() {
               </div>
               <div>
                 <p className={styles.logoText}>BOLETERA</p>
-                <p className={styles.logoSub}>Admin Console</p>
+                <p className={styles.logoSub}>Administración</p>
               </div>
             </div>
             <span className={styles.badgeLive}>
               <span className={styles.dot} />
-              {time} · operación normal
+              {time}
             </span>
           </div>
 
           <div className={styles.brandHero}>
-            <p className={styles.brandKicker}>Plataforma híbrida de ticketing</p>
+            <p className={styles.brandKicker}>Panel de organizador</p>
             <h2 className={styles.brandTitle}>
-              Controla cada boleto,
+              Eventos, ventas
               <br />
-              cada canal, en tiempo real.
+              y liquidaciones.
             </h2>
             <p className={styles.brandCopy}>
-              Inventario unificado, taquilla offline-first, reportes con SLA y antifraude integrado.
+              Inventario, taquilla, Banorte y reportes en un solo lugar.
             </p>
           </div>
 
@@ -221,7 +221,7 @@ export default function LoginPage() {
               </div>
               <div>
                 <p className={styles.logoText}>BOLETERA</p>
-                <p className={styles.logoSub}>Admin Console</p>
+                <p className={styles.logoSub}>Administración</p>
               </div>
             </div>
 

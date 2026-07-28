@@ -69,17 +69,6 @@ class ApiClient {
     async createVenueLayout(venueId, data) {
         return this.instance.post(`/layouts/venue/${venueId}`, data);
     }
-    async getAISeatRecommendations(layoutId, eventId, count = 2) {
-        return this.instance.get(`/layouts/${layoutId}/recommendations/${eventId}`, {
-            params: { count },
-        });
-    }
-    async getOccupancyHeatmap(layoutId, eventId) {
-        return this.instance.get(`/layouts/${layoutId}/heatmap/${eventId}`);
-    }
-    async get3DVisualization(layoutId, eventId) {
-        return this.instance.get(`/layouts/${layoutId}/3d/${eventId}`);
-    }
     async holdSeats(layoutId, eventId, seatIds, sessionId, durationMinutes = 10) {
         return this.instance.post(`/layouts/${layoutId}/seats/hold`, {
             eventId,
@@ -139,12 +128,15 @@ class ApiClient {
     async endCashierSession(sessionId) {
         return this.instance.post('/taquilla/session/end', { sessionId });
     }
-    // 3D
+    // 3D / live inventory (canonical)
     async getInteractive3D(eventId) {
         return this.instance.get(`/3d/events/${eventId}/interactive`);
     }
     async get3DRecommendations(eventId, preferences) {
         return this.instance.post(`/3d/events/${eventId}/recommendations`, preferences);
+    }
+    async getEventOccupancyHeatmap(eventId) {
+        return this.instance.get(`/3d/events/${eventId}/heatmap`);
     }
     // Discovery (web)
     async listPublicEvents() {

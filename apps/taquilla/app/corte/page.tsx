@@ -2,33 +2,50 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getCashierId, getSessionId } from '@/lib/pos';
+import { useRouter } from 'next/navigation';
+import {
+  getTaquillaToken,
+  getTaquillaUser,
+  getTerminalLabel,
+  saveTaquillaSession,
+} from '@/lib/auth';
+import { PosShell } from '@/components/PosShell';
+import {
+  endSession,
+  fetchSessionSummary,
+  getCashierId,
+  getOpeningCash,
+  getSessionId,
+  addCashDrop,
+  handoffShift,
+  type SessionSummary,
+} from '@/lib/pos';
 import styles from './corte.module.scss';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-
-type ShiftReport = {
-  totalTransactions: number;
-  totalRevenue: number;
-  byMethod: Record<string, number>;
-  startTime: string;
-  endTime: string;
-};
+function money(n: number) {
+  return `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 function methodMeta(m: string) {
-  const map: Record<string, { label: string; color: string; icon: string }> = {
-    CASH: { label: 'Efectivo', color: '#171717', icon: 'E' },
-    CARD: { label: 'Tarjeta', color: '#e11d48', icon: 'T' },
-    OTHER: { label: 'Otro', color: '#737373', icon: '•' },
+  const map: Record<string, { label: string; color: string }> = {
+    CASH: { label: 'Efectivo', color: '#a1a1aa' },
+    CARD: { label: 'Tarjeta', color: '#d4d4d8' },
   };
-  return map[m] ?? { label: m, color: '#737373', icon: '•' };
+  return map[m] ?? { label: m, color: '#737373' };
 }
 
 export default function CortePage() {
-  const [report, setReport] = useState<ShiftReport | null>(null);
+  const router = useRouter();
+  const [report, setReport] = useState<SessionSummary | null>(null);
+  const [counted, setCounted] = useState('');
   const [loading, setLoading] = useState(false);
   const [closed, setClosed] = useState(false);
+  const [closedReport, setClosedReport] = useState<Record<string, unknown> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [dropAmount, setDropAmount] = useState('');
+  const [managerPin, setManagerPin] = useState('');
+  const [handoffCashier, setHandoffCashier] = useState('');
+  const [handoffDone, setHandoffDone] = useState(false);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -36,28 +53,55 @@ export default function CortePage() {
   }
 
   useEffect(() => {
+    if (!getTaquillaToken()) router.replace('/login');
+  }, [router]);
+
+  useEffect(() => {
     const sessionId = getSessionId();
     if (!sessionId) return;
-    fetch(`${API}/taquilla/session/summary?sessionId=${sessionId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setReport)
+    fetchSessionSummary(sessionId)
+      .then((s) => {
+        setReport(s);
+        setCounted(String(s.expectedCash.toFixed(2)));
+      })
       .catch(() => {});
   }, []);
 
-  function printCorte() {
-    if (!report) return;
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'F12' && !closed) {
+        e.preventDefault();
+        void closeShift();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closed, counted, report]);
+
+  function printCorte(data: SessionSummary | Record<string, unknown>) {
+    const r = data as SessionSummary & {
+      closingCashCounted?: number;
+      variance?: number;
+      endTime?: string;
+    };
     const lines = [
       'CORTE DE CAJA — BOLETERA',
       `Cajero: ${getCashierId()}`,
-      `Inicio: ${new Date(report.startTime).toLocaleString('es-MX')}`,
-      `Fin: ${new Date(report.endTime).toLocaleString('es-MX')}`,
+      `Inicio: ${new Date(r.startTime).toLocaleString('es-MX')}`,
+      `Fin: ${new Date(r.endTime || Date.now()).toLocaleString('es-MX')}`,
       '',
-      `Transacciones: ${report.totalTransactions}`,
-      `Total: $${Number(report.totalRevenue).toFixed(2)}`,
+      `Transacciones: ${r.totalTransactions}`,
+      `Total ventas: ${money(Number(r.totalRevenue))}`,
+      `Fondo inicial: ${money(Number(r.openingCash))}`,
+      `Ventas efectivo: ${money(Number(r.cashSales))}`,
+      `Esperado en caja: ${money(Number(r.expectedCash))}`,
+      r.closingCashCounted != null ? `Contado: ${money(Number(r.closingCashCounted))}` : '',
+      r.variance != null ? `Diferencia: ${money(Number(r.variance))}` : '',
       '',
-      ...Object.entries(report.byMethod || {}).map(([m, a]) => `${m}: $${Number(a).toFixed(2)}`),
-    ];
-    const w = window.open('', '_blank', 'width=320,height=520');
+      ...Object.entries(r.byMethod || {}).map(([m, a]) => `${m}: ${money(Number(a))}`),
+    ].filter(Boolean);
+    const w = window.open('', '_blank', 'width=320,height=560');
     if (!w) return;
     w.document.write(`<pre style="font-family:monospace;font-size:12px">${lines.join('\n')}</pre>`);
     w.document.close();
@@ -67,22 +111,26 @@ export default function CortePage() {
   async function closeShift() {
     const sessionId = getSessionId();
     if (!sessionId) {
-      showToast('No hay sesión activa. Inicia venta primero.');
+      showToast('No hay sesión activa. Inicia turno en login.');
+      return;
+    }
+    const countedNum = Number(counted);
+    if (!Number.isFinite(countedNum) || countedNum < 0) {
+      showToast('Ingresa el efectivo contado');
       return;
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API}/taquilla/session/end`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, cashierId: getCashierId() }),
+      const data = await endSession(sessionId, countedNum, managerPin || undefined);
+      setClosedReport(data);
+      setReport({
+        ...(report as SessionSummary),
+        ...data,
+        recentSales: report?.recentSales ?? [],
       });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setReport(data);
       setClosed(true);
       localStorage.removeItem('boletera_pos_session');
-      printCorte();
+      printCorte(data);
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Error en corte');
     } finally {
@@ -90,45 +138,168 @@ export default function CortePage() {
     }
   }
 
+  async function doHandoff() {
+    const countedNum = Number(counted);
+    if (!handoffCashier.trim()) {
+      showToast('Indica el ID/email del cajero entrante');
+      return;
+    }
+    if (!Number.isFinite(countedNum)) {
+      showToast('Ingresa efectivo contado');
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await handoffShift({
+        toCashierId: handoffCashier.trim(),
+        closingCashCounted: countedNum,
+        openingCash: countedNum,
+        managerPin: managerPin || undefined,
+      });
+      setClosedReport(data.closed);
+      setHandoffDone(true);
+      setClosed(true);
+      const token = getTaquillaToken();
+      const user = getTaquillaUser();
+      if (token && user) {
+        saveTaquillaSession(token, {
+          terminalLabel: getTerminalLabel(),
+          user: { ...user, id: handoffCashier.trim() },
+          cashierId: handoffCashier.trim(),
+        });
+      }
+      showToast('Handoff listo — turno del nuevo cajero abierto');
+      router.replace('/');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error en handoff');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const expected = report?.expectedCash ?? getOpeningCash();
+  const countedNum = Number(counted);
+  const variance =
+    Number.isFinite(countedNum) && report ? countedNum - expected : closedReport?.variance;
+
   const totalMethods = report
     ? Object.values(report.byMethod || {}).reduce((s, a) => s + Number(a), 0)
     : 0;
 
   return (
-    <main className={styles.page}>
-      <div className={styles.bg} aria-hidden="true" />
+    <PosShell title="Corte de caja" eyebrow="Cierre de turno" backHref="/">
       {toast && (
-        <p role="status" style={{ margin: '0.75rem 1rem', padding: '0.75rem 1rem', background: '#fef2f2', color: '#991b1b', borderRadius: 8 }}>
+        <p className={styles.toast} role="status">
           {toast}
         </p>
       )}
-
-      <header className={styles.header}>
-        <Link href="/" className={styles.back}>
-          ← Inicio
-        </Link>
-        <div className={styles.headerCenter}>
-          <p className={styles.eyebrow}>Cierre de turno</p>
-          <h1>Corte de caja</h1>
-        </div>
-        <span className={styles.cashier}>
-          <small>Cajero</small>
-          <strong>{getCashierId()}</strong>
-        </span>
-      </header>
 
       {report ? (
         <>
           <section className={styles.bigTotal}>
             <p className={styles.bigLabel}>Total cobrado en este turno</p>
-            <strong>
-              ${Number(report.totalRevenue).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-            </strong>
+            <strong>{money(report.totalRevenue)}</strong>
             <span className={styles.bigSub}>
-              {report.totalTransactions} transacciones · turno {new Date(report.startTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-              {' → '}
-              {new Date(report.endTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+              {report.totalTransactions} transacciones · fondo {money(report.openingCash)}
             </span>
+          </section>
+
+          <section className={styles.section}>
+            <h2>Arqueo de efectivo</h2>
+            <dl className={styles.details}>
+              <div>
+                <dt>Fondo inicial</dt>
+                <dd>{money(report.openingCash)}</dd>
+              </div>
+              <div>
+                <dt>Ventas efectivo</dt>
+                <dd>{money(report.cashSales)}</dd>
+              </div>
+              <div>
+                <dt>Retiros (drops)</dt>
+                <dd>{money(report.dropsTotal ?? 0)}</dd>
+              </div>
+              <div>
+                <dt>Esperado en caja</dt>
+                <dd>{money(report.expectedCash)}</dd>
+              </div>
+              <div>
+                <dt>Ventas tarjeta</dt>
+                <dd>{money(report.cardSales)}</dd>
+              </div>
+              <div>
+                <dt>Cortesías</dt>
+                <dd>{report.compCount ?? 0}</dd>
+              </div>
+            </dl>
+
+            {!closed && (
+              <>
+                <label className={styles.countField}>
+                  <small>Retiro de efectivo (drop)</small>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={dropAmount}
+                      onChange={(e) => setDropAmount(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={styles.printBtn}
+                      onClick={async () => {
+                        try {
+                          const s = await addCashDrop(Number(dropAmount), 'Drop de turno');
+                          setReport(s);
+                          setCounted(String(s.expectedCash.toFixed(2)));
+                          setDropAmount('');
+                          showToast('Drop registrado');
+                        } catch (e) {
+                          showToast(e instanceof Error ? e.message : 'Error');
+                        }
+                      }}
+                    >
+                      Registrar
+                    </button>
+                  </div>
+                </label>
+                <label className={styles.countField}>
+                  <small>Efectivo contado</small>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={counted}
+                    onChange={(e) => setCounted(e.target.value)}
+                  />
+                </label>
+                <label className={styles.countField}>
+                  <small>PIN gerente (si varianza &gt; $50)</small>
+                  <input
+                    type="password"
+                    value={managerPin}
+                    onChange={(e) => setManagerPin(e.target.value)}
+                    placeholder="2468"
+                  />
+                </label>
+                <label className={styles.countField}>
+                  <small>Handoff — ID cajero entrante</small>
+                  <input
+                    value={handoffCashier}
+                    onChange={(e) => setHandoffCashier(e.target.value)}
+                    placeholder="user-id del siguiente cajero"
+                  />
+                </label>
+              </>
+            )}
+
+            {variance != null && Number.isFinite(Number(variance)) && (
+              <p className={Number(variance) === 0 ? styles.varianceOk : styles.varianceBad}>
+                Diferencia: {money(Number(variance))}
+                {Number(variance) === 0 ? ' · cuadrado' : Number(variance) > 0 ? ' · sobrante' : ' · faltante'}
+              </p>
+            )}
           </section>
 
           {report.byMethod && Object.keys(report.byMethod).length > 0 && (
@@ -141,16 +312,13 @@ export default function CortePage() {
                   const meta = methodMeta(m);
                   return (
                     <li key={m}>
-                      <span className={styles.methodIcon} aria-hidden>
-                        {meta.icon}
-                      </span>
                       <div className={styles.methodInfo}>
                         <strong>{meta.label}</strong>
                         <div className={styles.bar}>
                           <span style={{ width: `${pct}%`, background: meta.color }} />
                         </div>
                       </div>
-                      <span className={styles.amount}>${amount.toFixed(2)}</span>
+                      <span className={styles.amount}>{money(amount)}</span>
                       <span className={styles.pct}>{pct}%</span>
                     </li>
                   );
@@ -158,62 +326,43 @@ export default function CortePage() {
               </ul>
             </section>
           )}
-
-          <section className={styles.section}>
-            <h2>Detalles</h2>
-            <dl className={styles.details}>
-              <div>
-                <dt>Transacciones</dt>
-                <dd>{report.totalTransactions}</dd>
-              </div>
-              <div>
-                <dt>Promedio por venta</dt>
-                <dd>
-                  $
-                  {report.totalTransactions
-                    ? (Number(report.totalRevenue) / report.totalTransactions).toFixed(2)
-                    : '0.00'}
-                </dd>
-              </div>
-              <div>
-                <dt>Inicio del turno</dt>
-                <dd>{new Date(report.startTime).toLocaleString('es-MX')}</dd>
-              </div>
-              <div>
-                <dt>Fin del turno</dt>
-                <dd>{new Date(report.endTime).toLocaleString('es-MX')}</dd>
-              </div>
-            </dl>
-          </section>
         </>
       ) : (
         <div className={styles.empty}>
-          <p>
-            Sin datos de turno todavía. Realiza ventas o cierra sesión para generar el corte.
-          </p>
+          <p>Sin datos de turno. Abre turno en login o realiza una venta.</p>
         </div>
       )}
 
       <div className={styles.actions}>
         {report && (
-          <button type="button" className={styles.printBtn} onClick={printCorte}>
-            <span>↻ Imprimir corte</span>
-            <small>vista ESC/POS</small>
+          <button
+            type="button"
+            className={styles.printBtn}
+            onClick={() => printCorte(closedReport || report)}
+          >
+            Imprimir corte
           </button>
         )}
         {!closed && (
-          <button type="button" className={styles.closeBtn} disabled={loading} onClick={closeShift}>
-            {loading ? 'Cerrando turno…' : 'Cerrar turno'}
-            <kbd>F12</kbd>
-          </button>
+          <>
+            <button type="button" className={styles.printBtn} disabled={loading} onClick={() => void doHandoff()}>
+              Entregar turno
+            </button>
+            <button type="button" className={styles.closeBtn} disabled={loading} onClick={() => void closeShift()}>
+              {loading ? 'Cerrando…' : 'Cerrar turno'}
+            </button>
+          </>
         )}
       </div>
 
       {closed && (
         <p className={styles.done}>
-          <span aria-hidden>✓</span> Turno cerrado correctamente. Que tengas buen día.
+          {handoffDone ? 'Turno entregado.' : 'Turno cerrado.'}{' '}
+          <Link href={handoffDone ? '/' : '/login'}>
+            {handoffDone ? 'Volver al inicio' : 'Abrir nuevo turno'}
+          </Link>
         </p>
       )}
-    </main>
+    </PosShell>
   );
 }

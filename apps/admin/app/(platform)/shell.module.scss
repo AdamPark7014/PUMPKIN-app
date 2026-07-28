@@ -9,12 +9,12 @@
 .sidebar {
   width: 260px;
   flex-shrink: 0;
-  background: #0b0b0f;
+  background: #18181b;
   color: #fafafa;
   padding: 1.25rem 0.875rem;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid #27272a;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -73,18 +73,17 @@
 
 .logoText {
   margin: 0;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
   color: #fafafa;
 }
 
 .logoSub {
   margin: 0;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: rgba(250, 250, 250, 0.45);
 }
 
@@ -189,7 +188,7 @@
 }
 
 .active {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(225, 29, 72, 0.12);
   color: #fafafa;
 
   &::before {
@@ -198,14 +197,14 @@
     left: -0.875rem;
     top: 50%;
     transform: translateY(-50%);
-    width: 3px;
-    height: 16px;
-    background: linear-gradient(180deg, #e11d48, #fb7185);
-    border-radius: 0 3px 3px 0;
+    width: 2px;
+    height: 14px;
+    background: #e11d48;
+    border-radius: 0 2px 2px 0;
   }
 
   .navIcon {
-    color: #fecdd3;
+    color: #fb7185;
   }
 }
 
@@ -253,7 +252,7 @@
   font-size: 0.8125rem;
   font-weight: 600;
   color: #fafafa;
-  background: linear-gradient(135deg, #e11d48, #fb7185);
+  background: #3f3f46;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -399,19 +398,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 8px #22c55e;
-  animation: pulseGreen 2s ease infinite;
-}
-
-@keyframes pulseGreen {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  background: #16a34a;
 }
 
 .iconBtn {
@@ -447,7 +434,7 @@
   font-size: 0.625rem;
   font-weight: 600;
   color: #fff;
-  background: #ef4444;
+  background: #52525b;
   border: 2px solid #f7f7f8;
   border-radius: 999px;
 }

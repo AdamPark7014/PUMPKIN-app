@@ -22,6 +22,7 @@ exports.useGetTrendingEvents = useGetTrendingEvents;
 exports.useGetSmartRecommendations = useGetSmartRecommendations;
 exports.useGetOccupancyHeatmap = useGetOccupancyHeatmap;
 exports.useGet3DVisualization = useGet3DVisualization;
+exports.useGetInteractive3D = useGetInteractive3D;
 exports.useGetAISeatRecommendations = useGetAISeatRecommendations;
 exports.useHoldSeats = useHoldSeats;
 exports.useLogin = useLogin;
@@ -177,26 +178,38 @@ function useGetSmartRecommendations() {
         queryFn: () => api_client_1.apiClient.getSmartRecommendations(),
     });
 }
-// ==================== LAYOUT HOOKS ====================
+// ==================== LAYOUT / 3D HOOKS ====================
 function useGetOccupancyHeatmap(layoutId, eventId) {
     return (0, react_query_1.useQuery)({
-        queryKey: ['heatmap', layoutId, eventId],
-        queryFn: () => api_client_1.apiClient.getOccupancyHeatmap(layoutId, eventId),
-        enabled: !!layoutId && !!eventId,
+        queryKey: ['heatmap', eventId],
+        queryFn: () => api_client_1.apiClient.getEventOccupancyHeatmap(eventId),
+        enabled: !!eventId || !!layoutId,
     });
 }
 function useGet3DVisualization(layoutId, eventId) {
     return (0, react_query_1.useQuery)({
-        queryKey: ['3d-viz', layoutId, eventId],
-        queryFn: () => api_client_1.apiClient.get3DVisualization(layoutId, eventId),
-        enabled: !!layoutId && !!eventId,
+        queryKey: ['3d-interactive', eventId],
+        queryFn: () => api_client_1.apiClient.getInteractive3D(eventId),
+        enabled: !!eventId || !!layoutId,
     });
 }
-function useGetAISeatRecommendations(layoutId, preferences) {
+function useGetInteractive3D(eventId) {
     return (0, react_query_1.useQuery)({
-        queryKey: ['seat-recommendations', layoutId, preferences],
-        queryFn: () => api_client_1.apiClient.getAISeatRecommendations(layoutId, preferences),
-        enabled: !!layoutId,
+        queryKey: ['3d-interactive', eventId],
+        queryFn: () => api_client_1.apiClient.getInteractive3D(eventId),
+        enabled: !!eventId,
+    });
+}
+function useGetAISeatRecommendations(layoutIdOrEventId, preferences = {}) {
+    const eventId = preferences.eventId ?? layoutIdOrEventId;
+    return (0, react_query_1.useQuery)({
+        queryKey: ['seat-recommendations', eventId, preferences],
+        queryFn: () => api_client_1.apiClient.get3DRecommendations(eventId, {
+            count: preferences.count ?? 2,
+            viewQuality: preferences.viewQuality ?? 'best',
+            ...(preferences.tier ? { tier: preferences.tier } : {}),
+        }),
+        enabled: !!eventId,
     });
 }
 function useHoldSeats(layoutId, eventId) {

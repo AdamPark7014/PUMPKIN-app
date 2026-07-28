@@ -33,6 +33,11 @@ export class BanorteProvider implements PaymentProvider {
     const publicId = ctx.metadata?.publicId ?? ctx.orderId;
 
     if (cfg.isDemo) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+          'Banorte no está configurado: define BANORTE_MERCHANT_ID y credenciales Payworks. El modo demo no está permitido en producción.',
+        );
+      }
       return this.createDemoIntent(intentId, ctx, method, publicId);
     }
 

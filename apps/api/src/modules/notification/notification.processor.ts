@@ -74,12 +74,12 @@ export class NotificationProcessor {
     await this.mail.send({ to: payload.to, subject: payload.subject, html });
   }
 
-  private qrSecret() {
-    return (
-      this.config.get('TICKET_QR_SECRET') ??
-      this.config.get('JWT_SECRET') ??
-      'dev-ticket-secret'
-    );
+  private qrSecret(): string {
+    const secret = this.config.get('TICKET_QR_SECRET') ?? this.config.get('JWT_SECRET');
+    if (!secret) {
+      throw new Error('Neither TICKET_QR_SECRET nor JWT_SECRET is configured.');
+    }
+    return secret;
   }
 
   private async loadOrder(orderId: string) {

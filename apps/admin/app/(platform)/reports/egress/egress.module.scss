@@ -1,0 +1,136 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.muted {
+  color: #737373;
+  font-size: 0.85rem;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  article {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+
+    span {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #737373;
+      margin-bottom: 0.45rem;
+    }
+
+    strong {
+      font-size: 1.45rem;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+.kpiWarn {
+  background: linear-gradient(145deg, #fff 0%, #fffbeb 100%) !important;
+  border-color: #fde68a !important;
+}
+
+.kpiCritical {
+  background: linear-gradient(145deg, #fff 0%, #fff1f2 100%) !important;
+  border-color: #fecdd3 !important;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tab,
+.tabOn {
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  color: #525252;
+}
+
+.tabOn {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: #fff;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+}
+
+.badgeOk {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.badgeWarn {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.badgeCritical {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.badgeNetwork {
+  background: #f5f5f5;
+  color: #525252;
+}
+
+.badgeEmpty {
+  background: #fafafa;
+  color: #a3a3a3;
+}
+
+.reason {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: #737373;
+  max-width: 14rem;
+}
+
+.footer {
+  margin: 0.85rem 0 0;
+  font-size: 0.78rem;
+  color: #a3a3a3;
+}

@@ -131,7 +131,56 @@ export default function ReportsPage() {
           </table>
         )}
       </section>
+
+      <section className={platform.panel} style={{ marginTop: '1.5rem' }}>
+        <h2>Z-reports taquilla</h2>
+        <ZReportsBlock />
+      </section>
     </div>
+  );
+}
+
+function ZReportsBlock() {
+  const [zRows, setZRows] = useState<
+    { sessionId: string; terminalName?: string; cashierId: string; endedAt?: string; report?: unknown }[]
+  >([]);
+  useEffect(() => {
+    const token = localStorage.getItem('boletera_token');
+    const org = localStorage.getItem('boletera_org');
+    if (!token || !org) return;
+    const API = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:4000/api/v1';
+    fetch(`${API}/taquilla/z-reports?organizationId=${org}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setZRows)
+      .catch(() => setZRows([]));
+  }, []);
+  if (!zRows.length) return <p style={{ color: '#737373' }}>Sin cortes archivados aún.</p>;
+  return (
+    <table className={platform.table}>
+      <thead>
+        <tr>
+          <th>Terminal</th>
+          <th>Cajero</th>
+          <th>Cierre</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {zRows.map((r) => {
+          const rep = (r.report || {}) as { totalRevenue?: number };
+          return (
+            <tr key={r.sessionId}>
+              <td>{r.terminalName || r.sessionId.slice(0, 8)}</td>
+              <td>{r.cashierId.slice(0, 10)}</td>
+              <td>{r.endedAt ? new Date(r.endedAt).toLocaleString('es-MX') : '—'}</td>
+              <td>${Number(rep.totalRevenue ?? 0).toFixed(2)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 

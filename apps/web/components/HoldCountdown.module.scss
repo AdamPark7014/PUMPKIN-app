@@ -1,0 +1,66 @@
+.wrap {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'label time'
+    'hint hint';
+  gap: 0.15rem 1rem;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+}
+
+.label {
+  grid-area: label;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #71717a;
+  align-self: end;
+}
+
+.time {
+  grid-area: time;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: #18181b;
+  line-height: 1;
+}
+
+.hint {
+  grid-area: hint;
+  font-size: 0.8rem;
+  color: #71717a;
+}
+
+.urgent {
+  border-color: #fcd34d;
+  background: #fffbeb;
+
+  .time {
+    color: #a16207;
+  }
+
+  .label {
+    color: #a16207;
+  }
+}
+
+.expired {
+  border-color: #fecaca;
+  background: #fef2f2;
+
+  .time,
+  .label {
+    color: #b91c1c;
+  }
+
+  .hint {
+    color: #991b1b;
+  }
+}

@@ -1,0 +1,138 @@
+.poster {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(155deg, var(--pa), var(--pb));
+  color: #fff;
+  isolation: isolate;
+  aspect-ratio: var(--poster-aspect, 3 / 4);
+}
+
+.sm {
+  width: 4.5rem;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.md {
+  width: 5.5rem;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.lg {
+  width: 100%;
+  height: auto;
+}
+
+.hero {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  aspect-ratio: auto;
+}
+
+.hero .brand {
+  display: none;
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* Landscape posters: avoid cropping title bands */
+.poster[data-aspect='16/9'] .photo,
+.poster[data-aspect='21/9'] .photo {
+  object-fit: cover;
+  object-position: center 30%;
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+}
+
+.rings {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+  font-size: clamp(1.4rem, 40%, 4.5rem);
+  letter-spacing: 0.06em;
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.sm .mark,
+.md .mark {
+  font-size: 1.15rem;
+  padding-bottom: 0.35rem;
+}
+
+.brand {
+  position: absolute;
+  left: 0.55rem;
+  bottom: 0.45rem;
+  font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  opacity: 0.55;
+}
+
+.sm .brand,
+.md .brand {
+  display: none;
+}
+
+.date {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 2.5rem;
+  padding: 0.3rem 0.35rem;
+  background: rgba(250, 250, 250, 0.95);
+  color: #0a0a0a;
+  line-height: 1.05;
+  z-index: 2;
+
+  strong {
+    font-size: 1.05rem;
+  }
+
+  span {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #e11d48;
+    font-weight: 700;
+  }
+}
+
+.sm .date,
+.md .date {
+  display: none;
+}
+
+.hero .date {
+  top: 1rem;
+  left: 1rem;
+  min-width: 3rem;
+  padding: 0.45rem 0.5rem;
+
+  strong {
+    font-size: 1.35rem;
+  }
+}

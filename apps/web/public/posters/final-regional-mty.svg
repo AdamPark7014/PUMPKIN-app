@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000" fill="none">
+  <defs>
+    <radialGradient id="pitch" cx="50%" cy="55%" r="65%">
+      <stop offset="0%" stop-color="#166534"/>
+      <stop offset="70%" stop-color="#14532d"/>
+      <stop offset="100%" stop-color="#052e16"/>
+    </radialGradient>
+  </defs>
+  <rect width="1000" height="1000" fill="#0a0a0a"/>
+  <ellipse cx="500" cy="540" rx="340" ry="220" fill="url(#pitch)" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+  <ellipse cx="500" cy="540" rx="70" ry="45" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+  <line x1="500" y1="320" x2="500" y2="760" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+  <text x="64" y="72" fill="rgba(255,255,255,0.5)" font-family="Arial,sans-serif" font-size="22" letter-spacing="10">BOLETERA · MTY</text>
+  <text x="64" y="880" fill="#fff" font-family="Arial Black, Arial, sans-serif" font-size="64" font-weight="900">FINAL</text>
+  <text x="64" y="940" fill="#86efac" font-family="Arial,sans-serif" font-size="28" letter-spacing="4">REGIONAL · ACCESO QR</text>
+</svg>

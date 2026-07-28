@@ -34,7 +34,7 @@ test.describe('Checkout Banorte (demo)', () => {
     const offerId = detail.offers[0]?.id;
     test.skip(!offerId, 'Sin ofertas');
 
-    const availRes = await request.get(`${API}/inventory/events/${detail.id}/availability`);
+    const availRes = await request.get(`${API}/inventory/${detail.id}/availability`);
     test.skip(!availRes.ok(), 'Sin inventario');
     const avail = (await availRes.json()) as {
       tickets?: { seatId: string | null; status: string }[];

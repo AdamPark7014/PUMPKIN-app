@@ -1,0 +1,129 @@
+.wrap {
+  max-width: 40rem;
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pillOk {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+
+.pillWarn {
+  background: rgba(234, 88, 12, 0.12);
+  color: #c2410c;
+}
+
+.settlement {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #171717;
+}
+
+.note {
+  margin: 0 0 0.75rem;
+  color: #525252;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.meta {
+  margin: 0.35rem 0 0;
+  color: #737373;
+  font-size: 0.85rem;
+
+  code {
+    font-size: 0.8rem;
+  }
+}
+
+.listBlock {
+  margin-bottom: 1rem;
+
+  strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.85rem;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #404040;
+    font-size: 0.875rem;
+  }
+}
+
+.hint {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
+  color: #525252;
+  font-size: 0.82rem;
+  line-height: 1.45;
+
+  code {
+    font-size: 0.78rem;
+  }
+}
+
+.copyRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #e5e5e5;
+
+  &:last-of-type {
+    border-bottom: 0;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0;
+  }
+}
+
+.copyLabel {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #737373;
+}
+
+.copyValue {
+  display: block;
+  max-width: 28rem;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  color: #171717;
+}
+
+.error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.muted {
+  color: #737373;
+}

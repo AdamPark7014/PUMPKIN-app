@@ -27,6 +27,53 @@ export class PricingController {
     });
   }
 
+  @Post('calculate-cart')
+  @ApiOperation({ summary: 'Calculate cart total across multiple offers' })
+  async calculateCart(
+    @Body()
+    dto: {
+      eventId: string;
+      items: { offerId: string; quantity: number }[];
+      promotionCode?: string;
+      customerSegment?: 'EARLY_BUYER' | 'REGULAR' | 'VVIP';
+    },
+  ) {
+    if (!dto.items?.length) {
+      return { subtotal: '0', fees: '0', taxes: '0', total: '0', discount: '0', lines: [] };
+    }
+    const lines = [];
+    let subtotal = 0;
+    let fees = 0;
+    let taxes = 0;
+    let total = 0;
+    let discount = 0;
+    for (const item of dto.items) {
+      if (!item.offerId || !item.quantity) continue;
+      const line = await this.pricingService.calculatePrice({
+        eventId: dto.eventId,
+        offerId: item.offerId,
+        quantity: item.quantity,
+        promotionCode: dto.promotionCode,
+        customerSegment: dto.customerSegment,
+        timestamp: new Date(),
+      });
+      lines.push({ offerId: item.offerId, quantity: item.quantity, ...line });
+      subtotal += Number(line.subtotal);
+      fees += Number(line.fees);
+      taxes += Number(line.taxes);
+      total += Number(line.total);
+      discount += Number(line.discount);
+    }
+    return {
+      subtotal: subtotal.toFixed(2),
+      fees: fees.toFixed(2),
+      taxes: taxes.toFixed(2),
+      total: total.toFixed(2),
+      discount: discount.toFixed(2),
+      lines,
+    };
+  }
+
   // ==================== UPDATE DYNAMIC PRICES ====================
 
   @Post('events/:eventId/update-dynamic')

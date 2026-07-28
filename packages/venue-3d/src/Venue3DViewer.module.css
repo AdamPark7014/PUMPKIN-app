@@ -1,0 +1,280 @@
+.wrap {
+  width: 100%;
+  --venue-h: 520px;
+}
+
+.canvas {
+  position: relative;
+  width: 100%;
+  height: var(--venue-h);
+  overflow: hidden;
+  background: #08080a;
+  border: 1px solid #1a1a1d;
+}
+
+.canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.overlayTop {
+  position: absolute;
+  top: 0.7rem;
+  left: 0.7rem;
+  right: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.topLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.badge {
+  align-self: flex-start;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(250, 250, 250, 0.9);
+  background: rgba(225, 29, 72, 0.9);
+  padding: 0.3rem 0.55rem;
+}
+
+.meta {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(250, 250, 250, 0.45);
+}
+
+.selBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(225, 29, 72, 0.92);
+  padding: 0.35rem 0.65rem;
+}
+
+.overlayBottom {
+  position: absolute;
+  left: 0.7rem;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.legend,
+.sections {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  background: rgba(8, 8, 10, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(8px);
+}
+
+.legend li,
+.sections li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: rgba(250, 250, 250, 0.75);
+}
+
+.sections em {
+  font-style: normal;
+  opacity: 0.45;
+  font-size: 0.58rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend i,
+.sections i {
+  width: 0.45rem;
+  height: 0.45rem;
+  display: inline-block;
+}
+
+.legAvail {
+  background: #5b9fd4;
+}
+
+.legHeat {
+  background: linear-gradient(90deg, #3f3f46, #be4646, #b48c32, #22c55e);
+}
+
+.legPrice {
+  background: linear-gradient(90deg, #486581, #a16207, #e11d48);
+}
+
+.legSel {
+  background: #fff;
+  outline: 1.5px solid #e11d48;
+  outline-offset: 1px;
+}
+
+.legSold {
+  background: #52525b;
+}
+
+.viewHeatBar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  padding: 0.28rem 0.45rem;
+  background: rgba(8, 8, 10, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(250, 250, 250, 0.55);
+  pointer-events: none;
+}
+
+.viewHeatScale {
+  width: 5.5rem;
+  height: 0.28rem;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #3f3f46 0%, #be4646 28%, #b48c32 50%, #38a078 72%, #22c55e 100%);
+}
+
+.priceHeatScale {
+  width: 5.5rem;
+  height: 0.28rem;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #486581 0%, #a16207 55%, #e11d48 100%);
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  top: 3.2rem;
+  transform: translateX(-50%);
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.55rem 0.75rem;
+  background: rgba(8, 8, 10, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fafafa;
+  min-width: 10rem;
+  text-align: center;
+}
+
+.tooltip strong {
+  font-size: 0.85rem;
+}
+
+.tooltip span {
+  font-size: 0.7rem;
+  color: rgba(250, 250, 250, 0.58);
+}
+
+.tooltip em {
+  margin-top: 0.12rem;
+  font-style: normal;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fb7185;
+  font-weight: 700;
+}
+
+.levelBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+  pointer-events: auto;
+}
+
+.levelBtn,
+.levelActive {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 10, 0.78);
+  color: rgba(250, 250, 250, 0.72);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.28rem 0.5rem;
+  cursor: pointer;
+}
+
+.levelActive {
+  border-color: rgba(225, 29, 72, 0.75);
+  background: rgba(225, 29, 72, 0.88);
+  color: #fff;
+}
+
+.egressHint {
+  margin: 0.35rem 0 0;
+  max-width: 18rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: rgba(250, 250, 250, 0.55);
+  line-height: 1.35;
+}
+
+.egressLegend {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0.3rem 0.45rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.65rem;
+  background: rgba(8, 8, 10, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+
+.egressLegend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: rgba(250, 250, 250, 0.7);
+}
+
+.egressLegend i {
+  width: 0.7rem;
+  height: 0.18rem;
+  display: inline-block;
+}
+
+.swatchRoute {
+  background: #f9a8d4;
+}
+
+.swatchRouteActive {
+  background: #f472b6;
+}
+
+.swatchBottleneck {
+  background: #fb923c;
+  height: 0.28rem;
+}

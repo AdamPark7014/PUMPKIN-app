@@ -170,11 +170,12 @@ export function EventForm() {
 - `useGetTrendingEvents()` - GET /search/trending
 - `useGetSmartRecommendations()` - GET /search/recommendations
 
-**Seat Selection**
-- `useGetOccupancyHeatmap(layoutId, eventId)` - GET /layouts/{id}/heatmap
-- `useGet3DVisualization(layoutId, eventId)` - GET /layouts/{id}/3d
-- `useGetAISeatRecommendations(layoutId, prefs)` - POST /layouts/{id}/recommendations
-- `useHoldSeats(layoutId, eventId)` - POST /layouts/{id}/hold (15-min hold)
+**Seat Selection (canonical `/3d/events/...`)**
+- `useGetOccupancyHeatmap(_layoutId, eventId)` - GET /3d/events/{eventId}/heatmap
+- `useGetInteractive3D(eventId)` - GET /3d/events/{eventId}/interactive
+- `useGet3DVisualization(_layoutId, eventId)` - alias → interactive
+- `useGetAISeatRecommendations(eventId, prefs)` - POST /3d/events/{eventId}/recommendations
+- `useHoldSeats(layoutId, eventId)` - POST /layouts/{id}/seats/hold (15-min hold)
 
 **Auth**
 - `useLogin()` - POST /auth/login

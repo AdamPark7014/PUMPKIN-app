@@ -23,10 +23,10 @@ export class TicketPdfService {
     eventId: string;
     tickets: TicketPdfRow[];
   }): Promise<Buffer> {
-    const secret =
-      this.config.get('TICKET_QR_SECRET') ??
-      this.config.get('JWT_SECRET') ??
-      'dev-ticket-secret';
+    const secret = this.config.get('TICKET_QR_SECRET') ?? this.config.get('JWT_SECRET');
+    if (!secret) {
+      throw new Error('Neither TICKET_QR_SECRET nor JWT_SECRET is configured.');
+    }
 
     const doc = new PDFDocument({ size: 'A4', margin: 48 });
     const chunks: Buffer[] = [];

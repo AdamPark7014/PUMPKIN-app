@@ -10,6 +10,7 @@ import { OptionalJwtAuthGuard } from './optional-jwt-auth.guard';
 import { OrgAccessGuard } from './org-access.guard';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
+import { requireJwtSecret } from './jwt-secret';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { RolesGuard } from './roles.guard';
     NotificationModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'dev-secret-change-me',
+      secret: requireJwtSecret(),
       signOptions: { expiresIn: '24h' },
     }),
   ],

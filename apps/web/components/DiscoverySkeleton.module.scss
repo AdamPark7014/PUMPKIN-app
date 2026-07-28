@@ -1,0 +1,129 @@
+$line: #e5e5e5;
+$paper: #f4f4f5;
+$white: #fff;
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@mixin bone {
+  background: linear-gradient(90deg, $paper 25%, #ececef 40%, $paper 55%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  min-height: min(72vh, 620px);
+  background: #171717;
+  display: flex;
+  align-items: flex-end;
+}
+
+.heroCopy {
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 3rem clamp(1.25rem, 4vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shell {
+  max-width: 72rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.25rem clamp(1rem, 3vw, 2rem) 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.search {
+  @include bone;
+  height: 3.25rem;
+  border: 1px solid $line;
+}
+
+.hubs {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.hub {
+  @include bone;
+  height: 2.4rem;
+  width: 6.5rem;
+}
+
+.listHead {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid $line;
+}
+
+.lineSm,
+.lineMd,
+.lineLg {
+  @include bone;
+  display: block;
+  height: 0.75rem;
+}
+
+.lineSm {
+  width: 30%;
+}
+
+.lineMd {
+  width: 55%;
+}
+
+.lineLg {
+  width: 70%;
+  height: 2.5rem;
+}
+
+.cta {
+  @include bone;
+  width: 9rem;
+  height: 2.5rem;
+  margin-top: 0.35rem;
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+
+  @media (max-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.poster {
+  @include bone;
+  aspect-ratio: 3 / 4;
+  width: 100%;
+}

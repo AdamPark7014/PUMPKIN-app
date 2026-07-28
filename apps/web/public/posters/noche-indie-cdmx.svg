@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="55%" stop-color="#1c1917"/>
+      <stop offset="100%" stop-color="#7f1d1d"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#g)"/>
+  <circle cx="450" cy="420" r="210" fill="none" stroke="rgba(251,113,133,0.35)" stroke-width="2"/>
+  <circle cx="450" cy="420" r="140" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+  <rect x="250" y="560" width="400" height="18" rx="2" fill="#e11d48"/>
+  <rect x="310" y="500" width="40" height="120" fill="#171717"/>
+  <rect x="550" y="500" width="40" height="120" fill="#171717"/>
+  <text x="60" y="90" fill="rgba(255,255,255,0.45)" font-family="Arial,sans-serif" font-size="22" letter-spacing="8">BOLETERA · LIVE</text>
+  <text x="60" y="980" fill="#fff" font-family="Arial Black, Arial, sans-serif" font-size="78" font-weight="900">NOCHE</text>
+  <text x="60" y="1060" fill="#fb7185" font-family="Arial Black, Arial, sans-serif" font-size="78" font-weight="900">INDIE</text>
+  <text x="60" y="1130" fill="rgba(255,255,255,0.65)" font-family="Arial,sans-serif" font-size="28" letter-spacing="4">ARENA CDMX · 3 BANDAS</text>
+</svg>

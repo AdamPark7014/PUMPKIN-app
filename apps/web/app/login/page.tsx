@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Button } from '@boletera/ui';
 import { SiteHeader } from '@/components/SiteHeader';
 import { saveSession } from '@/lib/auth';
 import styles from './login.module.scss';
@@ -263,7 +264,7 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                <button type="submit" className={styles.submit} disabled={loading}>
+                <Button type="submit" size="lg" className={styles.submit} disabled={loading}>
                   {loading ? (
                     <>
                       <span className={styles.spinner} aria-hidden="true" />
@@ -285,7 +286,7 @@ export default function LoginPage() {
                   ) : (
                     'Crear cuenta gratis'
                   )}
-                </button>
+                </Button>
 
                 <div className={styles.divider}>
                   <span>o continúa con</span>

@@ -7,11 +7,11 @@ import { RealtimeDashboardPanel } from '@/components/RealtimeDashboardPanel';
 import styles from './dashboard.module.scss';
 
 const channelMeta: Record<string, { color: string; label: string }> = {
-  WEB: { color: '#e11d48', label: 'Web' },
-  TAQUILLA: { color: '#171717', label: 'Taquilla POS' },
-  API: { color: '#d97706', label: 'API' },
-  ADMIN: { color: '#737373', label: 'Admin' },
-  RESALE: { color: '#be123c', label: 'Reventa' },
+  WEB: { color: '#52525b', label: 'Web' },
+  TAQUILLA: { color: '#18181b', label: 'Taquilla POS' },
+  API: { color: '#71717a', label: 'API' },
+  ADMIN: { color: '#a1a1aa', label: 'Admin' },
+  RESALE: { color: '#3f3f46', label: 'Reventa' },
 };
 
 function fmtCurrency(n: number | undefined) {
@@ -43,7 +43,7 @@ const quickActions = [
     title: 'Crear evento',
     desc: 'Nuevo show, mapa y ofertas',
     icon: 'M12 5v14M5 12h14',
-    accent: 'rose',
+    accent: 'ink',
   },
   {
     href: '/channels',
@@ -54,17 +54,17 @@ const quickActions = [
   },
   {
     href: '/scanner',
-    title: 'Modo scanner',
-    desc: 'Acceso y validación',
+    title: 'Escáner',
+    desc: 'Validación de acceso',
     icon: 'M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M3 12h18',
-    accent: 'emerald',
+    accent: 'ink',
   },
   {
     href: '/payouts',
     title: 'Liquidaciones',
     desc: 'Pagos a organizadores',
     icon: 'M3 7h18v10H3z M7 12h2 M15 12h2',
-    accent: 'amber',
+    accent: 'ink',
   },
 ];
 
@@ -84,16 +84,10 @@ export default function DashboardPage() {
     <div className={styles.wrap}>
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>Command Center</p>
-          <h1>
-            Hola, panorama de tu operación{' '}
-            <span className={styles.live}>
-              <span className={styles.liveDot} />
-              en tiempo real
-            </span>
-          </h1>
+          <p className={styles.eyebrow}>Hoy</p>
+          <h1>Resumen de operación</h1>
           <p className={styles.lead}>
-            Panel de promotor: eventos, órdenes, Banorte y taquilla en un solo lugar.
+            Eventos, órdenes, pagos Banorte y taquilla.
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -109,14 +103,14 @@ export default function DashboardPage() {
       <section className={styles.kpis}>
         <article className={`${styles.kpi} ${styles.kpiHero}`}>
           <div className={styles.kpiTop}>
-            <span className={styles.kpiIcon} style={{ background: '#e11d4815', color: '#e11d48' }}>
+            <span className={styles.kpiIcon} style={{ background: '#f4f4f5', color: '#18181b' }}>
               <StatIcon kind="cash" />
             </span>
             <span className={styles.kpiLabel}>Ingresos hoy</span>
           </div>
           <strong className={styles.kpiVal}>{fmtCurrency(data?.revenueToday)}</strong>
           <div className={styles.kpiTrend}>
-            <span className={styles.kpiSub}>Datos en vivo desde tu organización</span>
+            <span className={styles.kpiSub}>Actualizado al momento</span>
           </div>
         </article>
 
@@ -135,7 +129,7 @@ export default function DashboardPage() {
 
         <article className={styles.kpi}>
           <div className={styles.kpiTop}>
-            <span className={styles.kpiIcon} style={{ background: '#d9770615', color: '#d97706' }}>
+            <span className={styles.kpiIcon} style={{ background: '#f4f4f5', color: '#52525b' }}>
               <StatIcon kind="terminal" />
             </span>
             <span className={styles.kpiLabel}>Terminales POS</span>
@@ -148,7 +142,7 @@ export default function DashboardPage() {
 
         <article className={styles.kpi}>
           <div className={styles.kpiTop}>
-            <span className={styles.kpiIcon} style={{ background: '#e11d4815', color: '#e11d48' }}>
+            <span className={styles.kpiIcon} style={{ background: '#f4f4f5', color: '#3f3f46' }}>
               <StatIcon kind="pulse" />
             </span>
             <span className={styles.kpiLabel}>Holds activos</span>
@@ -276,7 +270,7 @@ export default function DashboardPage() {
               <div key={o.publicId} className={styles.activityRow}>
                 <span
                   className={styles.actTag}
-                  style={{ color: '#e11d48', background: '#e11d4815', borderColor: '#e11d4840' }}
+                  style={{ color: '#3f3f46', background: '#f4f4f5', borderColor: '#e4e4e7' }}
                 >
                   {o.channel || 'WEB'}
                 </span>

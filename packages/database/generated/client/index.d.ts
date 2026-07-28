@@ -6086,6 +6086,7 @@ export namespace Prisma {
     feesInclusive: number
     allowResale: number
     resaleCommission: number
+    settings: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -6209,6 +6210,7 @@ export namespace Prisma {
     feesInclusive?: true
     allowResale?: true
     resaleCommission?: true
+    settings?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -6333,6 +6335,7 @@ export namespace Prisma {
     feesInclusive: boolean
     allowResale: boolean
     resaleCommission: number
+    settings: JsonValue | null
     createdAt: Date
     updatedAt: Date
     _count: OrganizationCountAggregateOutputType | null
@@ -6389,6 +6392,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: boolean
+    settings?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     venues?: boolean | Organization$venuesArgs<ExtArgs>
@@ -6438,6 +6442,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: boolean
+    settings?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["organization"]>
@@ -6475,6 +6480,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: boolean
+    settings?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["organization"]>
@@ -6512,11 +6518,12 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: boolean
+    settings?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "slug" | "description" | "type" | "website" | "logoUrl" | "bannerUrl" | "email" | "phone" | "country" | "timezone" | "currency" | "address" | "city" | "state" | "postalCode" | "bankAccountName" | "bankCode" | "bankRoutingNumber" | "bankAccountNumber" | "paypalEmail" | "stripeAccountId" | "taxId" | "verified" | "verifiedAt" | "kycStatus" | "amlStatus" | "commissionRate" | "feesInclusive" | "allowResale" | "resaleCommission" | "createdAt" | "updatedAt", ExtArgs["result"]["organization"]>
+  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "slug" | "description" | "type" | "website" | "logoUrl" | "bannerUrl" | "email" | "phone" | "country" | "timezone" | "currency" | "address" | "city" | "state" | "postalCode" | "bankAccountName" | "bankCode" | "bankRoutingNumber" | "bankAccountNumber" | "paypalEmail" | "stripeAccountId" | "taxId" | "verified" | "verifiedAt" | "kycStatus" | "amlStatus" | "commissionRate" | "feesInclusive" | "allowResale" | "resaleCommission" | "settings" | "createdAt" | "updatedAt", ExtArgs["result"]["organization"]>
   export type OrganizationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     venues?: boolean | Organization$venuesArgs<ExtArgs>
     events?: boolean | Organization$eventsArgs<ExtArgs>
@@ -6572,6 +6579,9 @@ export namespace Prisma {
       bankRoutingNumber: string | null
       bankAccountNumber: string | null
       paypalEmail: string | null
+      /**
+       * Legacy unused — Banorte is the active gateway. Kept for schema compatibility.
+       */
       stripeAccountId: string | null
       taxId: string | null
       verified: boolean
@@ -6582,6 +6592,10 @@ export namespace Prisma {
       feesInclusive: boolean
       allowResale: boolean
       resaleCommission: number
+      /**
+       * Org settings: managerPinHash, varianceThreshold, etc.
+       */
+      settings: Prisma.JsonValue | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["organization"]>
@@ -7050,6 +7064,7 @@ export namespace Prisma {
     readonly feesInclusive: FieldRef<"Organization", 'Boolean'>
     readonly allowResale: FieldRef<"Organization", 'Boolean'>
     readonly resaleCommission: FieldRef<"Organization", 'Float'>
+    readonly settings: FieldRef<"Organization", 'Json'>
     readonly createdAt: FieldRef<"Organization", 'DateTime'>
     readonly updatedAt: FieldRef<"Organization", 'DateTime'>
   }
@@ -9203,6 +9218,7 @@ export namespace Prisma {
     name: number
     version: number
     mapData: number
+    metadata: number
     isActive: number
     createdAt: number
     updatedAt: number
@@ -9244,6 +9260,7 @@ export namespace Prisma {
     name?: true
     version?: true
     mapData?: true
+    metadata?: true
     isActive?: true
     createdAt?: true
     updatedAt?: true
@@ -9342,6 +9359,7 @@ export namespace Prisma {
     name: string
     version: number
     mapData: JsonValue
+    metadata: JsonValue | null
     isActive: boolean
     createdAt: Date
     updatedAt: Date
@@ -9372,6 +9390,7 @@ export namespace Prisma {
     name?: boolean
     version?: boolean
     mapData?: boolean
+    metadata?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -9387,6 +9406,7 @@ export namespace Prisma {
     name?: boolean
     version?: boolean
     mapData?: boolean
+    metadata?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -9399,6 +9419,7 @@ export namespace Prisma {
     name?: boolean
     version?: boolean
     mapData?: boolean
+    metadata?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -9411,12 +9432,13 @@ export namespace Prisma {
     name?: boolean
     version?: boolean
     mapData?: boolean
+    metadata?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type VenueLayoutOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "venueId" | "name" | "version" | "mapData" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["venueLayout"]>
+  export type VenueLayoutOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "venueId" | "name" | "version" | "mapData" | "metadata" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["venueLayout"]>
   export type VenueLayoutInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     venue?: boolean | VenueDefaultArgs<ExtArgs>
     sections?: boolean | VenueLayout$sectionsArgs<ExtArgs>
@@ -9443,6 +9465,7 @@ export namespace Prisma {
       name: string
       version: number
       mapData: Prisma.JsonValue
+      metadata: Prisma.JsonValue | null
       isActive: boolean
       createdAt: Date
       updatedAt: Date
@@ -9877,6 +9900,7 @@ export namespace Prisma {
     readonly name: FieldRef<"VenueLayout", 'String'>
     readonly version: FieldRef<"VenueLayout", 'Int'>
     readonly mapData: FieldRef<"VenueLayout", 'Json'>
+    readonly metadata: FieldRef<"VenueLayout", 'Json'>
     readonly isActive: FieldRef<"VenueLayout", 'Boolean'>
     readonly createdAt: FieldRef<"VenueLayout", 'DateTime'>
     readonly updatedAt: FieldRef<"VenueLayout", 'DateTime'>
@@ -10391,6 +10415,7 @@ export namespace Prisma {
     slug: number
     color: number
     sortOrder: number
+    metadata: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -10434,6 +10459,7 @@ export namespace Prisma {
     slug?: true
     color?: true
     sortOrder?: true
+    metadata?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -10532,6 +10558,7 @@ export namespace Prisma {
     slug: string
     color: string
     sortOrder: number
+    metadata: JsonValue | null
     createdAt: Date
     updatedAt: Date
     _count: SectionCountAggregateOutputType | null
@@ -10562,6 +10589,7 @@ export namespace Prisma {
     slug?: boolean
     color?: boolean
     sortOrder?: boolean
+    metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     layout?: boolean | VenueLayoutDefaultArgs<ExtArgs>
@@ -10577,6 +10605,7 @@ export namespace Prisma {
     slug?: boolean
     color?: boolean
     sortOrder?: boolean
+    metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     layout?: boolean | VenueLayoutDefaultArgs<ExtArgs>
@@ -10589,6 +10618,7 @@ export namespace Prisma {
     slug?: boolean
     color?: boolean
     sortOrder?: boolean
+    metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     layout?: boolean | VenueLayoutDefaultArgs<ExtArgs>
@@ -10601,11 +10631,12 @@ export namespace Prisma {
     slug?: boolean
     color?: boolean
     sortOrder?: boolean
+    metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type SectionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "layoutId" | "name" | "slug" | "color" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["section"]>
+  export type SectionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "layoutId" | "name" | "slug" | "color" | "sortOrder" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["section"]>
   export type SectionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     layout?: boolean | VenueLayoutDefaultArgs<ExtArgs>
     rows?: boolean | Section$rowsArgs<ExtArgs>
@@ -10633,6 +10664,7 @@ export namespace Prisma {
       slug: string
       color: string
       sortOrder: number
+      metadata: Prisma.JsonValue | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["section"]>
@@ -11067,6 +11099,7 @@ export namespace Prisma {
     readonly slug: FieldRef<"Section", 'String'>
     readonly color: FieldRef<"Section", 'String'>
     readonly sortOrder: FieldRef<"Section", 'Int'>
+    readonly metadata: FieldRef<"Section", 'Json'>
     readonly createdAt: FieldRef<"Section", 'DateTime'>
     readonly updatedAt: FieldRef<"Section", 'DateTime'>
   }
@@ -27575,6 +27608,7 @@ export namespace Prisma {
     paymentMethod: number
     channel: number
     cashierId: number
+    posOps: number
     expiresAt: number
     completedAt: number
     refundedAt: number
@@ -27685,6 +27719,7 @@ export namespace Prisma {
     paymentMethod?: true
     channel?: true
     cashierId?: true
+    posOps?: true
     expiresAt?: true
     completedAt?: true
     refundedAt?: true
@@ -27802,6 +27837,7 @@ export namespace Prisma {
     paymentMethod: $Enums.PaymentMethod
     channel: $Enums.SalesChannel
     cashierId: string | null
+    posOps: JsonValue | null
     expiresAt: Date
     completedAt: Date | null
     refundedAt: Date | null
@@ -27851,6 +27887,7 @@ export namespace Prisma {
     paymentMethod?: boolean
     channel?: boolean
     cashierId?: boolean
+    posOps?: boolean
     expiresAt?: boolean
     completedAt?: boolean
     refundedAt?: boolean
@@ -27891,6 +27928,7 @@ export namespace Prisma {
     paymentMethod?: boolean
     channel?: boolean
     cashierId?: boolean
+    posOps?: boolean
     expiresAt?: boolean
     completedAt?: boolean
     refundedAt?: boolean
@@ -27926,6 +27964,7 @@ export namespace Prisma {
     paymentMethod?: boolean
     channel?: boolean
     cashierId?: boolean
+    posOps?: boolean
     expiresAt?: boolean
     completedAt?: boolean
     refundedAt?: boolean
@@ -27961,6 +28000,7 @@ export namespace Prisma {
     paymentMethod?: boolean
     channel?: boolean
     cashierId?: boolean
+    posOps?: boolean
     expiresAt?: boolean
     completedAt?: boolean
     refundedAt?: boolean
@@ -27968,7 +28008,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "publicId" | "organizationId" | "eventId" | "userId" | "status" | "buyerEmail" | "buyerName" | "buyerPhone" | "billingAddress" | "subtotal" | "fees" | "discountAmount" | "taxAmount" | "totalAmount" | "currency" | "promotionId" | "commissionAmount" | "paymentId" | "paymentMethod" | "channel" | "cashierId" | "expiresAt" | "completedAt" | "refundedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
+  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "publicId" | "organizationId" | "eventId" | "userId" | "status" | "buyerEmail" | "buyerName" | "buyerPhone" | "billingAddress" | "subtotal" | "fees" | "discountAmount" | "taxAmount" | "totalAmount" | "currency" | "promotionId" | "commissionAmount" | "paymentId" | "paymentMethod" | "channel" | "cashierId" | "posOps" | "expiresAt" | "completedAt" | "refundedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     event?: boolean | EventDefaultArgs<ExtArgs>
@@ -28032,6 +28072,10 @@ export namespace Prisma {
       paymentMethod: $Enums.PaymentMethod
       channel: $Enums.SalesChannel
       cashierId: string | null
+      /**
+       * POS ops: will-call, comps, clientSaleId, exchange refs
+       */
+      posOps: Prisma.JsonValue | null
       expiresAt: Date
       completedAt: Date | null
       refundedAt: Date | null
@@ -28491,6 +28535,7 @@ export namespace Prisma {
     readonly paymentMethod: FieldRef<"Order", 'PaymentMethod'>
     readonly channel: FieldRef<"Order", 'SalesChannel'>
     readonly cashierId: FieldRef<"Order", 'String'>
+    readonly posOps: FieldRef<"Order", 'Json'>
     readonly expiresAt: FieldRef<"Order", 'DateTime'>
     readonly completedAt: FieldRef<"Order", 'DateTime'>
     readonly refundedAt: FieldRef<"Order", 'DateTime'>
@@ -58776,6 +58821,7 @@ export namespace Prisma {
     feesInclusive: 'feesInclusive',
     allowResale: 'allowResale',
     resaleCommission: 'resaleCommission',
+    settings: 'settings',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -58819,6 +58865,7 @@ export namespace Prisma {
     name: 'name',
     version: 'version',
     mapData: 'mapData',
+    metadata: 'metadata',
     isActive: 'isActive',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -58834,6 +58881,7 @@ export namespace Prisma {
     slug: 'slug',
     color: 'color',
     sortOrder: 'sortOrder',
+    metadata: 'metadata',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -59108,6 +59156,7 @@ export namespace Prisma {
     paymentMethod: 'paymentMethod',
     channel: 'channel',
     cashierId: 'cashierId',
+    posOps: 'posOps',
     expiresAt: 'expiresAt',
     completedAt: 'completedAt',
     refundedAt: 'refundedAt',
@@ -59564,19 +59613,19 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-  export const JsonNullValueInput: {
-    JsonNull: typeof JsonNull
-  };
-
-  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
   export const NullableJsonNullValueInput: {
     DbNull: typeof DbNull,
     JsonNull: typeof JsonNull
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -59587,14 +59636,6 @@ export namespace Prisma {
   export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
-  export const NullsOrder: {
-    first: 'first',
-    last: 'last'
-  };
-
-  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
   export const JsonNullValueFilter: {
     DbNull: typeof DbNull,
     JsonNull: typeof JsonNull,
@@ -59602,6 +59643,14 @@ export namespace Prisma {
   };
 
   export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+  export const NullsOrder: {
+    first: 'first',
+    last: 'last'
+  };
+
+  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
   /**
@@ -59715,20 +59764,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Int'
-   */
-  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-  /**
-   * Reference to a field of type 'Int[]'
-   */
-  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-  /**
    * Reference to a field of type 'Json'
    */
   export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -59739,6 +59774,20 @@ export namespace Prisma {
    * Reference to a field of type 'QueryMode'
    */
   export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+  /**
+   * Reference to a field of type 'Int'
+   */
+  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+  /**
+   * Reference to a field of type 'Int[]'
+   */
+  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -60103,6 +60152,7 @@ export namespace Prisma {
     feesInclusive?: BoolFilter<"Organization"> | boolean
     allowResale?: BoolFilter<"Organization"> | boolean
     resaleCommission?: FloatFilter<"Organization"> | number
+    settings?: JsonNullableFilter<"Organization">
     createdAt?: DateTimeFilter<"Organization"> | Date | string
     updatedAt?: DateTimeFilter<"Organization"> | Date | string
     venues?: VenueListRelationFilter
@@ -60151,6 +60201,7 @@ export namespace Prisma {
     feesInclusive?: SortOrder
     allowResale?: SortOrder
     resaleCommission?: SortOrder
+    settings?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     venues?: VenueOrderByRelationAggregateInput
@@ -60202,6 +60253,7 @@ export namespace Prisma {
     feesInclusive?: BoolFilter<"Organization"> | boolean
     allowResale?: BoolFilter<"Organization"> | boolean
     resaleCommission?: FloatFilter<"Organization"> | number
+    settings?: JsonNullableFilter<"Organization">
     createdAt?: DateTimeFilter<"Organization"> | Date | string
     updatedAt?: DateTimeFilter<"Organization"> | Date | string
     venues?: VenueListRelationFilter
@@ -60250,6 +60302,7 @@ export namespace Prisma {
     feesInclusive?: SortOrder
     allowResale?: SortOrder
     resaleCommission?: SortOrder
+    settings?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: OrganizationCountOrderByAggregateInput
@@ -60295,6 +60348,7 @@ export namespace Prisma {
     feesInclusive?: BoolWithAggregatesFilter<"Organization"> | boolean
     allowResale?: BoolWithAggregatesFilter<"Organization"> | boolean
     resaleCommission?: FloatWithAggregatesFilter<"Organization"> | number
+    settings?: JsonNullableWithAggregatesFilter<"Organization">
     createdAt?: DateTimeWithAggregatesFilter<"Organization"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Organization"> | Date | string
   }
@@ -60469,6 +60523,7 @@ export namespace Prisma {
     name?: StringFilter<"VenueLayout"> | string
     version?: IntFilter<"VenueLayout"> | number
     mapData?: JsonFilter<"VenueLayout">
+    metadata?: JsonNullableFilter<"VenueLayout">
     isActive?: BoolFilter<"VenueLayout"> | boolean
     createdAt?: DateTimeFilter<"VenueLayout"> | Date | string
     updatedAt?: DateTimeFilter<"VenueLayout"> | Date | string
@@ -60483,6 +60538,7 @@ export namespace Prisma {
     name?: SortOrder
     version?: SortOrder
     mapData?: SortOrder
+    metadata?: SortOrderInput | SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -60500,6 +60556,7 @@ export namespace Prisma {
     name?: StringFilter<"VenueLayout"> | string
     version?: IntFilter<"VenueLayout"> | number
     mapData?: JsonFilter<"VenueLayout">
+    metadata?: JsonNullableFilter<"VenueLayout">
     isActive?: BoolFilter<"VenueLayout"> | boolean
     createdAt?: DateTimeFilter<"VenueLayout"> | Date | string
     updatedAt?: DateTimeFilter<"VenueLayout"> | Date | string
@@ -60514,6 +60571,7 @@ export namespace Prisma {
     name?: SortOrder
     version?: SortOrder
     mapData?: SortOrder
+    metadata?: SortOrderInput | SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -60533,6 +60591,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"VenueLayout"> | string
     version?: IntWithAggregatesFilter<"VenueLayout"> | number
     mapData?: JsonWithAggregatesFilter<"VenueLayout">
+    metadata?: JsonNullableWithAggregatesFilter<"VenueLayout">
     isActive?: BoolWithAggregatesFilter<"VenueLayout"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"VenueLayout"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"VenueLayout"> | Date | string
@@ -60548,6 +60607,7 @@ export namespace Prisma {
     slug?: StringFilter<"Section"> | string
     color?: StringFilter<"Section"> | string
     sortOrder?: IntFilter<"Section"> | number
+    metadata?: JsonNullableFilter<"Section">
     createdAt?: DateTimeFilter<"Section"> | Date | string
     updatedAt?: DateTimeFilter<"Section"> | Date | string
     layout?: XOR<VenueLayoutScalarRelationFilter, VenueLayoutWhereInput>
@@ -60562,6 +60622,7 @@ export namespace Prisma {
     slug?: SortOrder
     color?: SortOrder
     sortOrder?: SortOrder
+    metadata?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     layout?: VenueLayoutOrderByWithRelationInput
@@ -60580,6 +60641,7 @@ export namespace Prisma {
     slug?: StringFilter<"Section"> | string
     color?: StringFilter<"Section"> | string
     sortOrder?: IntFilter<"Section"> | number
+    metadata?: JsonNullableFilter<"Section">
     createdAt?: DateTimeFilter<"Section"> | Date | string
     updatedAt?: DateTimeFilter<"Section"> | Date | string
     layout?: XOR<VenueLayoutScalarRelationFilter, VenueLayoutWhereInput>
@@ -60594,6 +60656,7 @@ export namespace Prisma {
     slug?: SortOrder
     color?: SortOrder
     sortOrder?: SortOrder
+    metadata?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: SectionCountOrderByAggregateInput
@@ -60613,6 +60676,7 @@ export namespace Prisma {
     slug?: StringWithAggregatesFilter<"Section"> | string
     color?: StringWithAggregatesFilter<"Section"> | string
     sortOrder?: IntWithAggregatesFilter<"Section"> | number
+    metadata?: JsonNullableWithAggregatesFilter<"Section">
     createdAt?: DateTimeWithAggregatesFilter<"Section"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Section"> | Date | string
   }
@@ -61954,6 +62018,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFilter<"Order"> | $Enums.PaymentMethod
     channel?: EnumSalesChannelFilter<"Order"> | $Enums.SalesChannel
     cashierId?: StringNullableFilter<"Order"> | string | null
+    posOps?: JsonNullableFilter<"Order">
     expiresAt?: DateTimeFilter<"Order"> | Date | string
     completedAt?: DateTimeNullableFilter<"Order"> | Date | string | null
     refundedAt?: DateTimeNullableFilter<"Order"> | Date | string | null
@@ -61993,6 +62058,7 @@ export namespace Prisma {
     paymentMethod?: SortOrder
     channel?: SortOrder
     cashierId?: SortOrderInput | SortOrder
+    posOps?: SortOrderInput | SortOrder
     expiresAt?: SortOrder
     completedAt?: SortOrderInput | SortOrder
     refundedAt?: SortOrderInput | SortOrder
@@ -62035,6 +62101,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFilter<"Order"> | $Enums.PaymentMethod
     channel?: EnumSalesChannelFilter<"Order"> | $Enums.SalesChannel
     cashierId?: StringNullableFilter<"Order"> | string | null
+    posOps?: JsonNullableFilter<"Order">
     expiresAt?: DateTimeFilter<"Order"> | Date | string
     completedAt?: DateTimeNullableFilter<"Order"> | Date | string | null
     refundedAt?: DateTimeNullableFilter<"Order"> | Date | string | null
@@ -62074,6 +62141,7 @@ export namespace Prisma {
     paymentMethod?: SortOrder
     channel?: SortOrder
     cashierId?: SortOrderInput | SortOrder
+    posOps?: SortOrderInput | SortOrder
     expiresAt?: SortOrder
     completedAt?: SortOrderInput | SortOrder
     refundedAt?: SortOrderInput | SortOrder
@@ -62112,6 +62180,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodWithAggregatesFilter<"Order"> | $Enums.PaymentMethod
     channel?: EnumSalesChannelWithAggregatesFilter<"Order"> | $Enums.SalesChannel
     cashierId?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    posOps?: JsonNullableWithAggregatesFilter<"Order">
     expiresAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
     completedAt?: DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
     refundedAt?: DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
@@ -64439,6 +64508,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -64487,6 +64557,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -64535,6 +64606,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -64583,6 +64655,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -64631,6 +64704,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -64668,6 +64742,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -64705,6 +64780,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -64914,6 +64990,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -64928,6 +65005,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -64940,6 +65018,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -64954,6 +65033,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -64967,6 +65047,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -64977,6 +65058,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -64988,6 +65070,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -64999,6 +65082,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     layout: VenueLayoutCreateNestedOneWithoutSectionsInput
@@ -65013,6 +65097,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     rows?: SeatRowUncheckedCreateNestedManyWithoutSectionInput
@@ -65025,6 +65110,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     layout?: VenueLayoutUpdateOneRequiredWithoutSectionsNestedInput
@@ -65039,6 +65125,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rows?: SeatRowUncheckedUpdateManyWithoutSectionNestedInput
@@ -65052,6 +65139,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -65062,6 +65150,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -65073,6 +65162,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -66594,6 +66684,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -66633,6 +66724,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -66662,6 +66754,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -66701,6 +66794,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -66735,6 +66829,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -66760,6 +66855,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -66790,6 +66886,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -69443,6 +69540,29 @@ export namespace Prisma {
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
   }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -69593,6 +69713,7 @@ export namespace Prisma {
     feesInclusive?: SortOrder
     allowResale?: SortOrder
     resaleCommission?: SortOrder
+    settings?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -69793,6 +69914,32 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -70031,6 +70178,7 @@ export namespace Prisma {
     name?: SortOrder
     version?: SortOrder
     mapData?: SortOrder
+    metadata?: SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -70127,6 +70275,7 @@ export namespace Prisma {
     slug?: SortOrder
     color?: SortOrder
     sortOrder?: SortOrder
+    metadata?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -70201,29 +70350,6 @@ export namespace Prisma {
 
   export type SeatRowSumOrderByAggregateInput = {
     sortOrder?: SortOrder
-  }
-  export type JsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type SeatRowNullableScalarRelationFilter = {
@@ -70314,32 +70440,6 @@ export namespace Prisma {
     y?: SortOrder
     rotation?: SortOrder
     viewQuality?: SortOrder
-  }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type EventScalarRelationFilter = {
@@ -71368,6 +71468,7 @@ export namespace Prisma {
     paymentMethod?: SortOrder
     channel?: SortOrder
     cashierId?: SortOrder
+    posOps?: SortOrder
     expiresAt?: SortOrder
     completedAt?: SortOrder
     refundedAt?: SortOrder
@@ -76563,6 +76664,29 @@ export namespace Prisma {
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
   }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -76628,29 +76752,6 @@ export namespace Prisma {
     | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
 
   export type NestedJsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
-  export type NestedJsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
     equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     path?: string[]
     mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
@@ -77367,6 +77468,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -77404,6 +77506,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -77906,6 +78009,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFilter<"Order"> | $Enums.PaymentMethod
     channel?: EnumSalesChannelFilter<"Order"> | $Enums.SalesChannel
     cashierId?: StringNullableFilter<"Order"> | string | null
+    posOps?: JsonNullableFilter<"Order">
     expiresAt?: DateTimeFilter<"Order"> | Date | string
     completedAt?: DateTimeNullableFilter<"Order"> | Date | string | null
     refundedAt?: DateTimeNullableFilter<"Order"> | Date | string | null
@@ -78210,6 +78314,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     events?: EventCreateNestedManyWithoutOrganizationInput
@@ -78257,6 +78362,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     events?: EventUncheckedCreateNestedManyWithoutOrganizationInput
@@ -78383,6 +78489,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -78395,6 +78502,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -78508,6 +78616,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     events?: EventUpdateManyWithoutOrganizationNestedInput
@@ -78555,6 +78664,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     events?: EventUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -78610,6 +78720,7 @@ export namespace Prisma {
     name?: StringFilter<"VenueLayout"> | string
     version?: IntFilter<"VenueLayout"> | number
     mapData?: JsonFilter<"VenueLayout">
+    metadata?: JsonNullableFilter<"VenueLayout">
     isActive?: BoolFilter<"VenueLayout"> | boolean
     createdAt?: DateTimeFilter<"VenueLayout"> | Date | string
     updatedAt?: DateTimeFilter<"VenueLayout"> | Date | string
@@ -78700,6 +78811,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     rows?: SeatRowCreateNestedManyWithoutSectionInput
@@ -78712,6 +78824,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     rows?: SeatRowUncheckedCreateNestedManyWithoutSectionInput
@@ -78849,6 +78962,7 @@ export namespace Prisma {
     slug?: StringFilter<"Section"> | string
     color?: StringFilter<"Section"> | string
     sortOrder?: IntFilter<"Section"> | number
+    metadata?: JsonNullableFilter<"Section">
     createdAt?: DateTimeFilter<"Section"> | Date | string
     updatedAt?: DateTimeFilter<"Section"> | Date | string
   }
@@ -78886,6 +79000,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -78899,6 +79014,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -78996,6 +79112,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -79009,6 +79126,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -79083,6 +79201,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     layout: VenueLayoutCreateNestedOneWithoutSectionsInput
@@ -79096,6 +79215,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     seats?: SeatUncheckedCreateNestedManyWithoutSectionInput
@@ -79167,6 +79287,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     layout?: VenueLayoutUpdateOneRequiredWithoutSectionsNestedInput
@@ -79180,6 +79301,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     seats?: SeatUncheckedUpdateManyWithoutSectionNestedInput
@@ -79207,6 +79329,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     layout: VenueLayoutCreateNestedOneWithoutSectionsInput
@@ -79220,6 +79343,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     rows?: SeatRowUncheckedCreateNestedManyWithoutSectionInput
@@ -79366,6 +79490,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     layout?: VenueLayoutUpdateOneRequiredWithoutSectionsNestedInput
@@ -79379,6 +79504,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rows?: SeatRowUncheckedUpdateManyWithoutSectionNestedInput
@@ -79589,6 +79715,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -79602,6 +79729,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -79732,6 +79860,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -79745,6 +79874,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -80068,6 +80198,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -80115,6 +80246,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -80178,6 +80310,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -80225,6 +80358,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -80384,6 +80518,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -80431,6 +80566,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -80651,6 +80787,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -80688,6 +80825,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -80990,6 +81128,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -81037,6 +81176,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -82506,6 +82646,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -82553,6 +82694,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -83036,6 +83178,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -83083,6 +83226,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -83462,6 +83606,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -83500,6 +83645,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -83659,6 +83805,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -83697,6 +83844,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -83804,6 +83952,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -83841,6 +83990,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -83896,6 +84046,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -83934,6 +84085,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -83978,6 +84130,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -84016,6 +84169,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -84059,6 +84213,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -84106,6 +84261,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -84143,6 +84299,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -84180,6 +84337,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -84390,6 +84548,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -84437,6 +84596,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -84742,6 +84902,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -84789,6 +84950,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -84880,6 +85042,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -84927,6 +85090,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -85635,6 +85799,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -85672,6 +85837,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -85824,6 +85990,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -85862,6 +86029,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -86125,6 +86293,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -86163,6 +86332,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -86334,6 +86504,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -86381,6 +86552,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -86444,6 +86616,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -86491,6 +86664,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -87446,6 +87620,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -87493,6 +87668,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -87556,6 +87732,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -87603,6 +87780,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -87650,6 +87828,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -87697,6 +87876,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -87760,6 +87940,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -87807,6 +87988,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -87854,6 +88036,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -87901,6 +88084,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -87938,6 +88122,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -87976,6 +88161,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -88035,6 +88221,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -88082,6 +88269,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -88125,6 +88313,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -88163,6 +88352,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -88206,6 +88396,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueCreateNestedManyWithoutOrganizationInput
@@ -88253,6 +88444,7 @@ export namespace Prisma {
     feesInclusive?: boolean
     allowResale?: boolean
     resaleCommission?: number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     venues?: VenueUncheckedCreateNestedManyWithoutOrganizationInput
@@ -88433,6 +88625,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUpdateManyWithoutOrganizationNestedInput
@@ -88480,6 +88673,7 @@ export namespace Prisma {
     feesInclusive?: BoolFieldUpdateOperationsInput | boolean
     allowResale?: BoolFieldUpdateOperationsInput | boolean
     resaleCommission?: FloatFieldUpdateOperationsInput | number
+    settings?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     venues?: VenueUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -89118,6 +89312,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -89522,6 +89717,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -89559,6 +89755,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -89592,6 +89789,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -89904,6 +90102,7 @@ export namespace Prisma {
     name: string
     version?: number
     mapData: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -90061,6 +90260,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -90073,6 +90273,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -90085,6 +90286,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
     mapData?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -90157,6 +90359,7 @@ export namespace Prisma {
     slug: string
     color?: string
     sortOrder?: number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -90175,6 +90378,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rows?: SeatRowUpdateManyWithoutSectionNestedInput
@@ -90187,6 +90391,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rows?: SeatRowUncheckedUpdateManyWithoutSectionNestedInput
@@ -90199,6 +90404,7 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     color?: StringFieldUpdateOperationsInput | string
     sortOrder?: IntFieldUpdateOperationsInput | number
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -90641,6 +90847,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -90888,6 +91095,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -90925,6 +91133,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -90958,6 +91167,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -91901,6 +92111,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -91926,6 +92137,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -91963,6 +92175,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -91996,6 +92209,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92025,6 +92239,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -92094,6 +92309,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92131,6 +92347,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92164,6 +92381,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92405,6 +92623,7 @@ export namespace Prisma {
     paymentMethod?: $Enums.PaymentMethod
     channel?: $Enums.SalesChannel
     cashierId?: string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt: Date | string
     completedAt?: Date | string | null
     refundedAt?: Date | string | null
@@ -92430,6 +92649,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92467,6 +92687,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92500,6 +92721,7 @@ export namespace Prisma {
     paymentMethod?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     cashierId?: NullableStringFieldUpdateOperationsInput | string | null
+    posOps?: NullableJsonNullValueInput | InputJsonValue
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

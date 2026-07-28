@@ -1,49 +1,432 @@
+$ink: #0a0a0a;
+$mute: #737373;
+$line: #e5e5e5;
+$accent: #e11d48;
+$paper: #fafafa;
+
+.shell {
+  min-height: 100vh;
+  color: $ink;
+  background:
+    radial-gradient(110% 70% at 100% -5%, rgba(225, 29, 72, 0.06), transparent 55%),
+    linear-gradient(180deg, #fafafa 0%, #f4f4f5 50%, #fafafa 100%);
+}
+
 .page {
-  max-width: 560px;
+  max-width: 68rem;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 1.75rem clamp(1rem, 3vw, 2rem) 3.5rem;
+}
 
-  :global(ul) {
-    list-style: none;
-    padding: 0;
-  }
+.hero {
+  margin-bottom: 1.75rem;
+  max-width: 40rem;
+}
 
-  :global(li) {
-    border: 1px solid #d9e2ec;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
+.eyebrow {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $mute;
+}
+
+.hero h1 {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  letter-spacing: 0.03em;
+  line-height: 0.92;
+}
+
+.lead {
+  margin: 0;
+  color: $mute;
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18.5rem;
+  gap: 1.25rem 1.5rem;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
   }
 }
 
-.expired {
-  opacity: 0.6;
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid $line;
+  padding: 1.15rem 1.2rem 1.1rem;
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #16a34a;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.2;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      color: $accent;
+    }
+  }
+}
+
+.meta {
+  margin: 0.35rem 0 0;
+  color: $mute;
+  font-size: 0.88rem;
 }
 
 .timer {
+  flex-shrink: 0;
+  min-width: 4.5rem;
+  text-align: right;
   font-variant-numeric: tabular-nums;
-  color: #486581;
+
+  span {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $mute;
+  }
+
+  strong {
+    font-size: 1.35rem;
+    font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+    letter-spacing: 0.04em;
+  }
+}
+
+.timerUrgent strong {
+  color: $accent;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 1rem 0 0;
+  padding: 0.85rem 0 0;
+  border-top: 1px solid $line;
+
+  dt {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $mute;
+  }
+
+  dd {
+    margin: 0.15rem 0 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
 }
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: 1rem;
+}
 
-  :global(button) {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
+.primary,
+.primaryWide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.15rem;
+  border: none;
+  background: $accent;
+  color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    background: #be123c;
+  }
+}
+
+.primaryWide {
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.85rem 1rem;
+}
+
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid $line;
+  background: #fff;
+  color: $ink;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    border-color: #a3a3a3;
+  }
+}
+
+.danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.95rem;
+  border: none;
+  background: transparent;
+  color: $mute;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+
+  &:hover {
+    color: $accent;
+  }
+}
+
+.expiredBlock {
+  padding: 1rem 1.1rem;
+  border: 1px dashed #d4d4d4;
+  background: rgba(255, 255, 255, 0.65);
+
+  h3 {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
   }
 
-  :global(button:first-child) {
-    background: #102a43;
-    color: #fff;
+  > p {
+    margin: 0 0 0.75rem;
+    color: $mute;
+    font-size: 0.85rem;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+
+  a,
+  button {
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: $mute;
+    background: none;
     border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+}
+
+.summary {
+  position: sticky;
+  top: 5rem;
+  background: #fff;
+  border: 1px solid $line;
+  padding: 1.15rem 1.2rem 1.2rem;
+
+  h2 {
+    margin: 0 0 0.85rem;
+    font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+    font-size: 1.55rem;
+    letter-spacing: 0.04em;
   }
 
-  :global(button:last-child) {
-    background: transparent;
-    border: 1px solid #bcccdc;
+  @media (max-width: 900px) {
+    position: static;
   }
+}
+
+.summaryRows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: $mute;
+
+    strong {
+      color: $ink;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+.totalRow {
+  margin-top: 0.35rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid $line;
+  font-size: 1rem !important;
+  color: $ink !important;
+
+  strong {
+    font-size: 1.1rem;
+  }
+}
+
+.warn {
+  color: $accent !important;
+}
+
+.hint {
+  margin: 0.85rem 0 0;
+  font-size: 0.78rem;
+  color: $mute;
+  line-height: 1.4;
+}
+
+.multiNote {
+  margin: 0.85rem 0 0;
+  padding: 0.65rem 0.75rem;
+  background: $paper;
+  border: 1px solid $line;
+  font-size: 0.82rem;
+  color: #525252;
+  line-height: 1.4;
+}
+
+.trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 1rem;
+
+  span {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid $line;
+    color: #525252;
+  }
+}
+
+.summaryFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid $line;
+
+  a,
+  button {
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: $mute;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+}
+
+.empty {
+  max-width: 28rem;
+  margin: 1rem auto 0;
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+  background: #fff;
+  border: 1px solid $line;
+
+  h2 {
+    margin: 1rem 0 0.4rem;
+    font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.04em;
+  }
+
+  p {
+    margin: 0 0 1.25rem;
+    color: $mute;
+    font-size: 0.95rem;
+  }
+}
+
+.emptyArt {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+
+  span {
+    width: 2.4rem;
+    height: 3.2rem;
+    border: 2px solid rgba(225, 29, 72, 0.35);
+    background: linear-gradient(160deg, rgba(225, 29, 72, 0.12), transparent);
+  }
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
 }

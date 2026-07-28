@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#020617"/>
+      <stop offset="50%" stop-color="#312e81"/>
+      <stop offset="100%" stop-color="#db2777"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#g)"/>
+  <rect x="120" y="280" width="40" height="220" fill="#22d3ee" opacity="0.85"/>
+  <rect x="200" y="200" width="40" height="300" fill="#a78bfa" opacity="0.85"/>
+  <rect x="280" y="320" width="40" height="180" fill="#f472b6" opacity="0.9"/>
+  <rect x="360" y="160" width="40" height="340" fill="#22d3ee" opacity="0.7"/>
+  <rect x="440" y="240" width="40" height="260" fill="#c084fc" opacity="0.85"/>
+  <rect x="520" y="180" width="40" height="320" fill="#f472b6" opacity="0.75"/>
+  <rect x="600" y="300" width="40" height="200" fill="#67e8f9" opacity="0.8"/>
+  <rect x="680" y="220" width="40" height="280" fill="#e879f9" opacity="0.8"/>
+  <text x="50" y="80" fill="rgba(255,255,255,0.5)" font-family="Arial,sans-serif" font-size="20" letter-spacing="8">BOLETERA · CLUB</text>
+  <text x="50" y="980" fill="#fff" font-family="Arial Black, Arial, sans-serif" font-size="72" font-weight="900">ELECTRO</text>
+  <text x="50" y="1060" fill="#f9a8d4" font-family="Arial Black, Arial, sans-serif" font-size="72" font-weight="900">NIGHT</text>
+  <text x="50" y="1130" fill="rgba(255,255,255,0.65)" font-family="Arial,sans-serif" font-size="26" letter-spacing="4">CDMX · AFTER HOURS</text>
+</svg>

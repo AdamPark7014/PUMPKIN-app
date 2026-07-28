@@ -154,6 +154,7 @@ exports.Prisma.OrganizationScalarFieldEnum = {
   feesInclusive: 'feesInclusive',
   allowResale: 'allowResale',
   resaleCommission: 'resaleCommission',
+  settings: 'settings',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -191,6 +192,7 @@ exports.Prisma.VenueLayoutScalarFieldEnum = {
   name: 'name',
   version: 'version',
   mapData: 'mapData',
+  metadata: 'metadata',
   isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -203,6 +205,7 @@ exports.Prisma.SectionScalarFieldEnum = {
   slug: 'slug',
   color: 'color',
   sortOrder: 'sortOrder',
+  metadata: 'metadata',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -435,6 +438,7 @@ exports.Prisma.OrderScalarFieldEnum = {
   paymentMethod: 'paymentMethod',
   channel: 'channel',
   cashierId: 'cashierId',
+  posOps: 'posOps',
   expiresAt: 'expiresAt',
   completedAt: 'completedAt',
   refundedAt: 'refundedAt',
@@ -810,12 +814,12 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
@@ -824,15 +828,15 @@ exports.Prisma.QueryMode = {
   insensitive: 'insensitive'
 };
 
-exports.Prisma.NullsOrder = {
-  first: 'first',
-  last: 'last'
-};
-
 exports.Prisma.JsonNullValueFilter = {
   DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
 };
 exports.OrgType = exports.$Enums.OrgType = {
   PROMOTER: 'PROMOTER',

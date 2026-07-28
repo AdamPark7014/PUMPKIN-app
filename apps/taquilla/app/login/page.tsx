@@ -2,10 +2,9 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { saveTaquillaSession } from '@/lib/auth';
+import { apiFetch, saveTaquillaSession, type TaquillaUser } from '@/lib/auth';
+import { openShift } from '@/lib/pos';
 import styles from './login.module.scss';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
 function IconTerminal() {
   return (
@@ -29,21 +28,17 @@ function IconLock() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M8 11V8a4 4 0 1 1 8 0v3"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
+      <path d="M8 11V8a4 4 0 1 1 8 0v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
 
 export default function TaquillaLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@demo.boletera.com');
-  const [password, setPassword] = useState('Admin123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [terminalId, setTerminalId] = useState('TAQ-01');
+  const [openingCash, setOpeningCash] = useState('500');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [online, setOnline] = useState(true);
@@ -78,14 +73,32 @@ export default function TaquillaLoginPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API}/auth/login`, {
+      const res = await apiFetch('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? 'Credenciales inválidas');
-      saveTaquillaSession(data.accessToken, terminalId);
+
+      const user = data.user as TaquillaUser;
+      if (!user?.organizationId) {
+        throw new Error('Usuario sin organización asignada');
+      }
+
+      saveTaquillaSession(data.accessToken, {
+        terminalLabel: terminalId,
+        user,
+        cashierId: user.id,
+      });
+
+      const float = Number(openingCash);
+      await openShift({
+        organizationId: user.organizationId,
+        cashierId: user.id,
+        openingCash: Number.isFinite(float) && float >= 0 ? float : 0,
+        forceNew: false,
+      });
+
       router.replace('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de conexión');
@@ -99,14 +112,13 @@ export default function TaquillaLoginPage() {
       <div className={styles.bg} aria-hidden="true" />
       <div className={styles.scan} aria-hidden="true" />
 
-      {/* Topbar superior estilo POS */}
       <header className={styles.topbar}>
         <div className={styles.topLeft}>
           <span className={styles.brand}>
             <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-              <rect width="32" height="32" rx="9" fill="#22d3ee" />
-              <path d="M9 11h14M9 16h14M9 21h9" stroke="#062330" strokeWidth="2.4" strokeLinecap="round" />
-              <circle cx="22" cy="21" r="2.5" fill="#062330" />
+              <rect width="32" height="32" rx="9" fill="#f4f4f5" />
+              <path d="M9 11h14M9 16h14M9 21h9" stroke="#18181b" strokeWidth="2.4" strokeLinecap="round" />
+              <circle cx="22" cy="21" r="2.5" fill="#18181b" />
             </svg>
             BOLETERA · TAQUILLA
           </span>
@@ -124,75 +136,31 @@ export default function TaquillaLoginPage() {
       </header>
 
       <div className={styles.shell}>
-        {/* Panel decorativo izquierdo */}
         <section className={styles.showcase}>
           <div className={styles.showcaseInner}>
-            <p className={styles.kicker}>Point-of-Sale</p>
+            <p className={styles.kicker}>Box office POS</p>
             <h1>
-              Abre turno y
+              Abre turno
               <br />
-              vende en taquilla.
+              y cobra en mostrador.
             </h1>
             <p className={styles.lead}>
-              Inventario en vivo, ofertas por zona, modo offline y corte de caja.
+              Fondo de caja, venta por zona, efectivo con cambio, reimpresión y corte.
             </p>
-
-            <div className={styles.kpiRow}>
-              <div className={styles.kpi}>
-                <span>Pagos</span>
-                <strong>Banorte</strong>
-                <em>tarjeta / efectivo</em>
-              </div>
-              <div className={styles.kpi}>
-                <span>Disponibilidad</span>
-                <strong>99.9<small>%</small></strong>
-                <em>offline-ready</em>
-              </div>
-              <div className={styles.kpi}>
-                <span>Métodos</span>
-                <strong>6<small>+</small></strong>
-                <em>de pago</em>
-              </div>
-            </div>
-
-            <div className={styles.terminalPreview}>
-              <header>
-                <span className={styles.lights}>
-                  <i /> <i /> <i />
-                </span>
-                <span>TAQ-01 · POS terminal</span>
-              </header>
-              <div className={styles.ticketLine}>
-                <span>Bad Bunny — Most Wanted Tour</span>
-                <strong>$890.00</strong>
-              </div>
-              <div className={styles.ticketLine}>
-                <span>VIP · Zona A · Fila 12</span>
-                <strong className={styles.muted}>× 2</strong>
-              </div>
-              <div className={styles.ticketLine + ' ' + styles.total}>
-                <span>TOTAL</span>
-                <strong>$1,780.00</strong>
-              </div>
-              <button type="button" className={styles.fakeBtn} tabIndex={-1}>
-                Cobrar efectivo · F8
-              </button>
-            </div>
           </div>
         </section>
 
-        {/* Panel del formulario */}
         <section className={styles.formPanel}>
           <div className={styles.card}>
             <header className={styles.cardHeader}>
               <span className={styles.cardBadge}>Apertura de turno</span>
               <h2>Identifícate, cajero</h2>
-              <p>Confirma terminal, credencial y comienza tu turno.</p>
+              <p>Terminal, credencial y fondo inicial de caja.</p>
             </header>
 
             <form onSubmit={submit} className={styles.form}>
               <div className={styles.field}>
-                <label htmlFor="terminal">Terminal asignada</label>
+                <label htmlFor="terminal">Terminal</label>
                 <div className={styles.inputWrap}>
                   <span className={styles.inputIcon}>
                     <IconTerminal />
@@ -227,7 +195,7 @@ export default function TaquillaLoginPage() {
               </div>
 
               <div className={styles.field}>
-                <label htmlFor="cajero-password">Contraseña / PIN</label>
+                <label htmlFor="cajero-password">Contraseña</label>
                 <div className={styles.inputWrap}>
                   <span className={styles.inputIcon}>
                     <IconLock />
@@ -244,33 +212,35 @@ export default function TaquillaLoginPage() {
                 </div>
               </div>
 
+              <div className={styles.field}>
+                <label htmlFor="opening-cash">Fondo de caja (MXN)</label>
+                <div className={styles.inputWrap}>
+                  <span className={styles.inputIcon}>$</span>
+                  <input
+                    id="opening-cash"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={openingCash}
+                    onChange={(e) => setOpeningCash(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
               {error && (
                 <div className={styles.error} role="alert">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" />
-                    <path d="M12 7v6M12 16.5v.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
                   <span>{error}</span>
                 </div>
               )}
 
               <button type="submit" className={styles.submit} disabled={loading}>
-                {loading ? (
-                  <>
-                    <span className={styles.spinner} aria-hidden="true" />
-                    Iniciando turno…
-                  </>
-                ) : (
-                  <>
-                    <span>Abrir turno</span>
-                    <kbd>↵</kbd>
-                  </>
-                )}
+                {loading ? 'Abriendo turno…' : 'Abrir turno'}
               </button>
             </form>
 
             <p className={styles.cardFooter}>
-              Solo personal autorizado. Las acciones de esta terminal quedan auditadas.
+              Solo personal autorizado. Las ventas de esta terminal quedan auditadas.
             </p>
           </div>
         </section>

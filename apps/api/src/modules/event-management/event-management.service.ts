@@ -324,7 +324,8 @@ export class EventManagementService {
 
     const calendar: Record<string, unknown[]> = {};
     events.forEach((event) => {
-      const dateKey = event.startsAt.toISOString().split('T')[0];
+      const d = event.startsAt;
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (!calendar[dateKey]) calendar[dateKey] = [];
       calendar[dateKey].push({
         id: event.id,

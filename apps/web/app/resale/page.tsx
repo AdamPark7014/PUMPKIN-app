@@ -1,47 +1,153 @@
 import Link from 'next/link';
+import { SiteHeader } from '@/components/SiteHeader';
+import { SiteFooter } from '@/components/SiteFooter';
+import styles from './resale.module.scss';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
+type Listing = {
+  id: string;
+  askingPrice: string | number;
+  status: string;
+  listedAt?: string;
+  ticket?: {
+    code?: string;
+    section?: string | null;
+    row?: string | null;
+    seatNumber?: string | null;
+    event?: {
+      title?: string;
+      slug?: string;
+      startsAt?: string;
+    };
+  };
+  priceComparison?: {
+    originalPrice: number;
+    resalePrice: number;
+    markup: string;
+  };
+};
+
 export default async function ResalePage() {
-  let listings: { id: string; askingPrice: string; status: string }[] = [];
+  let listings: Listing[] = [];
   try {
-    const res = await fetch(`${API}/resale/listings?limit=20`, { cache: 'no-store' });
-    const data = await res.json();
-    listings = data.listings ?? [];
+    const res = await fetch(`${API}/resale/listings?limit=40`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      listings = Array.isArray(data) ? data : (data.listings ?? []);
+    }
   } catch {
     listings = [];
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '2rem 1.5rem' }}>
-      <Link href="/" style={{ fontSize: '0.875rem', color: '#737373' }}>
-        ← Inicio
-      </Link>
-      <h1 style={{ marginTop: '1rem', fontSize: '1.75rem', fontWeight: 600 }}>Reventa oficial</h1>
-      <p style={{ color: '#737373', marginBottom: '1.5rem' }}>
-        Boletos verificados en mercado secundario con precios controlados anti-scalping.
-      </p>
-      <p style={{ marginBottom: '1.5rem' }}>
-        <Link href="/resale/vender" style={{ fontWeight: 600 }}>
-          Vender mi boleto →
-        </Link>
-      </p>
-      <ul style={{ listStyle: 'none' }}>
-        {listings.map((l) => (
-          <li
-            key={l.id}
-            style={{
-              padding: '1rem',
-              border: '1px solid #d4d4d4',
-              borderRadius: 8,
-              marginBottom: '0.75rem',
-            }}
-          >
-            Listado {l.id.slice(0, 8)} — ${l.askingPrice} — {l.status}
+    <div className={styles.shell}>
+      <SiteHeader />
+      <main className={styles.page}>
+        <header className={styles.hero}>
+          <p className={styles.eyebrow}>Mercado secundario</p>
+          <h1>Reventa oficial</h1>
+          <p className={styles.lead}>
+            Boletos verificados con tope anti-scalping. El comprador recibe QR nuevo y el
+            original se invalida.
+          </p>
+          <div className={styles.heroActions}>
+            <Link href="/resale/vender" className={styles.primary}>
+              Vender mi boleto
+            </Link>
+            <Link href="/cuenta" className={styles.ghost}>
+              Mis boletos
+            </Link>
+          </div>
+        </header>
+
+        <ul className={styles.trust}>
+          <li>
+            <strong>Verificado</strong>
+            <span>Solo boletos emitidos en BOLETERA</span>
           </li>
-        ))}
-      </ul>
-      {!listings.length && <p style={{ color: '#737373' }}>No hay listados por ahora.</p>}
-    </main>
+          <li>
+            <strong>Precio controlado</strong>
+            <span>Tope vs face value del evento</span>
+          </li>
+          <li>
+            <strong>QR seguro</strong>
+            <span>Código nuevo al completar la compra</span>
+          </li>
+        </ul>
+
+        <section aria-label="Listados activos">
+          <div className={styles.sectionHead}>
+            <h2>Disponibles ahora</h2>
+            <span>{listings.length} listado{listings.length === 1 ? '' : 's'}</span>
+          </div>
+
+          {!listings.length ? (
+            <div className={styles.empty}>
+              <strong>Sin listados activos</strong>
+              <p>Cuando haya boletos en reventa, aparecerán aquí con precio y asiento.</p>
+              <Link href="/events">Explorar cartelera</Link>
+            </div>
+          ) : (
+            <ul className={styles.list}>
+              {listings.map((l) => {
+                const event = l.ticket?.event;
+                const when = event?.startsAt ? new Date(event.startsAt) : null;
+                const seat = [l.ticket?.section, l.ticket?.row, l.ticket?.seatNumber]
+                  .filter(Boolean)
+                  .join(' · ');
+                const price = Number(l.askingPrice);
+                const original = l.priceComparison?.originalPrice;
+                const markup = Number(l.priceComparison?.markup ?? 0);
+
+                return (
+                  <li key={l.id} className={styles.card}>
+                    <div>
+                      <p className={styles.status}>{l.status}</p>
+                      <h3>{event?.title || 'Evento'}</h3>
+                      <p className={styles.meta}>
+                        {when
+                          ? when.toLocaleDateString('es-MX', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : 'Fecha por confirmar'}
+                        {seat ? ` · ${seat}` : ''}
+                      </p>
+                      {typeof original === 'number' && original > 0 && (
+                        <p className={styles.compare}>
+                          Face ${original.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
+                          {Number.isFinite(markup) && (
+                            <>
+                              {' '}
+                              · {markup > 0 ? `+${markup}%` : `${markup}%`} vs original
+                            </>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <div className={styles.side}>
+                      <strong>
+                        ${price.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
+                        <span> MXN</span>
+                      </strong>
+                      {event?.slug ? (
+                        <Link href={`/events/${event.slug}`}>Ver evento</Link>
+                      ) : (
+                        <span className={styles.id}>#{l.id.slice(0, 8)}</span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </main>
+      <SiteFooter />
+    </div>
   );
 }

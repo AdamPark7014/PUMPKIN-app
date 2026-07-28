@@ -138,8 +138,8 @@ export default function NewEventPage() {
               padding: '0.35rem 0.75rem',
               borderRadius: 999,
               fontSize: '0.8125rem',
-              background: i === step ? '#e11d48' : i < step ? '#171717' : '#f5f5f5',
-              color: i <= step ? '#fff' : '#737373',
+              background: i === step ? '#18181b' : i < step ? '#3f3f46' : '#f4f4f5',
+              color: i <= step ? '#fff' : '#71717a',
             }}
           >
             {i + 1}. {label}

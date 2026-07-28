@@ -42,6 +42,7 @@ model Organization {
   bankRoutingNumber String?
   bankAccountNumber String?
   paypalEmail       String?
+  /// Legacy unused — Banorte is the active gateway. Kept for schema compatibility.
   stripeAccountId   String?
   taxId             String?
 
@@ -56,6 +57,8 @@ model Organization {
   feesInclusive    Boolean @default(false) // Fees included in ticket price
   allowResale      Boolean @default(true)
   resaleCommission Float   @default(0.08)
+  /// Org settings: managerPinHash, varianceThreshold, etc.
+  settings         Json?
 
   // Relations
   venues          Venue[]
@@ -130,6 +133,7 @@ model VenueLayout {
   name      String
   version   Int            @default(1)
   mapData   Json // sections, seats geometry
+  metadata  Json? // venue-level stage/furniture config
   isActive  Boolean        @default(true)
   sections  Section[]
   eventMaps EventSeatMap[]
@@ -147,6 +151,7 @@ model Section {
   slug      String
   color     String      @default("#737373")
   sortOrder Int         @default(0)
+  metadata  Json? // optional hand-drawn shape/outline
   rows      SeatRow[]
   seats     Seat[]
   createdAt DateTime    @default(now())
@@ -531,6 +536,9 @@ model Order {
   // Channel
   channel   SalesChannel @default(WEB)
   cashierId String?
+
+  /// POS ops: will-call, comps, clientSaleId, exchange refs
+  posOps Json?
 
   // Expiration
   expiresAt   DateTime
@@ -1196,6 +1204,7 @@ enum OrderStatus {
 }
 
 enum PaymentGateway {
+  /// Legacy enum value — do not use for new payments (Banorte-first).
   STRIPE
   PAYPAL
   ADYEN

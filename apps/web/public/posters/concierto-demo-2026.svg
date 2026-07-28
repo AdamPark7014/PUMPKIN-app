@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="55%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#g)"/>
+  <circle cx="450" cy="400" r="160" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+  <path d="M380 340 L380 460 L500 400 Z" fill="#fff"/>
+  <text x="50" y="80" fill="rgba(255,255,255,0.5)" font-family="Arial,sans-serif" font-size="20" letter-spacing="8">BOLETERA · 2026</text>
+  <text x="50" y="980" fill="#fff" font-family="Arial Black, Arial, sans-serif" font-size="64" font-weight="900">CONCIERTO</text>
+  <text x="50" y="1060" fill="#fecdd3" font-family="Arial Black, Arial, sans-serif" font-size="64" font-weight="900">DEMO</text>
+  <text x="50" y="1130" fill="rgba(255,255,255,0.65)" font-family="Arial,sans-serif" font-size="26" letter-spacing="4">ARENA CDMX</text>
+</svg>

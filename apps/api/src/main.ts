@@ -2,10 +2,20 @@ import './load-env';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(
+    helmet({
+      // API is consumed cross-origin by web/admin/taquilla in local and prod.
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    }),
+  );
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
@@ -20,9 +30,37 @@ async function bootstrap() {
     }),
   );
 
-  // CORS
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // CORS — web :3000/:3010, admin :3001, taquilla :3002 (+ LAN / loopback en dev)
+  const configured = (process.env.CORS_ORIGIN ||
+    'http://localhost:3000,http://localhost:3010,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3010,http://127.0.0.1:3001,http://127.0.0.1:3002'
+  )
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: (process.env.CORS_ORIGIN || 'http://localhost:3000').split(','),
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (configured.includes('*') || configured.includes(origin)) {
+        return callback(null, true);
+      }
+      // Always allow loopback (web/admin/taquilla may use alternate ports in local).
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+        return callback(null, true);
+      }
+      const isDev = process.env.NODE_ENV !== 'production';
+      if (
+        isDev &&
+        (/^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin) ||
+          /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin))
+      ) {
+        return callback(null, true);
+      }
+      // Prefer false over Error — Error becomes HTTP 500 via Nest exception filter.
+      return callback(null, false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [

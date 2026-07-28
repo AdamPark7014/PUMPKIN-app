@@ -352,6 +352,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  width: 100%;
   padding: 0.875rem 1rem;
   font-size: 0.9375rem;
   font-weight: 600;
@@ -360,12 +361,12 @@
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.28);
   transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
 
   &:hover:not(:disabled) {
     filter: brightness(1.05);
-    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 6px 18px rgba(225, 29, 72, 0.38);
   }
 
   &:active:not(:disabled) {

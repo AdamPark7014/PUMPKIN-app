@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -48,31 +48,6 @@ export class LayoutManagementController {
   @ApiOperation({ summary: 'Calculate sightline scores' })
   async calculateSightlines(@Param('layoutId') layoutId: string) {
     return await this.layoutService.calculateSightlineScores(layoutId);
-  }
-
-  @Get(':layoutId/recommendations/:eventId')
-  @ApiOperation({ summary: 'Heuristic seat recommendations (sightline scores)' })
-  async getRecommendations(
-    @Param('layoutId') layoutId: string,
-    @Param('eventId') eventId: string,
-    @Query('count') count?: number,
-  ) {
-    return await this.layoutService.getSeatRecommendations(layoutId, {
-      eventId,
-      count: count ? Number(count) : 2,
-    });
-  }
-
-  @Get(':layoutId/heatmap/:eventId')
-  @ApiOperation({ summary: 'Get occupancy heatmap' })
-  async getHeatmap(@Param('layoutId') layoutId: string, @Param('eventId') eventId: string) {
-    return await this.layoutService.getOccupancyHeatmap(layoutId, eventId);
-  }
-
-  @Get(':layoutId/3d/:eventId')
-  @ApiOperation({ summary: 'Get 3D visualization data' })
-  async get3DData(@Param('layoutId') layoutId: string, @Param('eventId') eventId: string) {
-    return await this.layoutService.get3DVisualizationData(layoutId, eventId);
   }
 
   @Post(':layoutId/seats/hold')

@@ -19,6 +19,7 @@ import {
   initDefaultProviders,
   BanorteProvider,
   getBanorteConfig,
+  getBanorteIpnEndpoints,
   validateBanorteProductionConfig,
 } from '@boletera/payments';
 import { generateTicketCode } from '@boletera/crypto';
@@ -159,7 +160,14 @@ export class PaymentService {
       });
 
       const tickets = [];
-      const orderItem = updatedOrder.items[0];
+      const itemByOffer = new Map(updatedOrder.items.map((i) => [i.offerId, i]));
+      const metaItems = Array.isArray(intentMeta.items)
+        ? (intentMeta.items as { offerId: string; holdIds: string[] }[])
+        : [];
+      const holdToOffer = new Map<string, string>();
+      for (const item of metaItems) {
+        for (const hid of item.holdIds ?? []) holdToOffer.set(hid, item.offerId);
+      }
 
       if (holdIds.length > 0) {
         const holds = await tx.seatHold.findMany({
@@ -170,6 +178,19 @@ export class PaymentService {
             where: { id: hold.id },
             data: { status: HoldStatus.CONVERTED },
           });
+          let offerId =
+            holdToOffer.get(hold.id) ||
+            hold.offerId ||
+            undefined;
+          if (!offerId && hold.seatId) {
+            const ticket = await tx.ticket.findFirst({
+              where: { eventId: order.eventId, seatId: hold.seatId },
+              select: { offerId: true },
+            });
+            offerId = ticket?.offerId;
+          }
+          const orderItem =
+            (offerId ? itemByOffer.get(offerId) : undefined) ?? updatedOrder.items[0];
           if (hold.seatId) {
             await tx.ticket.updateMany({
               where: { eventId: order.eventId, seatId: hold.seatId },
@@ -179,6 +200,35 @@ export class PaymentService {
                 buyerName: order.buyerName,
                 code: generateTicketCode(),
                 orderItemId: orderItem?.id,
+              },
+            });
+          } else if (offerId) {
+            const available = await tx.ticket.findFirst({
+              where: {
+                eventId: order.eventId,
+                offerId,
+                status: TicketStatus.HELD,
+              },
+            });
+            if (available) {
+              await tx.ticket.update({
+                where: { id: available.id },
+                data: {
+                  status: TicketStatus.SOLD,
+                  buyerEmail: order.buyerEmail,
+                  buyerName: order.buyerName,
+                  code: generateTicketCode(),
+                  orderItemId: orderItem?.id,
+                },
+              });
+            }
+          }
+          if (offerId) {
+            await tx.offer.update({
+              where: { id: offerId },
+              data: {
+                soldQuantity: { increment: 1 },
+                remainingQuantity: { decrement: 1 },
               },
             });
           }
@@ -213,6 +263,13 @@ export class PaymentService {
             },
           });
         }
+      }
+
+      if (pendingIntent?.status === PaymentStatus.PENDING) {
+        await tx.paymentIntent.update({
+          where: { id: pendingIntent.id },
+          data: { status: PaymentStatus.COMPLETED },
+        });
       }
 
       this.logger.log(`Banorte: order ${orderId} completed, ${tickets.length} tickets`);
@@ -359,26 +416,41 @@ export class PaymentService {
         },
       });
 
-      if (fullRefund) {
-        const items = await tx.orderItem.findMany({
-          where: { orderId },
-          select: { id: true },
+      if (!fullRefund) return;
+
+      const items = await tx.orderItem.findMany({
+        where: { orderId },
+        select: { id: true, offerId: true, quantity: true },
+      });
+      const itemIds = items.map((i) => i.id);
+      if (itemIds.length) {
+        await tx.ticket.updateMany({
+          where: { orderItemId: { in: itemIds } },
+          data: {
+            status: TicketStatus.AVAILABLE,
+            orderItemId: null,
+            buyerName: null,
+            buyerEmail: null,
+            checkedInAt: null,
+            usedAt: null,
+          },
         });
-        const itemIds = items.map((i) => i.id);
-        if (itemIds.length) {
-          await tx.ticket.updateMany({
-            where: { orderItemId: { in: itemIds } },
-            data: {
-              status: TicketStatus.AVAILABLE,
-              orderItemId: null,
-              buyerName: null,
-              buyerEmail: null,
-              checkedInAt: null,
-              usedAt: null,
-            },
-          });
-        }
       }
+
+      for (const item of items) {
+        await tx.offer.update({
+          where: { id: item.offerId },
+          data: {
+            soldQuantity: { decrement: item.quantity },
+            remainingQuantity: { increment: item.quantity },
+          },
+        });
+      }
+
+      await tx.paymentIntent.updateMany({
+        where: { orderId, status: { in: [PaymentStatus.PENDING, PaymentStatus.COMPLETED] } },
+        data: { status: PaymentStatus.REFUNDED },
+      });
     });
   }
 
@@ -416,21 +488,56 @@ export class PaymentService {
   getBanortePublicConfig() {
     const cfg = getBanorteConfig();
     const validation = validateBanorteProductionConfig();
+    const ipn = getBanorteIpnEndpoints();
+    const demo = cfg.isDemo;
     return {
       gateway: 'BANORTE',
-      demo: cfg.isDemo,
-      productionReady: validation.ready,
+      demo,
+      mode: demo ? ('demo' as const) : ('live' as const),
+      productionReady: validation.ready && !demo,
       methods: ['CARD', 'SPEI', 'OXXO'],
-      settlement: 'Depósito directo en cuenta Banorte empresarial',
-      accountClabeMasked: cfg.accountClabe
-        ? `${cfg.accountClabe.slice(0, 4)}…${cfg.accountClabe.slice(-4)}`
-        : null,
-      validation,
+      settlement: demo
+        ? 'Modo demo — no hay cobro real ni liquidación Banorte'
+        : 'Depósito directo en cuenta Banorte empresarial del promotor',
+      buyerNote: demo
+        ? 'Entorno de prueba: puedes completar el flujo sin cargo real. No uses datos de tarjeta reales.'
+        : 'El cobro se procesa con Banorte Payworks / SPEI / OXXO hacia la cuenta del promotor.',
+      accountClabeMasked:
+        !demo && cfg.accountClabe
+          ? `${cfg.accountClabe.slice(0, 4)}…${cfg.accountClabe.slice(-4)}`
+          : null,
+      validation: {
+        ready: validation.ready,
+        demo: validation.demo,
+        missing: validation.missing,
+        warnings: validation.warnings,
+      },
+      ipn: {
+        webhookUrl: ipn.webhookUrl,
+        returnUrlBase: ipn.returnUrlBase,
+        cancelUrl: ipn.cancelUrl,
+        webhookSecretConfigured: ipn.webhookSecretConfigured,
+        signatureHeaders: [...ipn.signatureHeaders],
+      },
     };
   }
 
   validateBanorteSetup() {
-    return validateBanorteProductionConfig();
+    const validation = validateBanorteProductionConfig();
+    const ipn = getBanorteIpnEndpoints();
+    return {
+      ...validation,
+      checkedAt: new Date().toISOString(),
+      ipn: {
+        webhookUrl: ipn.webhookUrl,
+        returnUrlBase: ipn.returnUrlBase,
+        cancelUrl: ipn.cancelUrl,
+        webhookSecretConfigured: ipn.webhookSecretConfigured,
+        signatureHeaders: [...ipn.signatureHeaders],
+        registerHint:
+          'Registra la URL IPN en el portal Banorte Payworks y firma con BANORTE_WEBHOOK_SECRET.',
+      },
+    };
   }
 }
 

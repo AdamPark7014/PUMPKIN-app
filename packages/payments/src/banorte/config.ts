@@ -1,6 +1,7 @@
 /**
  * Credenciales Banorte — liquidación directa a tu cuenta empresarial.
  * Contrata afiliación e-commerce / Payworks con tu ejecutivo Banorte.
+ * Sin BANORTE_MERCHANT_ID el gateway opera en modo demo (solo desarrollo).
  */
 export type BanorteConfig = {
   merchantId: string;
@@ -61,5 +62,26 @@ export function getBanorteConfig(): BanorteConfig {
     returnUrl: process.env.BANORTE_RETURN_URL ?? 'http://localhost:3000',
     cancelUrl: process.env.BANORTE_CANCEL_URL ?? 'http://localhost:3000',
     isDemo: !merchantId,
+  };
+}
+
+/** Public API origin for Banorte IPN registration (no trailing slash). */
+export function getApiPublicBaseUrl(): string {
+  const raw =
+    process.env.API_PUBLIC_URL ||
+    process.env.BANORTE_API_PUBLIC_URL ||
+    `http://127.0.0.1:${process.env.API_PORT || 4000}`;
+  return raw.replace(/\/$/, '');
+}
+
+export function getBanorteIpnEndpoints() {
+  const cfg = getBanorteConfig();
+  const apiBase = getApiPublicBaseUrl();
+  return {
+    webhookUrl: `${apiBase}/api/v1/payments/webhooks/banorte`,
+    returnUrlBase: cfg.returnUrl.replace(/\/$/, ''),
+    cancelUrl: cfg.cancelUrl,
+    webhookSecretConfigured: Boolean(cfg.webhookSecret),
+    signatureHeaders: ['x-banorte-signature', 'x-signature'] as const,
   };
 }

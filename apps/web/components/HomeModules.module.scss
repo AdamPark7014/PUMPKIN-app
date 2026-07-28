@@ -1,0 +1,227 @@
+$ink: #0a0a0a;
+$mute: #737373;
+$line: #e5e5e5;
+$accent: #e11d48;
+
+.wrap {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.5rem clamp(1rem, 3vw, 2rem) 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3.25rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+
+  h2 {
+    margin: 0;
+    font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+    font-size: clamp(1.75rem, 3.2vw, 2.25rem);
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+
+  a {
+    font-size: 0.8125rem;
+    color: $accent;
+    text-decoration: none;
+    font-weight: 600;
+  }
+}
+
+.trending {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.trendCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+
+  strong {
+    display: block;
+    font-size: 0.95rem;
+    line-height: 1.25;
+  }
+
+  span,
+  em {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    color: $mute;
+    font-style: normal;
+  }
+
+  em {
+    color: $ink;
+    font-weight: 700;
+  }
+
+  &:hover strong {
+    color: $accent;
+  }
+
+  &:hover .trendArt {
+    transform: translateY(-3px);
+  }
+}
+
+.trendArt {
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  box-shadow: 0 14px 32px rgba(10, 10, 10, 0.1);
+}
+
+.cities {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (max-width: 760px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cityCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  min-height: 8.5rem;
+  padding: 1.15rem 1.05rem;
+  overflow: hidden;
+  color: #fafafa;
+  text-decoration: none;
+  background:
+    linear-gradient(160deg, rgba(10, 10, 10, 0.2), rgba(10, 10, 10, 0.85)),
+    linear-gradient(135deg, #1c1917, #404040 55%, #e11d48);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -40% -20% auto auto;
+    width: 70%;
+    height: 90%;
+    background: radial-gradient(circle, rgba(225, 29, 72, 0.35), transparent 65%);
+    pointer-events: none;
+  }
+
+  strong,
+  span {
+    position: relative;
+    z-index: 1;
+  }
+
+  strong {
+    font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+    font-size: 1.65rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+
+  span {
+    font-size: 0.75rem;
+    color: rgba(250, 250, 250, 0.7);
+  }
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  &:nth-child(2) {
+    background:
+      linear-gradient(160deg, rgba(10, 10, 10, 0.25), rgba(10, 10, 10, 0.88)),
+      linear-gradient(135deg, #0c4a6e, #0284c7 60%, #0a0a0a);
+  }
+
+  &:nth-child(3) {
+    background:
+      linear-gradient(160deg, rgba(10, 10, 10, 0.2), rgba(10, 10, 10, 0.88)),
+      linear-gradient(135deg, #431407, #c2410c 55%, #0a0a0a);
+  }
+
+  &:nth-child(4) {
+    background:
+      linear-gradient(160deg, rgba(10, 10, 10, 0.25), rgba(10, 10, 10, 0.9)),
+      linear-gradient(135deg, #14532d, #166534 50%, #0a0a0a);
+  }
+}
+
+.venues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.venueCard {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+
+  strong {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  span {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: $mute;
+  }
+
+  > div:last-child {
+    padding: 0.85rem 0.1rem 0.2rem;
+  }
+
+  &:hover .venueArt {
+    transform: scale(1.04);
+  }
+
+  &:hover strong {
+    color: $accent;
+  }
+}
+
+.venueArt {
+  height: 9rem;
+  background: linear-gradient(135deg, #171717, #525252);
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.45s ease;
+  transform-origin: center;
+}

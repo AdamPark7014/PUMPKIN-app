@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7c2d12"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#g)"/>
+  <circle cx="280" cy="360" r="90" fill="#fafaf9"/>
+  <circle cx="520" cy="360" r="90" fill="#1c1917"/>
+  <path d="M240 340 Q280 380 320 340" fill="none" stroke="#1c1917" stroke-width="8" stroke-linecap="round"/>
+  <path d="M480 380 Q520 340 560 380" fill="none" stroke="#fafaf9" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="255" cy="330" r="10" fill="#1c1917"/>
+  <circle cx="305" cy="330" r="10" fill="#1c1917"/>
+  <circle cx="495" cy="330" r="10" fill="#fafaf9"/>
+  <circle cx="545" cy="330" r="10" fill="#fafaf9"/>
+  <text x="48" y="80" fill="rgba(255,255,255,0.55)" font-family="Arial,sans-serif" font-size="20" letter-spacing="6">BOLETERA · OPEN MIC</text>
+  <text x="48" y="860" fill="#fff" font-family="Arial Black, Arial, sans-serif" font-size="58" font-weight="900">COMEDIA</text>
+  <text x="48" y="930" fill="#ffedd5" font-family="Arial Black, Arial, sans-serif" font-size="58" font-weight="900">ABIERTA</text>
+</svg>

@@ -1,0 +1,208 @@
+$ink: #0a0a0a;
+$mute: #737373;
+$line: #e5e5e5;
+$paper: #fafafa;
+$accent: #e11d48;
+
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem clamp(1rem, 3vw, 2rem) 3rem;
+  background: $paper;
+  min-height: calc(100vh - 64px);
+}
+
+.hero {
+  margin-bottom: 1.5rem;
+  padding: 1.5rem 0 1.25rem;
+  border-bottom: 1px solid $line;
+
+  h1 {
+    margin: 0 0 0.35rem;
+    font-family: var(--font-heading), 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    letter-spacing: 0.04em;
+    line-height: 0.95;
+  }
+
+  p {
+    margin: 0;
+    color: $mute;
+    font-size: 0.95rem;
+  }
+}
+
+.crumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.8125rem;
+  color: $mute;
+
+  a {
+    color: $mute;
+    text-decoration: none;
+
+    &:hover {
+      color: $accent;
+    }
+  }
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid $line;
+  text-decoration: none;
+  color: inherit;
+
+  strong {
+    display: block;
+    font-size: 0.95rem;
+  }
+
+  span {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.8rem;
+    color: $mute;
+  }
+
+  em {
+    font-style: normal;
+    font-weight: 700;
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    border-color: #d4d4d4;
+  }
+}
+
+.cityGrid,
+.venueGrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+
+  @media (max-width: 800px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cityTile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem 1.1rem;
+  background: #0a0a0a;
+  color: #fafafa;
+  text-decoration: none;
+
+  strong {
+    font-size: 1.05rem;
+  }
+
+  span {
+    font-size: 0.8rem;
+    color: rgba(250, 250, 250, 0.65);
+  }
+
+  &:hover {
+    background: #171717;
+  }
+}
+
+.venueTile {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid $line;
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+
+  .art {
+    height: 8rem;
+    background: linear-gradient(135deg, #171717, #525252);
+    background-size: cover;
+    background-position: center;
+  }
+
+  .body {
+    padding: 0.9rem 1rem 1.1rem;
+  }
+
+  strong {
+    display: block;
+    font-size: 0.95rem;
+  }
+
+  span {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: $mute;
+  }
+
+  &:hover {
+    border-color: #d4d4d4;
+  }
+}
+
+.empty {
+  padding: 2rem 0;
+  color: $mute;
+
+  a {
+    color: $accent;
+  }
+}
+
+.metaBlock {
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.1rem;
+  background: #fff;
+  border: 1px solid $line;
+  font-size: 0.9rem;
+  color: #404040;
+  line-height: 1.5;
+
+  a {
+    color: $accent;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+  }
+
+  p:first-child {
+    margin-top: 0;
+  }
+}

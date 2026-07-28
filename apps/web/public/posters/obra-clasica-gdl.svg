@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="1050" viewBox="0 0 700 1050" fill="none">
+  <defs>
+    <linearGradient id="curtain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1c1917"/>
+      <stop offset="40%" stop-color="#7c2d12"/>
+      <stop offset="100%" stop-color="#450a0a"/>
+    </linearGradient>
+  </defs>
+  <rect width="700" height="1050" fill="url(#curtain)"/>
+  <rect x="80" y="180" width="540" height="14" rx="2" fill="#e11d48"/>
+  <path d="M120 220 Q350 280 580 220" fill="none" stroke="rgba(251,191,36,0.45)" stroke-width="2"/>
+  <path d="M140 260 Q350 330 560 260" fill="none" stroke="rgba(251,191,36,0.25)" stroke-width="2"/>
+  <text x="48" y="64" fill="rgba(255,255,255,0.5)" font-family="Arial,sans-serif" font-size="18" letter-spacing="8">BOLETERA · GDL</text>
+  <text x="48" y="820" fill="#fef3c7" font-family="Georgia, serif" font-size="42">Obra clásica</text>
+  <text x="48" y="880" fill="#fff" font-family="Arial Black, Arial, sans-serif" font-size="48" font-weight="900">DEGOLLADO</text>
+  <text x="48" y="940" fill="rgba(254,243,199,0.7)" font-family="Arial,sans-serif" font-size="20" letter-spacing="3">TEMPORADA 2026</text>
+</svg>

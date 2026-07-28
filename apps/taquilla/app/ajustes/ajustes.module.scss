@@ -1,0 +1,64 @@
+.msg {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.section {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.125rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  h2 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  p {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  input {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.625rem;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.9375rem;
+    color: var(--text);
+    background: var(--bg-deep);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+
+    &:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+  }
+
+  button {
+    margin-top: 0.25rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent-fg);
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+
+    &:hover {
+      opacity: 0.92;
+    }
+  }
+}

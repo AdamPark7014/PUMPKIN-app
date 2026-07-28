@@ -8,7 +8,12 @@ export class TenantService {
   async resolveByHost(host: string) {
     const hostname = host.split(':')[0];
     const subdomain = hostname.split('.')[0];
-    if (subdomain === 'localhost' || subdomain === 'www') {
+    if (
+      subdomain === 'localhost' ||
+      subdomain === 'www' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1'
+    ) {
       const demo = await this.prisma.organization.findFirst({
         where: { slug: 'demo-boletera' },
         include: { tenantTheme: true },

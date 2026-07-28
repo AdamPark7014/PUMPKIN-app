@@ -30,12 +30,12 @@ const statusMeta: Record<string, { label: string; class: string }> = {
 };
 
 const channelColor: Record<string, string> = {
-  WEB: '#e11d48',
-  TAQUILLA: '#10b981',
-  POS: '#10b981',
-  API: '#f59e0b',
-  ADMIN: '#737373',
-  RESALE: '#ec4899',
+  WEB: '#52525b',
+  TAQUILLA: '#18181b',
+  POS: '#18181b',
+  API: '#71717a',
+  ADMIN: '#a1a1aa',
+  RESALE: '#3f3f46',
 };
 
 function fmtCurrency(amount: string, currency: string) {

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7c2d12"/>
+      <stop offset="40%" stop-color="#c2410c"/>
+      <stop offset="100%" stop-color="#1c1917"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#g)"/>
+  <circle cx="680" cy="220" r="100" fill="#fbbf24" opacity="0.85"/>
+  <ellipse cx="450" cy="700" rx="280" ry="40" fill="rgba(0,0,0,0.25)"/>
+  <path d="M300 620 Q450 520 600 620" fill="none" stroke="#fafaf9" stroke-width="6"/>
+  <circle cx="300" cy="620" r="18" fill="#fafaf9"/>
+  <rect x="420" y="540" width="24" height="160" rx="4" fill="#292524"/>
+  <ellipse cx="432" cy="530" rx="50" ry="28" fill="#fbbf24"/>
+  <text x="50" y="80" fill="rgba(255,255,255,0.5)" font-family="Arial,sans-serif" font-size="20" letter-spacing="6">BOLETERA · LIVE JAZZ</text>
+  <text x="50" y="980" fill="#fff" font-family="Arial Black, Arial, sans-serif" font-size="64" font-weight="900">JAZZ AL</text>
+  <text x="50" y="1060" fill="#fde68a" font-family="Arial Black, Arial, sans-serif" font-size="64" font-weight="900">ATARDECER</text>
+  <text x="50" y="1130" fill="rgba(255,255,255,0.65)" font-family="Arial,sans-serif" font-size="24" letter-spacing="3">QUINTETO · GDL</text>
+</svg>

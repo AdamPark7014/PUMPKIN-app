@@ -29,7 +29,7 @@ const navGroups: NavGroup[] = [
     items: [
       {
         href: '/dashboard',
-        label: 'Command Center',
+        label: 'Inicio',
         icon: <Icon d="M3 12 12 3l9 9M5 10v10h14V10" />,
       },
       {
@@ -50,7 +50,7 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Distribución',
+    label: 'Ventas',
     items: [
       {
         href: '/channels',
@@ -64,7 +64,7 @@ const navGroups: NavGroup[] = [
       },
       {
         href: '/venues',
-        label: 'Venues & Mapas',
+        label: 'Venues',
         icon: <Icon d="M12 21s-7-7-7-12a7 7 0 0 1 14 0c0 5-7 12-7 12z M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />,
       },
       {
@@ -75,17 +75,22 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Insights',
+    label: 'Reportes',
     items: [
       {
         href: '/analytics',
-        label: 'Analytics',
+        label: 'Analítica',
         icon: <Icon d="M3 21V3 M3 21h18 M7 17v-5 M11 17v-9 M15 17v-3 M19 17v-7" />,
       },
       {
         href: '/reports',
         label: 'Reportes',
         icon: <Icon d="M6 3h9l5 5v13H6zM14 3v6h6" />,
+      },
+      {
+        href: '/reports/egress',
+        label: 'Egress',
+        icon: <Icon d="M4 12h10 M14 12l-3-3 M14 12l-3 3 M18 5v14" />,
       },
       {
         href: '/payouts',
@@ -100,26 +105,31 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Operativa',
+    label: 'Herramientas',
     items: [
       {
         href: '/scanner',
-        label: 'Scanner',
+        label: 'Escáner',
         icon: <Icon d="M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M3 12h18" />,
       },
       {
         href: '/settings/branding',
-        label: 'Branding',
+        label: 'Marca',
         icon: <Icon d="M12 3a9 9 0 1 0 9 9c0-1-3 0-5-2s-1-5-2-6-1-1-2-1z M7 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M16 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M16 16a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M10 17a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />,
+      },
+      {
+        href: '/settings/payments',
+        label: 'Pagos Banorte',
+        icon: <Icon d="M2 7h20v10H2z M6 12h4 M14 12h4" />,
       },
     ],
   },
   {
-    label: 'Plataforma SaaS',
+    label: 'Organización',
     items: [
       {
         href: '/platform',
-        label: 'Capabilities',
+        label: 'Capacidades',
         icon: <Icon d="M4 6h16v12H4z M8 10h8 M8 14h5 M12 2v4 M12 18v4" />,
       },
       {
@@ -129,12 +139,12 @@ const navGroups: NavGroup[] = [
       },
       {
         href: '/partners',
-        label: 'Partners & API',
+        label: 'Partners',
         icon: <Icon d="M12 3l8 4v5c0 5-4 8-8 9-4-1-8-4-8-9V7l8-4z M9 12h6 M12 9v6" />,
       },
       {
         href: '/billing/cfdi',
-        label: 'CFDI 4.0',
+        label: 'Facturación',
         icon: <Icon d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M9 15h6 M9 11h6" />,
       },
       {
@@ -189,7 +199,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             </div>
             <div>
               <p className={styles.logoText}>BOLETERA</p>
-              <p className={styles.logoSub}>Admin Console</p>
+              <p className={styles.logoSub}>Administración</p>
             </div>
           </div>
           <button
@@ -277,7 +287,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           <div className={styles.topRight}>
             <div className={styles.statusPill}>
               <span className={styles.pillDot} />
-              Sistema operando
+              En línea
             </div>
             <button type="button" className={styles.iconBtn} aria-label="Notificaciones">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">

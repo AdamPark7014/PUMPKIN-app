@@ -64,11 +64,11 @@ TIER 4: POST-SALE
 
 2. EVENT DETAIL PAGE
    ↓
-   LayoutManagement.get3DVisualizationData(eventId)
-   ├─ Returns: 3D seat visualization
-   ├─ Includes: sightline scores, accessibility info, pricing by zone
-   ├─ Real-time occupancy heatmap
-   └─ AI seat recommendations based on preferences
+   SeatMapping3D.getInteractiveSeatView(eventId)
+   ├─ Returns: live statusBySeat (+ compatible venue envelope)
+   ├─ Geometry: published SeatMapData → client @boletera/venue-3d
+   ├─ Real-time occupancy: GET /3d/events/{eventId}/heatmap
+   └─ Recommendations: POST /3d/events/{eventId}/recommendations
 
 3. SEAT SELECTION
    ↓
@@ -311,9 +311,13 @@ GET    /api/v1/channels/{eventId}/analytics
 LAYOUT MANAGEMENT
 POST   /api/v1/layouts/venue/{venueId}
 POST   /api/v1/layouts/{layoutId}/sightlines
-GET    /api/v1/layouts/{layoutId}/recommendations
-GET    /api/v1/layouts/{layoutId}/heatmap/{eventId}
-GET    /api/v1/layouts/{layoutId}/3d/{eventId}
+POST   /api/v1/layouts/{layoutId}/seats/hold
+POST   /api/v1/layouts/{layoutId}/seats/release
+
+3D / LIVE INVENTORY (canonical)
+GET    /api/v1/3d/events/{eventId}/interactive
+GET    /api/v1/3d/events/{eventId}/heatmap
+POST   /api/v1/3d/events/{eventId}/recommendations
 
 SEARCH & DISCOVERY
 GET    /api/v1/search/events?query=taylor&dateRange=...

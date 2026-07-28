@@ -1,8 +1,12 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { SalesChannel } from '@prisma/client';
+import { Prisma, SalesChannel } from '@prisma/client';
 import type { SeatMapData } from '@boletera/shared';
+import {
+  calculateSightlines,
+  normalizeSeatMap,
+  resolveGeometry,
+} from '@boletera/venue-engine';
 import { PrismaService } from '../prisma/prisma.service';
-import { SeatMapping3DService } from '../seat-mapping-3d/seat-mapping-3d.service';
 import { VenueLayoutService } from '../venue-layout/venue-layout.service';
 import { InventoryService } from '../inventory/inventory.service';
 
@@ -12,7 +16,6 @@ export class LayoutManagementService {
 
   constructor(
     private prisma: PrismaService,
-    private seat3d: SeatMapping3DService,
     private venueLayout: VenueLayoutService,
     private inventory: InventoryService,
   ) {}
@@ -73,28 +76,72 @@ export class LayoutManagementService {
       include: { sections: { include: { seats: true } } },
     });
     if (!layout) throw new BadRequestException('Layout not found');
+
+    const map = normalizeSeatMap(layout.mapData);
+    const scene = resolveGeometry(map);
+    const result = calculateSightlines(scene);
+    const byId = new Map(result.scores.map((s) => [s.seatId, s]));
+
+    let updated = 0;
+    for (const sec of layout.sections) {
+      for (const seat of sec.seats) {
+        const hit = byId.get(seat.id);
+        if (!hit) continue;
+        const prev = (seat.coord3d as Record<string, unknown> | null) ?? {};
+        await this.prisma.seat.update({
+          where: { id: seat.id },
+          data: {
+            viewQuality: hit.score,
+            coord3d: {
+              ...prev,
+              x: typeof prev.x === 'number' ? prev.x : seat.x,
+              y: typeof prev.y === 'number' ? prev.y : 0,
+              z: typeof prev.z === 'number' ? prev.z : seat.y,
+              visibility: hit.visibility,
+              sightline: {
+                score: hit.score,
+                grade: hit.grade,
+                occluded: hit.occluded,
+              },
+            } as unknown as Prisma.InputJsonValue,
+          },
+        });
+        updated += 1;
+      }
+    }
+
+    // Keep mapData.venue + seat visibility in sync for editor/publish
+    const nextSections = map.sections.map((sec) => ({
+      ...sec,
+      seats: sec.seats.map((seat) => {
+        const hit = byId.get(seat.id);
+        if (!hit || seat.visibility?.blocked) return seat;
+        return {
+          ...seat,
+          visibility: hit.visibility,
+          metadata: {
+            ...(seat.metadata ?? {}),
+            sightline: { score: hit.score, grade: hit.grade, occluded: hit.occluded },
+          },
+        };
+      }),
+    }));
+    await this.prisma.venueLayout.update({
+      where: { id: layoutId },
+      data: {
+        mapData: { ...map, version: 3, sections: nextSections } as object,
+      },
+    });
+
+    this.logger.log(`Sightlines scored for layout ${layoutId}: ${updated} seats`);
     return {
       layoutId,
-      seatsScored: layout.sections.reduce((n, s) => n + s.seats.length, 0),
-      note: 'Sightlines based on distance from stage center',
+      seatsScored: updated,
+      summary: result.summary,
+      stageTarget: result.stageTarget,
+      source: 'VenueGeometryEngine',
+      note: 'Sightlines from distance, facing, elevation, and obstacle occlusion',
     };
-  }
-
-  async getSeatRecommendations(_layoutId: string, preferences: { eventId: string; count?: number }) {
-    if (!preferences.eventId) throw new BadRequestException('eventId required');
-    return this.seat3d.recommendSeats(preferences.eventId, {
-      count: preferences.count ?? 2,
-      viewQuality: 'best',
-    });
-  }
-
-  async getOccupancyHeatmap(_layoutId: string, eventId: string) {
-    return this.seat3d.getOccupancyHeatmap(eventId);
-  }
-
-  async get3DVisualizationData(_layoutId: string, eventId: string) {
-    if (!eventId) throw new BadRequestException('eventId required');
-    return this.seat3d.getInteractiveSeatView(eventId);
   }
 
   async holdSeats(

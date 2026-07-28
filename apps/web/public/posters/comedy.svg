@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#431407"/>
+      <stop offset="60%" stop-color="#c2410c"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#g)"/>
+  
+    <rect x="375" y="300" width="50" height="160" rx="25" fill="rgba(255,255,255,0.85)"/>
+    <path d="M330 460 Q400 520 470 460" stroke="rgba(255,255,255,0.55)" stroke-width="8" fill="none"/>
+    <line x1="400" y1="520" x2="400" y2="620" stroke="rgba(255,255,255,0.7)" stroke-width="8"/>
+    <line x1="350" y1="620" x2="450" y2="620" stroke="rgba(255,255,255,0.7)" stroke-width="8"/>
+  <text x="60" y="70" fill="rgba(255,255,255,0.55)" font-family="Arial,sans-serif" font-size="22" letter-spacing="10">BOLETERA</text>
+  <text x="60" y="920" fill="#fff" font-family="Arial Black, Arial, sans-serif" font-size="48" letter-spacing="4">COMEDIA</text>
+</svg>

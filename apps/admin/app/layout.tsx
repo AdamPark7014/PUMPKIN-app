@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Bebas_Neue, Space_Grotesk } from 'next/font/google';
+import { ToastProvider } from '@/components/Toast/ToastProvider';
 import './globals.scss';
 
 const heading = Bebas_Neue({ subsets: ['latin'], variable: '--font-heading', weight: '400' });
@@ -15,7 +16,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={`${heading.variable} ${body.variable}`}>{children}</body>
+      <body className={`${heading.variable} ${body.variable}`}>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

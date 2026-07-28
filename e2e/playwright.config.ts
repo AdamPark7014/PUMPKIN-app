@@ -5,7 +5,8 @@ export default defineConfig({
   fullyParallel: true,
   retries: 0,
   use: {
-    baseURL: process.env.WEB_URL || 'http://localhost:3000',
+    // Prefer 127.0.0.1 — on some Windows setups localhost:4000 hits another API via IPv6.
+    baseURL: process.env.WEB_URL || 'http://127.0.0.1:3010',
     trace: 'on-first-retry',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
@@ -14,15 +15,19 @@ export default defineConfig({
     : [
         {
           command: 'pnpm --filter @boletera/api dev',
-          url: 'http://localhost:4000/api/v1/health',
+          url: 'http://127.0.0.1:4000/api/v1/health',
           reuseExistingServer: true,
           timeout: 120_000,
         },
         {
-          command: 'pnpm --filter @boletera/web dev',
-          url: 'http://localhost:3000',
+          command: 'pnpm --filter @boletera/web exec next dev --port 3010 --hostname 127.0.0.1',
+          url: 'http://127.0.0.1:3010',
           reuseExistingServer: true,
           timeout: 120_000,
+          env: {
+            ...process.env,
+            NEXT_PUBLIC_API_URL: 'http://127.0.0.1:4000/api/v1',
+          },
         },
       ],
 });

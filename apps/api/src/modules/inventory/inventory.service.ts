@@ -93,7 +93,7 @@ export class InventoryService {
           data: {
             eventId: dto.eventId,
             seatId,
-            offerId: dto.offerId,
+            offerId: dto.offerId ?? ticket.offerId,
             userId: dto.userId,
             sessionId: dto.sessionId,
             channel,
@@ -134,6 +134,118 @@ export class InventoryService {
     }
 
     return { holds, expiresAt };
+  }
+
+  /**
+   * Pick N best-available seats for an offer (contiguous same-row when possible),
+   * or GA quantity holds when tickets have no seat.
+   */
+  async createBestAvailableHold(dto: {
+    eventId: string;
+    offerId: string;
+    quantity: number;
+    sessionId?: string;
+    userId?: string;
+    channel?: SalesChannel;
+    cashierId?: string;
+    contiguous?: boolean;
+  }) {
+    const quantity = Math.min(Math.max(dto.quantity || 1, 1), 12);
+    const offer = await this.prisma.offer.findFirst({
+      where: { id: dto.offerId, eventId: dto.eventId, isAvailable: true },
+    });
+    if (!offer) throw new NotFoundException('Offer not found');
+
+    const candidates = await this.prisma.ticket.findMany({
+      where: {
+        eventId: dto.eventId,
+        offerId: dto.offerId,
+        status: TicketStatus.AVAILABLE,
+      },
+      orderBy: [{ section: 'asc' }, { row: 'asc' }, { seatNumber: 'asc' }],
+      take: Math.max(quantity * 8, 40),
+    });
+    if (candidates.length < quantity) {
+      throw new BadRequestException('Not enough tickets available');
+    }
+
+    const withSeats = candidates.filter((t) => t.seatId);
+    if (withSeats.length >= quantity) {
+      const picked =
+        dto.contiguous === false
+          ? withSeats.slice(0, quantity)
+          : this.pickContiguousSeats(withSeats, quantity) ?? withSeats.slice(0, quantity);
+      const seatIds = picked.map((t) => t.seatId!).filter(Boolean);
+      const result = await this.createHold({
+        eventId: dto.eventId,
+        seatIds,
+        offerId: dto.offerId,
+        sessionId: dto.sessionId,
+        userId: dto.userId,
+        channel: dto.channel,
+        cashierId: dto.cashierId,
+      });
+      return {
+        ...result,
+        seats: picked.map((t) => ({
+          seatId: t.seatId,
+          section: t.section,
+          row: t.row,
+          seatNumber: t.seatNumber,
+          label: [t.section, t.row, t.seatNumber].filter(Boolean).join(' · '),
+        })),
+        mode: 'RESERVED' as const,
+      };
+    }
+
+    const result = await this.createHold({
+      eventId: dto.eventId,
+      offerId: dto.offerId,
+      quantity,
+      sessionId: dto.sessionId,
+      userId: dto.userId,
+      channel: dto.channel,
+      cashierId: dto.cashierId,
+    });
+    return {
+      ...result,
+      seats: [],
+      mode: 'GA' as const,
+    };
+  }
+
+  private pickContiguousSeats<
+    T extends { section: string | null; row: string | null; seatNumber: string | null },
+  >(tickets: T[], quantity: number): T[] | null {
+    const groups = new Map<string, T[]>();
+    for (const t of tickets) {
+      const key = `${t.section ?? ''}::${t.row ?? ''}`;
+      const list = groups.get(key) ?? [];
+      list.push(t);
+      groups.set(key, list);
+    }
+    for (const row of groups.values()) {
+      const sorted = [...row].sort(
+        (a, b) => this.seatNum(a.seatNumber) - this.seatNum(b.seatNumber),
+      );
+      for (let i = 0; i <= sorted.length - quantity; i++) {
+        const slice = sorted.slice(i, i + quantity);
+        let contiguous = true;
+        for (let j = 1; j < slice.length; j++) {
+          if (this.seatNum(slice[j].seatNumber) !== this.seatNum(slice[j - 1].seatNumber) + 1) {
+            contiguous = false;
+            break;
+          }
+        }
+        if (contiguous) return slice;
+      }
+    }
+    return null;
+  }
+
+  private seatNum(value: string | null | undefined) {
+    const n = parseInt(String(value ?? '').replace(/\D/g, ''), 10);
+    return Number.isFinite(n) ? n : 0;
   }
 
   async releaseHold(holdId: string) {

@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Query, Res, UseGuards, Request } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -10,11 +11,13 @@ export class AuthController {
   constructor(private auth: AuthService) {}
 
   @Post('login')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   login(@Body() body: { email: string; password: string }) {
     return this.auth.login(body.email, body.password);
   }
 
   @Post('register')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   register(
     @Body()
     body: { email: string; password: string; firstName: string; lastName: string },

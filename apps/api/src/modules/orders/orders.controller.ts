@@ -30,7 +30,8 @@ export class OrdersController {
     body: {
       eventId: string;
       offerId?: string;
-      holdIds: string[];
+      holdIds?: string[];
+      items?: { offerId: string; holdIds: string[] }[];
       buyerName: string;
       buyerEmail: string;
       buyerPhone?: string;

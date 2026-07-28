@@ -156,10 +156,30 @@ export function listVenues(token: string) {
 }
 
 export function suggestLayout(token: string, venueId: string, planDescription: string) {
-  return adminApi<{ sections: SeatMapSection[]; note: string }>('/admin/venues/suggest-layout', token, {
-    method: 'POST',
-    body: JSON.stringify({ venueId, planDescription }),
-  });
+  return adminApi<{ venue: unknown; layout: { mapData: SeatMapData } }>(
+    `/venues/${venueId}/layout/suggest`,
+    token,
+    {
+      method: 'POST',
+      body: JSON.stringify({ prompt: planDescription }),
+    },
+  );
+}
+
+export function applyLayoutTemplate(
+  token: string,
+  venueId: string,
+  template: 'arena' | 'theater' | 'stadium' | 'festival',
+  opts?: { capacity?: number },
+) {
+  return adminApi<{ venue: unknown; layout: { mapData: SeatMapData } }>(
+    `/venues/${venueId}/layout/from-template`,
+    token,
+    {
+      method: 'POST',
+      body: JSON.stringify({ template, capacity: opts?.capacity }),
+    },
+  );
 }
 
 export function getVenueLayout(token: string, venueId: string) {
@@ -174,6 +194,185 @@ export function saveVenueLayout(token: string, venueId: string, mapData: SeatMap
     method: 'PUT',
     body: JSON.stringify({ mapData }),
   });
+}
+
+export type EgressReportApiJson = {
+  format: 'json';
+  filename: string;
+  report: {
+    generatedAt: string;
+    venueName: string;
+    summary: {
+      hasNetwork: boolean;
+      sections: number;
+      unreachable: number;
+      seatsWithPath: number;
+      seatsWithoutPath: number;
+      maxPathLength: number | null;
+      avgPathLength: number | null;
+      clearanceMinutes: number | null;
+      maxWalkMinutes: number | null;
+    };
+    policy: {
+      longPathUnits: number;
+      slowClearanceMinutes: number;
+      bottleneckUtilization: number;
+      bottleneckSeatLoad: number;
+    };
+    analysis: unknown;
+  };
+};
+
+/** Saved layout egress report (JSON). */
+export function getVenueEgressReport(token: string, venueId: string) {
+  return adminApi<EgressReportApiJson>(`/venues/${venueId}/layout/egress`, token);
+}
+
+export type EgressOverviewVenue = {
+  venueId: string;
+  layoutId: string | null;
+  venueName: string;
+  hasNetwork: boolean;
+  sections: number;
+  unreachable: number;
+  seatsWithPath: number;
+  seatsWithoutPath: number;
+  clearanceMinutes: number | null;
+  maxPathLength: number | null;
+  avgPathLength: number | null;
+  topBottleneckUtilization: number | null;
+  topBottleneckKind: string | null;
+  status: 'ok' | 'warn' | 'critical' | 'no-network' | 'empty';
+  statusReason: string;
+};
+
+export type EgressOverviewResponse = {
+  generatedAt: string;
+  venues: EgressOverviewVenue[];
+  counts: {
+    ok: number;
+    warn: number;
+    critical: number;
+    noNetwork: number;
+    empty: number;
+  };
+};
+
+/** Org-wide egress health dashboard. */
+export function getEgressOverview(token: string) {
+  return adminApi<EgressOverviewResponse>('/venues/egress-overview', token);
+}
+
+/** Download org-wide egress overview CSV. */
+export async function downloadEgressOverviewCsv(token: string) {
+  const API = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${API}/venues/egress-overview.csv`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = /filename="?([^"]+)"?/i.exec(disposition);
+  const filename = match?.[1] || 'egress-overview.csv';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Analyze egress for saved layout or unsaved draft.
+ * format=csv returns raw CSV text; json returns structured report.
+ */
+export async function analyzeVenueEgress(
+  token: string,
+  venueId: string,
+  opts?: { mapData?: SeatMapData; format?: 'json' | 'csv' | 'pdf' },
+): Promise<EgressReportApiJson | string | Blob> {
+  const format = opts?.format ?? 'json';
+  const API = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${API}/venues/${venueId}/layout/egress`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ mapData: opts?.mapData, format }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  if (format === 'csv') return res.text();
+  if (format === 'pdf') return res.blob();
+  return res.json() as Promise<EgressReportApiJson>;
+}
+
+/** Download egress CSV for the saved layout (browser). */
+export async function downloadVenueEgressCsv(token: string, venueId: string) {
+  const API = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${API}/venues/${venueId}/layout/egress.csv`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = /filename="?([^"]+)"?/i.exec(disposition);
+  const filename = match?.[1] || `egress-${venueId}.csv`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Download egress PDF for the saved layout (browser). */
+export async function downloadVenueEgressPdf(token: string, venueId: string) {
+  const API = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${API}/venues/${venueId}/layout/egress.pdf`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = /filename="?([^"]+)"?/i.exec(disposition);
+  const filename = match?.[1] || `egress-${venueId}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Analyze draft map and download PDF (or return blob URL handling).
+ */
+export async function downloadVenueEgressPdfDraft(
+  token: string,
+  venueId: string,
+  mapData: SeatMapData,
+) {
+  const API = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${API}/venues/${venueId}/layout/egress`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ mapData, format: 'pdf' }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = /filename="?([^"]+)"?/i.exec(disposition);
+  const filename = match?.[1] || `egress-draft-${venueId}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function publishEvent(token: string, eventId: string) {

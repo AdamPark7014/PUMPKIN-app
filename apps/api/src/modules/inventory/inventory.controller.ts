@@ -32,6 +32,25 @@ export class InventoryController {
     return this.inventory.streamAvailability(eventId);
   }
 
+  @Post('holds/best-available')
+  createBestAvailable(
+    @Body()
+    body: {
+      eventId: string;
+      offerId: string;
+      quantity: number;
+      sessionId?: string;
+      userId?: string;
+      contiguous?: boolean;
+    },
+    @Headers('x-channel') channelHeader?: string,
+    @Headers('x-cashier-id') cashierId?: string,
+  ) {
+    const channel =
+      channelHeader?.toUpperCase() === 'TAQUILLA' ? SalesChannel.TAQUILLA : SalesChannel.WEB;
+    return this.inventory.createBestAvailableHold({ ...body, channel, cashierId });
+  }
+
   @Post('holds')
   createHold(
     @Body()

@@ -11,7 +11,12 @@ export class SeatMapping3DController {
   // ==================== VENUE 3D GENERATION ====================
 
   @Get('venue/:venueId')
-  @ApiOperation({ summary: 'Generate 3D venue map' })
+  @ApiOperation({
+    summary: 'Generate 3D venue map (compat)',
+    deprecated: true,
+    description:
+      'Prefer published SeatMapData + client @boletera/venue-3d. Still powered by VenueGeometryEngine.',
+  })
   async generateVenue3D(@Param('venueId') venueId: string) {
     return await this.seatMappingService.generateVenue3D(venueId);
   }
@@ -19,7 +24,11 @@ export class SeatMapping3DController {
   // ==================== INTERACTIVE 3D VIEW ====================
 
   @Get('events/:eventId/interactive')
-  @ApiOperation({ summary: 'Get interactive 3D seat view for event' })
+  @ApiOperation({
+    summary: 'Live seat status for 3D clients',
+    description:
+      'Returns statusBySeat (+ compatible venue envelope). Geometry is projected client-side from the published map.',
+  })
   async getInteractiveSeatView(
     @Param('eventId') eventId: string,
     @Query('selectedSeat') selectedSeatId?: string,

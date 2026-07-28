@@ -18,6 +18,7 @@ import { initDefaultProviders, getProvider, BanorteProvider } from '@boletera/pa
 import QRCode from 'qrcode';
 import { AuditService } from '../../common/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { requireJwtSecret } from '../auth/jwt-secret';
 import { PricingService } from '../pricing/pricing.service';
 import { FraudService } from '../fraud/fraud.service';
 import { NotificationService } from '../notification/notification.service';
@@ -45,7 +46,8 @@ export class OrdersService {
   async createOrder(dto: {
     eventId: string;
     offerId?: string;
-    holdIds: string[];
+    holdIds?: string[];
+    items?: { offerId: string; holdIds: string[] }[];
     buyerName: string;
     buyerEmail: string;
     buyerPhone?: string;
@@ -57,6 +59,9 @@ export class OrdersService {
     idempotencyKey?: string;
     ipAddress?: string;
     deviceFingerprint?: string;
+    isComp?: boolean;
+    compReason?: string;
+    posOps?: Record<string, unknown>;
   }) {
     if (dto.idempotencyKey) {
       const existing = await this.prisma.paymentIntent.findUnique({
@@ -71,17 +76,10 @@ export class OrdersService {
       }
     }
 
-    const holds = await this.prisma.seatHold.findMany({
-      where: {
-        id: { in: dto.holdIds },
-        eventId: dto.eventId,
-        status: HoldStatus.ACTIVE,
-        expiresAt: { gt: new Date() },
-      },
-    });
-    if (holds.length !== dto.holdIds.length) {
-      throw new BadRequestException('Invalid or expired holds');
-    }
+    const lineGroups = await this.resolveOrderLines(dto);
+    const holdIds = lineGroups.flatMap((g) => g.holdIds);
+    const holds = lineGroups.flatMap((g) => g.holds);
+    if (!holds.length) throw new BadRequestException('Invalid or expired holds');
 
     const event = await this.prisma.event.findUnique({
       where: { id: dto.eventId },
@@ -108,21 +106,69 @@ export class OrdersService {
       userId = user.id;
     }
 
-    const offer =
-      (dto.offerId
-        ? event.offers.find((o) => o.id === dto.offerId) ??
-          (await this.prisma.offer.findFirst({
-            where: { id: dto.offerId, eventId: event.id, isAvailable: true },
-          }))
-        : null) ?? event.offers[0];
-    if (!offer) throw new BadRequestException('No offers available');
+    const pricedLines: {
+      offerId: string;
+      holdIds: string[];
+      holds: (typeof holds)[number][];
+      quantity: number;
+      unitPrice: number;
+      unitFees: number;
+      subtotal: number;
+      fees: number;
+      taxes: number;
+      total: number;
+      discount: number;
+      appliedRules: unknown;
+    }[] = [];
 
-    const pricingResult = await this.pricing.calculatePrice({
-      eventId: dto.eventId,
-      offerId: offer.id,
-      quantity: holds.length,
-      promotionCode: dto.promotionCode,
-    });
+    let subtotal = 0;
+    let fees = 0;
+    let taxAmount = 0;
+    let totalAmount = 0;
+    let discountAmount = 0;
+    const appliedRules: unknown[] = [];
+
+    for (const group of lineGroups) {
+      const offer =
+        event.offers.find((o) => o.id === group.offerId) ??
+        (await this.prisma.offer.findFirst({
+          where: { id: group.offerId, eventId: event.id, isAvailable: true },
+        }));
+      if (!offer) throw new BadRequestException(`Offer ${group.offerId} not available`);
+
+      const pricingResult = await this.pricing.calculatePrice({
+        eventId: dto.eventId,
+        offerId: offer.id,
+        quantity: group.holds.length,
+        promotionCode: dto.promotionCode,
+      });
+      const lineSubtotal = Number(pricingResult.subtotal);
+      const lineFees = Number(pricingResult.fees);
+      const lineTaxes = Number(pricingResult.taxes);
+      const lineTotal = Number(pricingResult.total);
+      const lineDiscount = Number(pricingResult.discount);
+      const qty = group.holds.length;
+      pricedLines.push({
+        offerId: offer.id,
+        holdIds: group.holdIds,
+        holds: group.holds,
+        quantity: qty,
+        unitPrice: qty ? lineSubtotal / qty : 0,
+        unitFees: qty ? lineFees / qty : 0,
+        subtotal: lineSubtotal,
+        fees: lineFees,
+        taxes: lineTaxes,
+        total: lineTotal,
+        discount: lineDiscount,
+        appliedRules: pricingResult.breakdown.appliedRules,
+      });
+      subtotal += lineSubtotal;
+      fees += lineFees;
+      taxAmount += lineTaxes;
+      totalAmount += lineTotal;
+      discountAmount += lineDiscount;
+      appliedRules.push(...(pricingResult.breakdown.appliedRules ?? []));
+    }
 
     let promotionId: string | undefined;
     if (dto.promotionCode) {
@@ -130,11 +176,14 @@ export class OrdersService {
       if (promo) promotionId = promo.id;
     }
 
-    const subtotal = Number(pricingResult.subtotal);
-    const fees = Number(pricingResult.fees);
-    const taxAmount = Number(pricingResult.taxes);
-    const totalAmount = Number(pricingResult.total);
-    const unitPrice = subtotal / holds.length;
+    const isComp =
+      dto.isComp === true || (dto.paymentMethod ?? '').toUpperCase() === 'COMP';
+    if (isComp) {
+      discountAmount = subtotal + fees + taxAmount;
+      fees = 0;
+      taxAmount = 0;
+      totalAmount = 0;
+    }
 
     const publicId = `ORD-${Date.now().toString(36).toUpperCase()}`;
 
@@ -145,7 +194,7 @@ export class OrdersService {
       amount: totalAmount,
       currency: event.currency,
       channel: dto.channel,
-      paymentMethod: dto.paymentMethod,
+      paymentMethod: isComp ? 'CASH' : dto.paymentMethod,
       ipAddress: dto.ipAddress,
       deviceFingerprint: dto.deviceFingerprint,
     });
@@ -176,7 +225,7 @@ export class OrdersService {
     const channel = dto.channel ?? SalesChannel.WEB;
     await this.quotas.assertAvailable(dto.eventId, channel, holds.length);
 
-    const method = (dto.paymentMethod ?? 'CARD').toUpperCase();
+    const method = isComp ? 'CASH' : (dto.paymentMethod ?? 'CARD').toUpperCase();
     const providerId = method === 'CASH' ? 'cash' : 'banorte';
     const provider = getProvider(providerId);
     const banorte = provider as BanorteProvider;
@@ -189,6 +238,11 @@ export class OrdersService {
           : method === 'CASH'
             ? PaymentMethod.CASH
             : PaymentMethod.CARD;
+
+    const posOps = {
+      ...(dto.posOps ?? {}),
+      ...(isComp ? { isComp: true, compReason: dto.compReason || 'house' } : {}),
+    };
 
     const asyncBanorte =
       providerId === 'banorte' &&
@@ -217,24 +271,27 @@ export class OrdersService {
           fees,
           taxAmount,
           totalAmount,
-          discountAmount: Number(pricingResult.discount),
+          discountAmount,
           promotionId,
-          commissionAmount: subtotal * 0.15,
+          commissionAmount: isComp ? 0 : subtotal * 0.15,
           currency: event.currency,
           channel,
           cashierId: dto.cashierId,
           expiresAt: new Date(Date.now() + 30 * 60 * 1000),
           paymentMethod: payMethodEnum,
+          ...(Object.keys(posOps).length
+            ? ({ posOps } as Record<string, unknown>)
+            : {}),
           items: {
-            create: {
-              offerId: offer.id,
-              quantity: holds.length,
-              unitPrice,
-              unitFees: fees / holds.length,
-              subtotal,
-            },
+            create: pricedLines.map((line) => ({
+              offerId: line.offerId,
+              quantity: line.quantity,
+              unitPrice: line.unitPrice,
+              unitFees: line.unitFees,
+              subtotal: line.subtotal,
+            })),
           },
-        },
+        } as Parameters<typeof tx.order.create>[0]['data'],
         include: { items: true },
       });
 
@@ -269,7 +326,7 @@ export class OrdersService {
           currency: event.currency,
           method: payMethodEnum,
           processedAt: new Date(),
-          metadata: { pricingRules: pricingResult.breakdown.appliedRules },
+          metadata: { pricingRules: appliedRules as object[] },
         },
       });
 
@@ -282,34 +339,18 @@ export class OrdersService {
         },
       });
 
-      const orderItem = created.items[0];
-      for (const hold of holds) {
-        await tx.seatHold.update({
-          where: { id: hold.id },
-          data: { status: HoldStatus.CONVERTED },
-        });
-        if (hold.seatId) {
-          await tx.ticket.updateMany({
-            where: { eventId: dto.eventId, seatId: hold.seatId },
-            data: {
-              status: TicketStatus.SOLD,
-              buyerEmail: dto.buyerEmail,
-              buyerName: dto.buyerName,
-              code: generateTicketCode(),
-              orderItemId: orderItem.id,
-            },
+      const itemByOffer = new Map(created.items.map((i) => [i.offerId, i]));
+      for (const line of pricedLines) {
+        const orderItem = itemByOffer.get(line.offerId);
+        if (!orderItem) continue;
+        for (const hold of line.holds) {
+          await tx.seatHold.update({
+            where: { id: hold.id },
+            data: { status: HoldStatus.CONVERTED },
           });
-        } else {
-          const available = await tx.ticket.findFirst({
-            where: {
-              eventId: dto.eventId,
-              offerId: offer.id,
-              status: TicketStatus.HELD,
-            },
-          });
-          if (available) {
-            await tx.ticket.update({
-              where: { id: available.id },
+          if (hold.seatId) {
+            await tx.ticket.updateMany({
+              where: { eventId: dto.eventId, seatId: hold.seatId },
               data: {
                 status: TicketStatus.SOLD,
                 buyerEmail: dto.buyerEmail,
@@ -318,17 +359,36 @@ export class OrdersService {
                 orderItemId: orderItem.id,
               },
             });
+          } else {
+            const available = await tx.ticket.findFirst({
+              where: {
+                eventId: dto.eventId,
+                offerId: line.offerId,
+                status: TicketStatus.HELD,
+              },
+            });
+            if (available) {
+              await tx.ticket.update({
+                where: { id: available.id },
+                data: {
+                  status: TicketStatus.SOLD,
+                  buyerEmail: dto.buyerEmail,
+                  buyerName: dto.buyerName,
+                  code: generateTicketCode(),
+                  orderItemId: orderItem.id,
+                },
+              });
+            }
           }
         }
+        await tx.offer.update({
+          where: { id: line.offerId },
+          data: {
+            soldQuantity: { increment: line.quantity },
+            remainingQuantity: { decrement: line.quantity },
+          },
+        });
       }
-
-      await tx.offer.update({
-        where: { id: offer.id },
-        data: {
-          soldQuantity: { increment: holds.length },
-          remainingQuantity: { decrement: holds.length },
-        },
-      });
 
       return created;
     });
@@ -360,7 +420,8 @@ export class OrdersService {
           idempotencyKey: dto.idempotencyKey,
           metadata: {
             intentId: intent.intentId,
-            holdIds: dto.holdIds,
+            holdIds,
+            items: pricedLines.map((l) => ({ offerId: l.offerId, holdIds: l.holdIds })),
             ...(intent.metadata as object),
           },
         },
@@ -410,13 +471,120 @@ export class OrdersService {
     });
   }
 
+  /** Group holds into offer lines (explicit items[] or legacy offerId + holdIds). */
+  private async resolveOrderLines(dto: {
+    eventId: string;
+    offerId?: string;
+    holdIds?: string[];
+    items?: { offerId: string; holdIds: string[] }[];
+  }) {
+    const groups: {
+      offerId: string;
+      holdIds: string[];
+      holds: Awaited<ReturnType<PrismaService['seatHold']['findMany']>>;
+    }[] = [];
+
+    if (dto.items?.length) {
+      for (const item of dto.items) {
+        if (!item.offerId || !item.holdIds?.length) continue;
+        const holds = await this.prisma.seatHold.findMany({
+          where: {
+            id: { in: item.holdIds },
+            eventId: dto.eventId,
+            status: HoldStatus.ACTIVE,
+            expiresAt: { gt: new Date() },
+          },
+        });
+        if (holds.length !== item.holdIds.length) {
+          throw new BadRequestException('Invalid or expired holds');
+        }
+        for (const hold of holds) {
+          const offerId = await this.offerIdForHold(hold, item.offerId);
+          if (offerId !== item.offerId) {
+            throw new BadRequestException('Hold/offer mismatch');
+          }
+        }
+        groups.push({ offerId: item.offerId, holdIds: item.holdIds, holds });
+      }
+      return groups;
+    }
+
+    const flatIds = dto.holdIds ?? [];
+    if (!flatIds.length) throw new BadRequestException('holdIds or items required');
+    const holds = await this.prisma.seatHold.findMany({
+      where: {
+        id: { in: flatIds },
+        eventId: dto.eventId,
+        status: HoldStatus.ACTIVE,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    if (holds.length !== flatIds.length) {
+      throw new BadRequestException('Invalid or expired holds');
+    }
+
+    const byOffer = new Map<string, typeof holds>();
+    for (const hold of holds) {
+      const offerId = await this.offerIdForHold(hold, dto.offerId);
+      if (!offerId) throw new BadRequestException('Could not resolve offer for hold');
+      const list = byOffer.get(offerId) ?? [];
+      list.push(hold);
+      byOffer.set(offerId, list);
+    }
+    for (const [offerId, list] of byOffer) {
+      groups.push({ offerId, holdIds: list.map((h) => h.id), holds: list });
+    }
+    return groups;
+  }
+
+  private async offerIdForHold(
+    hold: { seatId: string | null; offerId: string | null },
+    fallback?: string,
+  ) {
+    if (hold.offerId) return hold.offerId;
+    if (hold.seatId) {
+      const ticket = await this.prisma.ticket.findFirst({
+        where: { seatId: hold.seatId },
+        select: { offerId: true },
+      });
+      if (ticket?.offerId) return ticket.offerId;
+    }
+    return fallback;
+  }
+
   async getByPublicId(publicId: string) {
     const order = await this.prisma.order.findUnique({
       where: { publicId },
-      include: { items: { include: { tickets: true } }, event: true, payment: true },
+      include: {
+        items: {
+          include: {
+            tickets: true,
+            offer: { select: { id: true, name: true, zone: true, basePrice: true } },
+          },
+        },
+        event: {
+          include: {
+            venue: { select: { name: true, city: true, address: true } },
+          },
+        },
+        payment: true,
+      },
     });
     if (!order) throw new NotFoundException('Order not found');
-    return order;
+    const pendingIntent = await this.prisma.paymentIntent.findFirst({
+      where: { orderId: order.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    return {
+      ...order,
+      pendingPayment: pendingIntent
+        ? {
+            reference: pendingIntent.externalId,
+            status: pendingIntent.status,
+            metadata: pendingIntent.metadata,
+          }
+        : null,
+    };
   }
 
   async getStatus(publicId: string) {
@@ -444,11 +612,28 @@ export class OrdersService {
       orderBy: { createdAt: 'desc' },
       take: 50,
       include: {
-        event: { select: { id: true, title: true, slug: true, startsAt: true } },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            startsAt: true,
+            venue: { select: { name: true, city: true } },
+          },
+        },
         items: {
           select: {
             quantity: true,
-            tickets: { select: { id: true, code: true, status: true } },
+            tickets: {
+              select: {
+                id: true,
+                code: true,
+                status: true,
+                section: true,
+                row: true,
+                seatNumber: true,
+              },
+            },
           },
         },
       },
@@ -460,7 +645,7 @@ export class OrdersService {
     if (order.status !== OrderStatus.COMPLETED) {
       throw new BadRequestException('Order not completed');
     }
-    const secret = process.env.TICKET_QR_SECRET || process.env.JWT_SECRET || 'dev-ticket-secret';
+    const secret = process.env.TICKET_QR_SECRET || requireJwtSecret();
     const tickets = order.items.flatMap((i) => i.tickets);
     const mapped = await Promise.all(
       tickets.map(async (t) => {

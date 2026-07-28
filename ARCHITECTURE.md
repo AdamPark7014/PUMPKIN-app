@@ -109,8 +109,8 @@ apps/api/src/
 │   │   ├── notification.processor.ts
 │   │   └── notification.module.ts
 │   │
-│   ├── seat-mapping-3d/        # ⭐ Procedural 3D venues
-│   │   ├── seat-mapping-3d.service.ts  (500+ lines)
+│   ├── seat-mapping-3d/        # Compat /3d routes (status + sightline recommend)
+│   │   ├── seat-mapping-3d.service.ts  # inventory status; geometry via venue-engine
 │   │   ├── seat-mapping-3d.controller.ts
 │   │   └── seat-mapping-3d.module.ts
 │   │

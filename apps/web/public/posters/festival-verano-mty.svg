@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="40%" stop-color="#0369a1"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1280" cy="160" r="90" fill="#fde68a" opacity="0.9"/>
+  <ellipse cx="800" cy="780" rx="640" ry="70" fill="rgba(0,0,0,0.2)"/>
+  <path d="M180 620 L320 420 L460 620 Z" fill="#0f172a" opacity="0.55"/>
+  <path d="M520 640 L700 380 L880 640 Z" fill="#0f172a" opacity="0.7"/>
+  <path d="M980 620 L1140 440 L1300 620 Z" fill="#0f172a" opacity="0.55"/>
+  <rect x="640" y="560" width="320" height="28" rx="4" fill="#e11d48"/>
+  <text x="80" y="70" fill="rgba(255,255,255,0.55)" font-family="Arial,sans-serif" font-size="26" letter-spacing="10">BOLETERA · MONTERREY</text>
+  <text x="80" y="760" fill="#fff" font-family="Arial Black, Arial, sans-serif" font-size="92" font-weight="900">FESTIVAL DE VERANO</text>
+  <text x="80" y="830" fill="rgba(15,23,42,0.85)" font-family="Arial,sans-serif" font-size="30" letter-spacing="4">ARENA MONTERREY · SOL Y NOCHE</text>
+</svg>

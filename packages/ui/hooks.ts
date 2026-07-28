@@ -174,29 +174,58 @@ export function useGetSmartRecommendations() {
   });
 }
 
-// ==================== LAYOUT HOOKS ====================
+// ==================== LAYOUT / 3D HOOKS ====================
 
+/** Live occupancy counts for an event (`GET /3d/events/:id/heatmap`). */
 export function useGetOccupancyHeatmap(layoutId: string, eventId: string) {
   return useQuery({
-    queryKey: ['heatmap', layoutId, eventId],
-    queryFn: () => apiClient.getOccupancyHeatmap(layoutId, eventId),
-    enabled: !!layoutId && !!eventId,
+    queryKey: ['heatmap', eventId],
+    queryFn: () => apiClient.getEventOccupancyHeatmap(eventId),
+    enabled: !!eventId || !!layoutId,
   });
 }
 
+/** Live seat status envelope (`GET /3d/events/:id/interactive`). layoutId ignored. */
 export function useGet3DVisualization(layoutId: string, eventId: string) {
   return useQuery({
-    queryKey: ['3d-viz', layoutId, eventId],
-    queryFn: () => apiClient.get3DVisualization(layoutId, eventId),
-    enabled: !!layoutId && !!eventId,
+    queryKey: ['3d-interactive', eventId],
+    queryFn: () => apiClient.getInteractive3D(eventId),
+    enabled: !!eventId || !!layoutId,
   });
 }
 
-export function useGetAISeatRecommendations(layoutId: string, preferences: any) {
+/** Preferred alias for interactive 3D status. */
+export function useGetInteractive3D(eventId: string) {
   return useQuery({
-    queryKey: ['seat-recommendations', layoutId, preferences],
-    queryFn: () => apiClient.getAISeatRecommendations(layoutId, preferences),
-    enabled: !!layoutId,
+    queryKey: ['3d-interactive', eventId],
+    queryFn: () => apiClient.getInteractive3D(eventId),
+    enabled: !!eventId,
+  });
+}
+
+/**
+ * Sightline recommendations (`POST /3d/events/:id/recommendations`).
+ * Pass eventId as first arg (legacy callers used layoutId; if preferences.eventId is set it wins).
+ */
+export function useGetAISeatRecommendations(
+  layoutIdOrEventId: string,
+  preferences: {
+    eventId?: string;
+    count?: number;
+    viewQuality?: 'best' | 'good' | 'any';
+    tier?: 'premium' | 'standard' | 'economy';
+  } = {},
+) {
+  const eventId = preferences.eventId ?? layoutIdOrEventId;
+  return useQuery({
+    queryKey: ['seat-recommendations', eventId, preferences],
+    queryFn: () =>
+      apiClient.get3DRecommendations(eventId, {
+        count: preferences.count ?? 2,
+        viewQuality: preferences.viewQuality ?? 'best',
+        ...(preferences.tier ? { tier: preferences.tier } : {}),
+      }),
+    enabled: !!eventId,
   });
 }
 

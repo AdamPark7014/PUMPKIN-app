@@ -3,6 +3,7 @@ import { SalesChannel } from '@prisma/client';
 import { buildQrPayload, verifyTicketSignature } from '@boletera/crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../../common/audit.service';
+import { requireJwtSecret } from '../auth/jwt-secret';
 
 @Injectable()
 export class AccessService {
@@ -23,7 +24,7 @@ export class AccessService {
       try {
         const parsed = JSON.parse(params.qrPayload) as { t: string; e: string; s: string };
         ticketId = parsed.t;
-        const secret = process.env.TICKET_QR_SECRET || process.env.JWT_SECRET || 'dev-ticket-secret';
+        const secret = process.env.TICKET_QR_SECRET || requireJwtSecret();
         const valid = verifyTicketSignature(parsed.t, parsed.e, parsed.s, secret);
         if (!valid) {
           await this.recordScan('', params, false, 'Invalid rotating signature');

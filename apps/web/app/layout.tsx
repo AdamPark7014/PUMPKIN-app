@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Space_Grotesk } from "next/font/google";
 import { CartBar } from "@/components/CartBar";
+import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
 
 const headingFont = Bebas_Neue({
@@ -15,9 +16,9 @@ const bodyFont = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Boletera X | Plataforma de Taquilla",
+  title: "Boletera | Boletos oficiales",
   description:
-    "Suite de ticketing con discovery, inventario en tiempo real, reservas y checkout escalable."
+    "Compra boletos oficiales con inventario real, mapa de asientos y pagos Banorte.",
 };
 
 export default function RootLayout({
@@ -28,7 +29,10 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${headingFont.variable} ${bodyFont.variable}`}>
-        {children}
+        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+          <div style={{ flex: 1 }}>{children}</div>
+          <SiteFooter />
+        </div>
         <CartBar />
       </body>
     </html>

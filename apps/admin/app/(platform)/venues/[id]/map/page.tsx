@@ -6,9 +6,9 @@ import Link from 'next/link';
 import type { SeatMapData } from '@boletera/shared';
 import { SeatMapEditor } from '@/components/SeatMapEditor';
 import {
+  applyLayoutTemplate,
   suggestLayout,
   getVenueLayout,
-  importAiLayout,
   listEvents,
   publishEvent,
   saveVenueLayout,
@@ -43,8 +43,8 @@ export default function VenueMapEditorPage() {
     <div>
       <header className={platform.pageHeader}>
         <div>
-          <h1>Editor de mapa — {venueName}</h1>
-          <p>Dibuja secciones, tiers y publica inventario en eventos</p>
+          <h1>Diseñador de mapa — {venueName}</h1>
+          <p>Plantillas, zoom/pan, secciones y publicación de inventario</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {events.length > 0 && (
@@ -88,19 +88,25 @@ export default function VenueMapEditorPage() {
 
       <SeatMapEditor
         initial={map}
+        venueId={venueId}
+        getAuthToken={() => localStorage.getItem('boletera_token')}
         onSave={async (mapData) => {
           const token = localStorage.getItem('boletera_token')!;
           await saveVenueLayout(token, venueId, mapData);
           const refreshed = await getVenueLayout(token, venueId);
           setMap(refreshed.layout.mapData);
         }}
+        onApplyTemplate={async (template) => {
+          const token = localStorage.getItem('boletera_token')!;
+          const result = await applyLayoutTemplate(token, venueId, template);
+          setMap(result.layout.mapData);
+          return result.layout.mapData;
+        }}
         onAiSuggest={async (description) => {
           const token = localStorage.getItem('boletera_token')!;
           const result = await suggestLayout(token, venueId, description);
-          await importAiLayout(token, venueId, result.sections);
-          const refreshed = await getVenueLayout(token, venueId);
-          setMap(refreshed.layout.mapData);
-          return result.sections;
+          setMap(result.layout.mapData);
+          return result.layout.mapData;
         }}
       />
     </div>

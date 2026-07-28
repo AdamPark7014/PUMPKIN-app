@@ -1,0 +1,60 @@
+$ink: #0a0a0a;
+$mute: #737373;
+$line: #e5e5e5;
+$accent: #e11d48;
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row,
+.active {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem 0.9rem;
+  margin: 0.35rem 0 0;
+  border: 1px solid $line;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+
+  strong {
+    display: block;
+    font-size: 0.95rem;
+    color: $ink;
+  }
+
+  span {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    color: $mute;
+  }
+
+  em {
+    font-style: normal;
+    font-weight: 700;
+    white-space: nowrap;
+    font-size: 0.95rem;
+  }
+
+  &:hover {
+    border-color: #d4d4d4;
+  }
+}
+
+.active {
+  border-color: $accent;
+  background: rgba($accent, 0.04);
+
+  strong {
+    color: $accent;
+  }
+}

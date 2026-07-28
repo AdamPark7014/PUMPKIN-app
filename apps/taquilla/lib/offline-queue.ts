@@ -2,6 +2,7 @@ const DB_NAME = 'boletera-taquilla';
 const STORE = 'sales';
 
 import type { OfflinePosPayload } from './pos';
+import { pushFailedSync } from './pos';
 
 export interface QueuedSale {
   id: string;
@@ -11,14 +12,16 @@ export interface QueuedSale {
 
 export async function enqueueSale(payload: OfflinePosPayload | Record<string, unknown>): Promise<void> {
   if (typeof indexedDB === 'undefined') return;
-  const id = crypto.randomUUID();
+  const id =
+    (payload as OfflinePosPayload).clientSaleId ||
+    (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now()));
   const sale: QueuedSale = { id, payload, createdAt: new Date().toISOString() };
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: 'id' });
     req.onsuccess = () => {
       const tx = req.result.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).add(sale);
+      tx.objectStore(STORE).put(sale);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     };
@@ -61,7 +64,11 @@ export async function flushQueue(
           await send(sale.payload);
           store.delete(sale.id);
           count++;
-        } catch {
+        } catch (e) {
+          pushFailedSync({
+            clientSaleId: sale.id,
+            error: e instanceof Error ? e.message : 'sync failed',
+          });
           break;
         }
       }

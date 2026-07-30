@@ -1,4 +1,4 @@
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -129,6 +129,82 @@ export class AdminService {
       },
       orderBy: { name: 'asc' },
     });
+  }
+
+  async createVenue(
+    orgId: string,
+    data: {
+      name: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      address?: string;
+      timezone?: string;
+      totalCapacity?: number;
+      template?: 'arena' | 'theater' | 'stadium' | 'festival' | 'blank';
+    },
+  ) {
+    const name = data.name.trim();
+    if (!name) throw new BadRequestException('El nombre del venue es obligatorio');
+
+    const baseSlug = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 48) || 'venue';
+    let slug = baseSlug;
+    for (let i = 0; i < 20; i++) {
+      const exists = await this.prisma.venue.findUnique({ where: { slug } });
+      if (!exists) break;
+      slug = `${baseSlug}-${i + 2}`;
+    }
+
+    const emptyMap: Prisma.InputJsonValue = {
+      version: 3,
+      viewport: { width: 800, height: 500 },
+      sections: [],
+      venue: {
+        stage: { x: 400, y: 60, width: 220, rotation: 0, elevation: 0 },
+        levels: [{ id: 'floor', name: 'Planta', zIndex: 0, elevation: 0 }],
+      },
+    };
+
+    const venue = await this.prisma.venue.create({
+      data: {
+        organizationId: orgId,
+        name,
+        slug,
+        description: `Mapa creado desde el estudio 3D`,
+        address: data.address?.trim() || 'Por definir',
+        city: data.city?.trim() || 'Ciudad de México',
+        state: data.state?.trim() || 'CDMX',
+        country: data.country?.trim() || 'MX',
+        timezone: data.timezone?.trim() || 'America/Mexico_City',
+        totalCapacity: data.totalCapacity ?? 0,
+        layouts: {
+          create: {
+            name: 'Layout principal',
+            mapData: emptyMap,
+            isActive: true,
+          },
+        },
+      },
+      include: {
+        layouts: { where: { isActive: true }, take: 1 },
+      },
+    });
+
+    return {
+      id: venue.id,
+      name: venue.name,
+      slug: venue.slug,
+      city: venue.city,
+      totalCapacity: venue.totalCapacity,
+      layoutId: venue.layouts[0]?.id ?? null,
+      template: data.template ?? 'blank',
+    };
   }
 
   async getTheme(orgId: string) {

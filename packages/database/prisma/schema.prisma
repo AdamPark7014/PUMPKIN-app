@@ -63,6 +63,7 @@ model Organization {
   // Relations
   venues           Venue[]
   events           Event[]
+  eventSeries      EventSeries[]
   users            User[]      @relation("OrgUsers")
   orders           Order[]     @relation("OrgOrders")
   promoterPayouts  PromoterPayout[]
@@ -116,6 +117,8 @@ model Venue {
   events           Event[]
   layouts          VenueLayout[]
   seasonPasses     SeasonPass[]
+  eventSeries      EventSeries[]
+  blackouts        VenueBlackout[]
   
   // Audit
   createdAt        DateTime  @default(now())
@@ -348,11 +351,32 @@ model Event {
   startsAt         DateTime
   endsAt           DateTime?
   timezone         String
+  /// Doors open (access control / operations), independent of show time.
+  doorsAt          DateTime?
+  /// Planned run time; drives end time and venue turnaround checks.
+  durationMinutes  Int?
   
   // Status
   status           EventStatus @default(DRAFT) // DRAFT, SCHEDULED, LIVE, COMPLETED, CANCELLED
   publishedAt      DateTime?
   cancelledAt      DateTime?
+  
+  // Scheduling & sale windows (all UTC instants; render with `timezone`)
+  /// When the event becomes visible in the storefront.
+  announceAt       DateTime?
+  /// When a DRAFT flips to SCHEDULED automatically.
+  publishAt        DateTime?
+  /// General on-sale window.
+  salesStartAt     DateTime?
+  salesEndAt       DateTime?
+  /// Previous date kept for the record when an event is rescheduled.
+  rescheduledFrom  DateTime?
+  scheduleNote     String?
+  
+  // Series membership
+  seriesId         String?
+  series           EventSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  seriesOrder      Int?
   
   // Pricing
   minPrice         Decimal @default(0) @db.Decimal(10, 2)
@@ -389,6 +413,7 @@ model Event {
   holds            SeatHold[]
   waitlistEntries  WaitlistEntry[]
   seasonPassEvents SeasonPassEvent[]
+  salePhases       SalePhase[]
   
   // Audit
   createdAt        DateTime  @default(now())
@@ -400,6 +425,99 @@ model Event {
   @@index([startsAt])
   @@index([status])
   @@index([category])
+  @@index([seriesId])
+  @@index([venueId, startsAt])
+  @@index([publishAt])
+  @@index([salesStartAt])
+}
+
+// ============================================================================
+// EVENT SCHEDULING (series, recurrence, sale phases, venue availability)
+// ============================================================================
+
+/// A recurring/multi-date program (tour leg, residency, season, festival run).
+/// The recurrence rule is stored verbatim so the series can be re-expanded or
+/// extended later without guessing how the original dates were produced.
+model EventSeries {
+  id               String   @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  venueId          String?
+  venue            Venue?   @relation(fields: [venueId], references: [id], onDelete: SetNull)
+
+  name             String
+  slug             String   @unique
+  description      String?
+  kind             EventSeriesKind @default(SERIES)
+  status           EventSeriesStatus @default(DRAFT)
+  category         EventCategory @default(MUSIC)
+  timezone         String   @default("America/Mexico_City")
+
+  /// RecurrenceRule from @boletera/shared (frequency, interval, byWeekday, …).
+  recurrence       Json?
+  /// Defaults applied to every generated occurrence (capacity, price, zone…).
+  template         Json?
+
+  events           Event[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([venueId])
+  @@index([status])
+}
+
+/// A timed sales window for an event: presale with code, member window, public
+/// on-sale, last-minute discount, door sales.
+model SalePhase {
+  id               String   @id @default(cuid())
+  eventId          String
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  name             String
+  kind             SalePhaseKind @default(PUBLIC)
+  /// Access code required to buy during this phase (null = open to everyone).
+  code             String?
+  startsAt         DateTime
+  endsAt           DateTime
+  status           SalePhaseStatus @default(SCHEDULED)
+
+  /// Channels allowed during the phase. Empty = all channels.
+  channels         SalesChannel[]
+  /// Percentage of inventory reserved for the phase (null = no cap).
+  allocationPercent Int?
+  maxPerOrder      Int?
+  discountPercent  Float?
+  /// Lower runs first when two phases overlap.
+  priority         Int      @default(100)
+  notes            String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([eventId, name])
+  @@index([eventId, startsAt])
+  @@index([status])
+}
+
+/// Dates where a venue cannot host events (maintenance, holds, private hire).
+model VenueBlackout {
+  id               String   @id @default(cuid())
+  venueId          String
+  venue            Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  reason           String
+  startsAt         DateTime
+  endsAt           DateTime
+  /// Soft blackouts warn; hard blackouts block scheduling unless forced.
+  blocking         Boolean  @default(true)
+  createdBy        String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([venueId, startsAt])
 }
 
 model Offer {
@@ -1179,6 +1297,36 @@ enum EventStatus {
   COMPLETED
   CANCELLED
   RESCHEDULED
+}
+
+enum EventSeriesKind {
+  SERIES
+  RESIDENCY
+  TOUR
+  SEASON
+  FESTIVAL
+}
+
+enum EventSeriesStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum SalePhaseKind {
+  PRESALE
+  MEMBERS
+  PUBLIC
+  LAST_MINUTE
+  DOOR
+}
+
+enum SalePhaseStatus {
+  SCHEDULED
+  ACTIVE
+  ENDED
+  CANCELLED
 }
 
 enum TicketStatus {

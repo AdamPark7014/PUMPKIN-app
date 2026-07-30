@@ -152,7 +152,43 @@ export function getChannelHealth(token: string, eventId: string) {
 }
 
 export function listVenues(token: string) {
-  return adminApi<{ id: string; name: string; slug: string; capacity: number }[]>('/admin/venues', token);
+  return adminApi<
+    {
+      id: string;
+      name: string;
+      slug: string;
+      city?: string;
+      totalCapacity?: number;
+      capacity?: number;
+      _count?: { events: number };
+      layouts?: { id: string; version: number; updatedAt: string }[];
+    }[]
+  >('/admin/venues', token);
+}
+
+export function createVenue(
+  token: string,
+  data: {
+    name: string;
+    city?: string;
+    state?: string;
+    address?: string;
+    totalCapacity?: number;
+    template?: 'arena' | 'theater' | 'stadium' | 'festival' | 'blank';
+  },
+) {
+  return adminApi<{
+    id: string;
+    name: string;
+    slug: string;
+    city: string;
+    totalCapacity: number;
+    layoutId: string | null;
+    template: string;
+  }>('/admin/venues', token, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 export function suggestLayout(token: string, venueId: string, planDescription: string) {

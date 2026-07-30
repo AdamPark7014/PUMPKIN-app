@@ -42,7 +42,7 @@ pnpm --filter @boletera/database run prisma:seed
 pnpm dev
 ```
 
-Seed: `admin@demo.boletera.com` / `taquilla@demo.boletera.com` — password `Admin123!` · org `demo-boletera`.
+Seed: `admin@demo.boletera.com` / `taquilla@demo.boletera.com` / `cliente@demo.boletera.com` — password `Admin123!` · org `demo-boletera`.
 
 API: `http://localhost:4000/api/v1` · Swagger en `/api/docs` · health `/api/v1/health` · ready `/api/v1/ready`.
 

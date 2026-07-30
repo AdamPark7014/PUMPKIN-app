@@ -44,7 +44,9 @@ export default function VenueMapEditorPage() {
       <header className={platform.pageHeader}>
         <div>
           <h1>Diseñador de mapa — {venueName}</h1>
-          <p>Plantillas, zoom/pan, secciones y publicación de inventario</p>
+          <p>
+            Vista planta derivada del estudio 3D · mismas coordenadas · al guardar sincroniza eventos
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {events.length > 0 && (

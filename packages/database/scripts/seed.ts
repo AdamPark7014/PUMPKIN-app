@@ -165,6 +165,19 @@ async function main() {
     },
   });
 
+  const customer = await prisma.user.upsert({
+    where: { email: 'cliente@demo.boletera.com' },
+    update: {},
+    create: {
+      email: 'cliente@demo.boletera.com',
+      firstName: 'Cliente',
+      lastName: 'Demo',
+      password: passwordHash,
+      role: UserRole.CUSTOMER,
+      emailVerified: true,
+    },
+  });
+
   const venue = await prisma.venue.upsert({
     where: { slug: 'arena-cdmx' },
     update: { totalCapacity: 500 },
@@ -591,6 +604,7 @@ async function main() {
     org: org.slug,
     admin: admin.email,
     cashier: cashier.email,
+    customer: customer.email,
     layouts: {
       arena: arena.snapshot.sections.map((s) => `${s.name}:${s.seats.length}`),
       theater: theater.snapshot.sections.map((s) => `${s.name}:${s.seats.length}`),

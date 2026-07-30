@@ -109,6 +109,25 @@ export class AdminController {
     return this.admin.listVenues(req.user.organizationId!);
   }
 
+  @Post('venues')
+  @Roles('ADMIN', 'SUPER_ADMIN', 'VENUE_MANAGER', 'PROMOTER')
+  createVenue(
+    @Request() req: { user: { organizationId?: string } },
+    @Body()
+    body: {
+      name: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      address?: string;
+      timezone?: string;
+      totalCapacity?: number;
+      template?: 'arena' | 'theater' | 'stadium' | 'festival' | 'blank';
+    },
+  ) {
+    return this.admin.createVenue(req.user.organizationId!, body);
+  }
+
   @Get('branding')
   @Roles('ADMIN', 'SUPER_ADMIN')
   getBranding(@Request() req: { user: { organizationId?: string } }) {

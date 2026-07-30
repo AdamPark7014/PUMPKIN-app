@@ -18,6 +18,37 @@
   height: 100% !important;
 }
 
+.compatibleView {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  padding: 3.5rem 1.25rem 3rem;
+  background: #08080a;
+}
+
+.compatibleView svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.compatibleNote {
+  position: absolute;
+  left: 50%;
+  bottom: 0.8rem;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  padding: 0.35rem 0.55rem;
+  text-align: center;
+  color: rgba(250, 250, 250, 0.65);
+  background: rgba(8, 8, 10, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.65rem;
+  line-height: 1.35;
+}
+
 .overlayTop {
   position: absolute;
   top: 0.7rem;

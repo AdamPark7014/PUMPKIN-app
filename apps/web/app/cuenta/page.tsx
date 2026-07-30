@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button, EmptyState, Input } from '@boletera/ui';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
-import { authHeaders, clearSession, getStoredUser, getToken } from '@/lib/auth';
+import { authHeaders, clearSession, getStoredUser, getToken, type AuthUser } from '@/lib/auth';
 import styles from './cuenta.module.scss';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -55,7 +55,7 @@ function seatLabel(t: TicketRow) {
 
 export default function CuentaPage() {
   const router = useRouter();
-  const user = getStoredUser();
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [transfers, setTransfers] = useState<TransferRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +93,7 @@ export default function CuentaPage() {
       router.replace('/login');
       return;
     }
+    setUser(getStoredUser());
     const p = new URLSearchParams(window.location.search);
     const code = p.get('transfer');
     if (code) {

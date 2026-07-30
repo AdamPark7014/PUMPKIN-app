@@ -414,9 +414,24 @@ export class VenueLayoutService {
           version: { increment: 1 },
         },
       });
+
+      // Keep every published event map congruent with the live venue layout.
+      await tx.eventSeatMap.updateMany({
+        where: { layoutId: layout.id },
+        data: {
+          snapshotData: nextMap as object,
+          publishedAt: new Date(),
+        },
+      });
     });
 
-    this.logger.log(`Map saved for venue ${venueId}`);
+    const seatCount = mapData.sections.reduce((n, s) => n + (s.seats?.length ?? 0), 0);
+    await this.prisma.venue.update({
+      where: { id: venueId },
+      data: { totalCapacity: seatCount },
+    });
+
+    this.logger.log(`Map saved for venue ${venueId} (synced event snapshots)`);
     return this.getActiveLayout(venueId, organizationId);
   }
 

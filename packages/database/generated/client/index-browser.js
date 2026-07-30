@@ -348,9 +348,19 @@ exports.Prisma.EventScalarFieldEnum = {
   startsAt: 'startsAt',
   endsAt: 'endsAt',
   timezone: 'timezone',
+  doorsAt: 'doorsAt',
+  durationMinutes: 'durationMinutes',
   status: 'status',
   publishedAt: 'publishedAt',
   cancelledAt: 'cancelledAt',
+  announceAt: 'announceAt',
+  publishAt: 'publishAt',
+  salesStartAt: 'salesStartAt',
+  salesEndAt: 'salesEndAt',
+  rescheduledFrom: 'rescheduledFrom',
+  scheduleNote: 'scheduleNote',
+  seriesId: 'seriesId',
+  seriesOrder: 'seriesOrder',
   minPrice: 'minPrice',
   maxPrice: 'maxPrice',
   currency: 'currency',
@@ -365,6 +375,54 @@ exports.Prisma.EventScalarFieldEnum = {
   surgeThreshold: 'surgeThreshold',
   surgePriceMultiplier: 'surgePriceMultiplier',
   metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.EventSeriesScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  venueId: 'venueId',
+  name: 'name',
+  slug: 'slug',
+  description: 'description',
+  kind: 'kind',
+  status: 'status',
+  category: 'category',
+  timezone: 'timezone',
+  recurrence: 'recurrence',
+  template: 'template',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SalePhaseScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  name: 'name',
+  kind: 'kind',
+  code: 'code',
+  startsAt: 'startsAt',
+  endsAt: 'endsAt',
+  status: 'status',
+  channels: 'channels',
+  allocationPercent: 'allocationPercent',
+  maxPerOrder: 'maxPerOrder',
+  discountPercent: 'discountPercent',
+  priority: 'priority',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.VenueBlackoutScalarFieldEnum = {
+  id: 'id',
+  venueId: 'venueId',
+  reason: 'reason',
+  startsAt: 'startsAt',
+  endsAt: 'endsAt',
+  blocking: 'blocking',
+  createdBy: 'createdBy',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -938,6 +996,36 @@ exports.EventStatus = exports.$Enums.EventStatus = {
   RESCHEDULED: 'RESCHEDULED'
 };
 
+exports.EventSeriesKind = exports.$Enums.EventSeriesKind = {
+  SERIES: 'SERIES',
+  RESIDENCY: 'RESIDENCY',
+  TOUR: 'TOUR',
+  SEASON: 'SEASON',
+  FESTIVAL: 'FESTIVAL'
+};
+
+exports.EventSeriesStatus = exports.$Enums.EventSeriesStatus = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED'
+};
+
+exports.SalePhaseKind = exports.$Enums.SalePhaseKind = {
+  PRESALE: 'PRESALE',
+  MEMBERS: 'MEMBERS',
+  PUBLIC: 'PUBLIC',
+  LAST_MINUTE: 'LAST_MINUTE',
+  DOOR: 'DOOR'
+};
+
+exports.SalePhaseStatus = exports.$Enums.SalePhaseStatus = {
+  SCHEDULED: 'SCHEDULED',
+  ACTIVE: 'ACTIVE',
+  ENDED: 'ENDED',
+  CANCELLED: 'CANCELLED'
+};
+
 exports.TicketStatus = exports.$Enums.TicketStatus = {
   AVAILABLE: 'AVAILABLE',
   HELD: 'HELD',
@@ -1096,6 +1184,9 @@ exports.Prisma.ModelName = {
   AuditEvent: 'AuditEvent',
   CashierShift: 'CashierShift',
   Event: 'Event',
+  EventSeries: 'EventSeries',
+  SalePhase: 'SalePhase',
+  VenueBlackout: 'VenueBlackout',
   Offer: 'Offer',
   Ticket: 'Ticket',
   Order: 'Order',

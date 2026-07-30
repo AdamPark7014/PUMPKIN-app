@@ -7,6 +7,27 @@ export type AuthUser = {
   role: string;
 };
 
+export class ApiError extends Error {
+  statusCode: number;
+  body: string;
+
+  constructor(statusCode: number, body: string) {
+    super(body || `Request failed (${statusCode})`);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.body = body;
+  }
+}
+
+function clearSessionAndRedirectToLogin() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('boletera_token');
+  localStorage.removeItem('boletera_org');
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.replace('/login');
+  }
+}
+
 export async function adminApi<T>(path: string, token: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     ...init,
@@ -16,7 +37,13 @@ export async function adminApi<T>(path: string, token: string, init?: RequestIni
       ...init?.headers,
     },
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const body = await res.text();
+    if (res.status === 401) {
+      clearSessionAndRedirectToLogin();
+    }
+    throw new ApiError(res.status, body);
+  }
   return res.json() as Promise<T>;
 }
 

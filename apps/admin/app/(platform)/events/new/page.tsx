@@ -32,7 +32,7 @@ export default function NewEventPage() {
   useEffect(() => {
     const token = localStorage.getItem('boletera_token');
     if (!token) return;
-    listVenues(token).then(setVenues);
+    listVenues(token).then(setVenues).catch(() => setVenues([]));
   }, []);
 
   function canNext() {

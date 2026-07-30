@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { listVenues } from '@/lib/platform-api';
 import styles from './shell.module.scss';
 
 type NavItem = {
@@ -50,6 +51,16 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: 'Venues y mapas',
+    items: [
+      {
+        href: '/maps',
+        label: 'Creador de mapas',
+        icon: <Icon d="M12 21s-7-7-7-12a7 7 0 0 1 14 0c0 5-7 12-7 12z M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />,
+      },
+    ],
+  },
+  {
     label: 'Ventas',
     items: [
       {
@@ -61,11 +72,6 @@ const navGroups: NavGroup[] = [
         href: '/campaigns',
         label: 'Campañas',
         icon: <Icon d="M3 11l18-7-7 18-2-7-9-4z" />,
-      },
-      {
-        href: '/venues',
-        label: 'Venues',
-        icon: <Icon d="M12 21s-7-7-7-12a7 7 0 0 1 14 0c0 5-7 12-7 12z M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />,
       },
       {
         href: '/resale',
@@ -171,6 +177,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string>('');
+  const [venues, setVenues] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem('boletera_token');
@@ -182,6 +189,17 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
       /* ignore */
     }
   }, [router]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('boletera_token');
+    if (!token) return;
+    listVenues(token)
+      .then(setVenues)
+      .catch(() => {
+        // 401 redirects in adminApi; other failures just hide venue shortcuts
+        setVenues([]);
+      });
+  }, []);
 
   const breadcrumb = pathname.split('/').filter(Boolean);
 
@@ -228,6 +246,46 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
                   {item.badge && <span className={styles.navBadge}>{item.badge}</span>}
                 </Link>
               ))}
+
+              {group.label === 'Venues y mapas' &&
+                venues.map((venue) => (
+                  <div key={venue.id} className={styles.navSubRow}>
+                    <Link
+                      href={`/venues/${venue.id}/3d?studio=1`}
+                      className={
+                        pathname.startsWith(`/venues/${venue.id}/`)
+                          ? styles.navSubActive
+                          : styles.navSubItem
+                      }
+                      onClick={() => setOpen(false)}
+                      title={`Estudio 3D — ${venue.name}`}
+                    >
+                      {venue.name}
+                    </Link>
+                    <Link
+                      href={`/venues/${venue.id}/3d?studio=1`}
+                      className={
+                        pathname === `/venues/${venue.id}/3d` ? styles.navSubTagActive : styles.navSubTag
+                      }
+                      onClick={() => setOpen(false)}
+                      title={`Estudio 3D — ${venue.name}`}
+                    >
+                      3D
+                    </Link>
+                    <Link
+                      href={`/venues/${venue.id}/map`}
+                      className={
+                        pathname === `/venues/${venue.id}/map`
+                          ? styles.navSubTagActive
+                          : styles.navSubTag
+                      }
+                      onClick={() => setOpen(false)}
+                      title={`Vista planta — ${venue.name}`}
+                    >
+                      Planta
+                    </Link>
+                  </div>
+                ))}
             </div>
           ))}
         </nav>

@@ -2,7 +2,6 @@
 'use client';
 
 import {
-  Suspense,
   useMemo,
   useState,
   useCallback,
@@ -13,8 +12,6 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import {
   OrbitControls,
   PerspectiveCamera,
-  ContactShadows,
-  Environment,
   Billboard,
   Text,
   Line,
@@ -816,12 +813,6 @@ function Scene({
         onToggleSeat={onToggleSeat}
         onHoverSeat={onHoverSeat}
       />
-      <ContactShadows position={[0, 0, 0]} opacity={0.55} scale={30} blur={2.6} far={14} />
-
-      <Suspense fallback={null}>
-        <Environment preset="city" />
-      </Suspense>
-
       {mode === 'seat' && selectedSeat ? (
         <SeatViewCamera target={selectedSeat} />
       ) : (
@@ -835,6 +826,77 @@ function Scene({
         </>
       )}
     </>
+  );
+}
+
+function CompatibleVenueView({ seats }: { seats: LaidOutSeat[] }) {
+  const projected = useMemo(
+    () =>
+      seats.map((seat) => ({
+        ...seat,
+        sx: (seat.px - seat.pz) * 0.72,
+        sy: (seat.px + seat.pz) * 0.36 - seat.py * 1.4,
+      })),
+    [seats],
+  );
+  const bounds = useMemo(() => {
+    if (!projected.length) return { minX: -8, minY: -5, width: 16, height: 10 };
+    const xs = projected.map((seat) => seat.sx);
+    const ys = projected.map((seat) => seat.sy);
+    const minX = Math.min(...xs) - 1;
+    const maxX = Math.max(...xs) + 1;
+    const minY = Math.min(...ys) - 1;
+    const maxY = Math.max(...ys) + 1;
+    return {
+      minX,
+      minY,
+      width: Math.max(maxX - minX, 4),
+      height: Math.max(maxY - minY, 3),
+    };
+  }, [projected]);
+  const radius = Math.max(0.08, Math.min(0.22, bounds.width / 90));
+
+  return (
+    <div className={styles.compatibleView} role="img" aria-label="Vista compatible del venue">
+      <svg
+        viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <defs>
+          <filter id="venue-seat-shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="0.08" stdDeviation="0.08" floodOpacity="0.7" />
+          </filter>
+        </defs>
+        <ellipse
+          cx={bounds.minX + bounds.width / 2}
+          cy={bounds.minY + bounds.height * 0.62}
+          rx={bounds.width * 0.42}
+          ry={bounds.height * 0.27}
+          fill="#111114"
+          stroke="#27272a"
+          strokeWidth={radius * 0.35}
+        />
+        {projected
+          .slice()
+          .sort((a, b) => a.sy - b.sy)
+          .map((seat) => (
+            <circle
+              key={seat.id}
+              cx={seat.sx}
+              cy={seat.sy}
+              r={seat.decorative ? radius * 0.72 : radius}
+              fill={seat.status === 'blocked' ? '#52525b' : seat.color || '#5b9fd4'}
+              stroke={seat.decorative ? 'none' : 'rgba(255,255,255,0.5)'}
+              strokeWidth={radius * 0.12}
+              opacity={seat.decorative ? 0.45 : 1}
+              filter="url(#venue-seat-shadow)"
+            />
+          ))}
+      </svg>
+      <div className={styles.compatibleNote}>
+        Vista compatible · activa la aceleración por hardware para órbita 3D
+      </div>
+    </div>
   );
 }
 
@@ -862,6 +924,7 @@ export function Venue3DViewer({
 }: Venue3DViewerProps) {
   const [hover, setHover] = useState<LaidOutSeat | null>(null);
   const [autoOrbit, setAutoOrbit] = useState(true);
+  const [webglLost, setWebglLost] = useState(false);
   const [levelFilter, setLevelFilter] = useState<string | 'ALL'>('ALL');
   const [showEgress, setShowEgress] = useState(false);
   const [heatModeInternal, setHeatModeInternal] = useState<Venue3DHeatMode>(() =>
@@ -1030,7 +1093,25 @@ export function Venue3DViewer({
   return (
     <div className={`${styles.wrap} ${className ?? ''}`} style={wrapStyle}>
       <div className={styles.canvas}>
-        <Canvas shadows dpr={[1, 1.75]} gl={{ antialias: true, alpha: false }}>
+        <Canvas
+          dpr={[1, 1.25]}
+          gl={{
+            antialias: false,
+            alpha: false,
+            powerPreference: 'low-power',
+            failIfMajorPerformanceCaveat: false,
+          }}
+          onCreated={({ gl }) => {
+            gl.domElement.addEventListener(
+              'webglcontextlost',
+              (event) => {
+                event.preventDefault();
+                setWebglLost(true);
+              },
+              { once: true },
+            );
+          }}
+        >
           <Scene
             seats={laidOut}
             plates={plates}
@@ -1054,6 +1135,8 @@ export function Venue3DViewer({
             onUserInteract={() => setAutoOrbit(false)}
           />
         </Canvas>
+
+        {webglLost && <CompatibleVenueView seats={laidOut} />}
 
         <div className={styles.overlayTop}>
           <div className={styles.topLeft}>

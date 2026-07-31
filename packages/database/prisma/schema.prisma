@@ -27,8 +27,8 @@ model Organization {
   email            String
   phone            String?
   country          String
-  timezone         String   @default("UTC")
-  currency         Currency @default(USD)
+  timezone         String   @default("America/Mexico_City")
+  currency         Currency @default(MXN)
   
   // Contact & Address
   address          String?
@@ -53,7 +53,7 @@ model Organization {
   amlStatus        AMLStatus @default(PENDING) // PENDING, VERIFIED, REJECTED
   
   // Commission & Settings
-  commissionRate   Float     @default(0.15) // 15% default commission
+  commissionRate   Float     @default(0.15) // 15% default commission (rate, not money)
   feesInclusive    Boolean   @default(false) // Fees included in ticket price
   allowResale      Boolean   @default(true)
   resaleCommission Float     @default(0.08)
@@ -119,6 +119,7 @@ model Venue {
   seasonPasses     SeasonPass[]
   eventSeries      EventSeries[]
   blackouts        VenueBlackout[]
+  accessZones      AccessZone[]
   
   // Audit
   createdAt        DateTime  @default(now())
@@ -127,6 +128,7 @@ model Venue {
   @@index([organizationId])
   @@index([slug])
   @@index([city])
+  @@index([organizationId, city])
 }
 
 model VenueLayout {
@@ -235,6 +237,10 @@ model SeatHold {
   @@index([seatId])
   @@index([expiresAt])
   @@index([status])
+  /// inventory/orders: active unexpired holds for an event
+  @@index([eventId, status, expiresAt])
+  /// taquilla: session hold sweep
+  @@index([sessionId, status])
 }
 
 model TenantTheme {
@@ -254,6 +260,7 @@ model TenantTheme {
 model AccessZone {
   id               String   @id @default(cuid())
   venueId          String
+  venue            Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
   name             String
   slug             String
   capacity         Int?
@@ -261,13 +268,15 @@ model AccessZone {
   createdAt        DateTime @default(now())
 
   @@unique([venueId, slug])
+  @@index([venueId])
 }
 
 model TicketScan {
   id               String   @id @default(cuid())
   ticketId         String
+  ticket           Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   zoneId           String?
-  zone             AccessZone? @relation(fields: [zoneId], references: [id])
+  zone             AccessZone? @relation(fields: [zoneId], references: [id], onDelete: SetNull)
   scannedBy        String
   channel          SalesChannel
   success          Boolean
@@ -276,6 +285,10 @@ model TicketScan {
 
   @@index([ticketId])
   @@index([scannedAt])
+  /// access ops: scans by zone over time
+  @@index([zoneId, scannedAt])
+  /// access reports: success rate by ticket
+  @@index([ticketId, success, scannedAt])
 }
 
 model PaymentIntent {
@@ -295,6 +308,10 @@ model PaymentIntent {
 
   @@index([orderId])
   @@index([externalId])
+  /// payment reconcile: pending intents by provider
+  @@index([provider, status, createdAt])
+  /// expiry sweeper for abandoned checkouts
+  @@index([status, expiresAt])
 }
 
 model AuditEvent {
@@ -311,6 +328,10 @@ model AuditEvent {
   @@index([organizationId])
   @@index([entityType, entityId])
   @@index([createdAt])
+  /// admin audit feed by org + time
+  @@index([organizationId, createdAt])
+  /// actor timeline
+  @@index([userId, createdAt])
 }
 
 model CashierShift {
@@ -326,6 +347,9 @@ model CashierShift {
 
   @@index([userId])
   @@index([organizationId])
+  /// taquilla: open shift for cashier
+  @@index([userId, closedAt])
+  @@index([organizationId, openedAt])
 }
 
 model Event {
@@ -379,9 +403,9 @@ model Event {
   seriesOrder      Int?
   
   // Pricing
-  minPrice         Decimal @default(0) @db.Decimal(10, 2)
-  maxPrice         Decimal @default(1000) @db.Decimal(10, 2)
-  currency         Currency @default(USD)
+  minPrice         Decimal @default(0) @db.Decimal(12, 2)
+  maxPrice         Decimal @default(1000) @db.Decimal(12, 2)
+  currency         Currency @default(MXN)
   
   // Inventory
   totalCapacity    Int
@@ -429,6 +453,12 @@ model Event {
   @@index([venueId, startsAt])
   @@index([publishAt])
   @@index([salesStartAt])
+  /// admin/discovery: org catalog by status + date
+  @@index([organizationId, status, startsAt])
+  /// scheduling: auto-publish drafts
+  @@index([organizationId, status, publishAt])
+  /// storefront: published on-sale by category
+  @@index([status, category, startsAt])
 }
 
 // ============================================================================
@@ -530,9 +560,9 @@ model Offer {
   description      String?
   
   // Pricing
-  basePrice        Decimal @db.Decimal(10, 2)
-  fees             Decimal @default(0) @db.Decimal(10, 2)
-  currency         Currency @default(USD)
+  basePrice        Decimal @db.Decimal(12, 2)
+  fees             Decimal @default(0) @db.Decimal(12, 2)
+  currency         Currency @default(MXN)
   
   // Inventory
   totalQuantity    Int
@@ -563,6 +593,8 @@ model Offer {
   @@unique([eventId, zone])
   @@index([eventId])
   @@index([isAvailable])
+  /// inventory: available offers for checkout
+  @@index([eventId, isAvailable])
 }
 
 model Ticket {
@@ -591,8 +623,8 @@ model Ticket {
   
   // Resale
   isResale         Boolean   @default(false)
-  originalPrice    Decimal? @db.Decimal(10, 2)
-  resalePrice      Decimal? @db.Decimal(10, 2)
+  originalPrice    Decimal? @db.Decimal(12, 2)
+  resalePrice      Decimal? @db.Decimal(12, 2)
   resaleListing    ResaleListing?
   
   // Check-in
@@ -602,16 +634,29 @@ model Ticket {
   // Relations
   fraudFlags       FraudFlag[]
   transfers        TicketTransfer[]
+  scans            TicketScan[]
   
   // Audit
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   
+  /// One inventory unit per physical seat per event (NULL seatId = GA; PG allows many NULLs)
+  @@unique([eventId, seatId])
   @@index([eventId])
   @@index([offerId])
   @@index([status])
   @@index([code])
   @@index([seatId])
+  /// inventory/analytics/partners: counts & holds by event+status
+  @@index([eventId, status])
+  /// inventory best-available: pick AVAILABLE by offer
+  @@index([eventId, offerId, status])
+  /// seat map hold/checkout: lock specific seat
+  @@index([eventId, seatId, status])
+  /// access: check-in curve for completed events
+  @@index([eventId, checkedInAt])
+  /// order fulfillment: tickets linked to line item
+  @@index([orderItemId])
 }
 
 model Order {
@@ -639,7 +684,7 @@ model Order {
   discountAmount   Decimal @default(0) @db.Decimal(10, 2)
   taxAmount        Decimal @db.Decimal(10, 2)
   totalAmount      Decimal @db.Decimal(12, 2)
-  currency         Currency @default(USD)
+  currency         Currency @default(MXN)
   
   // Promo & Commission
   promotionId      String?
@@ -680,6 +725,20 @@ model Order {
   @@index([publicId])
   @@index([buyerEmail])
   @@index([createdAt])
+  /// analytics/reporting/admin dashboard: org sales by status + time
+  @@index([organizationId, status, createdAt])
+  /// settlement: completed orders by completion time
+  @@index([organizationId, status, completedAt])
+  /// event dashboard: orders by event+status
+  @@index([eventId, status])
+  /// channel analytics: org+channel+status
+  @@index([organizationId, channel, status, createdAt])
+  /// taquilla session summary: cashier sales window
+  @@index([cashierId, channel, createdAt])
+  /// payment link
+  @@index([paymentId])
+  /// promo attribution
+  @@index([promotionId])
 }
 
 model OrderItem {
@@ -735,6 +794,8 @@ model Payment {
   @@index([gateway])
   @@index([status])
   @@index([externalId])
+  /// reconciliation by gateway status + time
+  @@index([gateway, status, createdAt])
 }
 
 model Refund {
@@ -758,6 +819,9 @@ model Refund {
   
   @@index([orderId])
   @@index([status])
+  /// settlement: completed refunds in period
+  @@index([status, processedAt])
+  @@index([status, requestedAt])
 }
 
 // ============================================================================
@@ -838,7 +902,7 @@ model PosTerminal {
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name             String
   locationName     String
-  status           String   @default("READY")
+  status           PosTerminalStatus @default(READY)
   hardwareConfig   Json?
   offlineMode      Boolean  @default(false)
   lastSyncAt       DateTime?
@@ -848,6 +912,7 @@ model PosTerminal {
   updatedAt        DateTime @updatedAt
 
   @@index([organizationId])
+  @@index([organizationId, status])
 }
 
 model PosCashierSession {
@@ -855,13 +920,16 @@ model PosCashierSession {
   terminalId       String
   terminal         PosTerminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
   cashierId        String
-  status           String   @default("ACTIVE")
+  status           PosSessionStatus @default(ACTIVE)
   startedAt        DateTime @default(now())
   endedAt          DateTime?
   metadata         Json?
 
   @@index([terminalId])
   @@index([cashierId])
+  /// taquilla: active session for cashier on terminal
+  @@index([terminalId, cashierId, status])
+  @@index([terminalId, status, startedAt])
 }
 
 // ============================================================================
@@ -878,7 +946,7 @@ model ResaleListing {
   
   // Pricing
   askingPrice      Decimal @db.Decimal(10, 2)
-  currency         Currency @default(USD)
+  currency         Currency @default(MXN)
   fee              Decimal @db.Decimal(10, 2)
   
   // Status
@@ -898,6 +966,8 @@ model ResaleListing {
   
   @@index([sellerId])
   @@index([status])
+  /// marketplace browse: active listings by time
+  @@index([status, listedAt])
 }
 
 model ResaleOffer {
@@ -1029,6 +1099,10 @@ model FraudFlag {
   @@index([userId])
   @@index([severity])
   @@index([status])
+  /// analytics: flags by event+status / severity
+  @@index([eventId, status])
+  @@index([eventId, severity])
+  @@index([ticketId])
 }
 
 // ============================================================================
@@ -1084,6 +1158,8 @@ model PromoterPayout {
   
   @@index([organizationId])
   @@index([status])
+  /// settlement history
+  @@index([organizationId, status, periodEnd])
 }
 
 // ============================================================================
@@ -1158,6 +1234,8 @@ model WaitlistEntry {
   @@index([eventId])
   @@index([status])
   @@index([createdAt])
+  /// waitlist processing queue
+  @@index([eventId, status, priority, createdAt])
 }
 
 model TicketTransfer {
@@ -1178,6 +1256,8 @@ model TicketTransfer {
   @@index([toEmail])
   @@index([transferCode])
   @@index([status])
+  /// pending transfer expiry sweeper
+  @@index([status, expiresAt])
 }
 
 model ApiKey {
@@ -1262,6 +1342,8 @@ model CfdiInvoice {
   @@index([orderId])
   @@index([status])
   @@index([receptorRfc])
+  /// billing list by org+status+time
+  @@index([organizationId, status, createdAt])
 }
 
 // ============================================================================
@@ -1541,6 +1623,25 @@ enum CfdiStatus {
   ERROR
 }
 
+enum PosTerminalStatus {
+  READY
+  OFFLINE
+  DISABLED
+  MAINTENANCE
+}
+
+enum PosSessionStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum SeasonPassPurchaseStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
 // ============================================================================
 // SEASON / ABONOS
 // ============================================================================
@@ -1596,10 +1697,11 @@ model SeasonPassPurchase {
   buyerName      String
   quantity       Int        @default(1)
   totalAmount    Decimal    @db.Decimal(12, 2)
-  status         String     @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  status         SeasonPassPurchaseStatus @default(PENDING)
   seatSection    String?
   createdAt      DateTime   @default(now())
 
   @@index([seasonPassId])
   @@index([buyerEmail])
+  @@index([seasonPassId, status])
 }

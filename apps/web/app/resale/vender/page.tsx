@@ -4,7 +4,6 @@ import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/SiteHeader';
-import { SiteFooter } from '@/components/SiteFooter';
 import { authHeaders, getToken } from '@/lib/auth';
 import styles from './vender.module.scss';
 
@@ -89,7 +88,6 @@ export default function ResaleSellPage() {
           ← Volver a reventa
         </Link>
       </main>
-      <SiteFooter />
     </div>
   );
 }

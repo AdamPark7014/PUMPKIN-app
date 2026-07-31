@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.packages.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "./scripts",
+    "types": ["node"]
+  },
+  "include": ["scripts/**/*.ts"],
+  "exclude": ["scripts/**/*.js", "scripts/**/*.d.ts", "scripts/**/*.map"]
+}

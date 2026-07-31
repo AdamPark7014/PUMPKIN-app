@@ -1088,6 +1088,18 @@ exports.UserRole = exports.$Enums.UserRole = {
   SCANNER: 'SCANNER'
 };
 
+exports.PosTerminalStatus = exports.$Enums.PosTerminalStatus = {
+  READY: 'READY',
+  OFFLINE: 'OFFLINE',
+  DISABLED: 'DISABLED',
+  MAINTENANCE: 'MAINTENANCE'
+};
+
+exports.PosSessionStatus = exports.$Enums.PosSessionStatus = {
+  ACTIVE: 'ACTIVE',
+  CLOSED: 'CLOSED'
+};
+
 exports.ResaleStatus = exports.$Enums.ResaleStatus = {
   ACTIVE: 'ACTIVE',
   SOLD: 'SOLD',
@@ -1166,6 +1178,13 @@ exports.CfdiStatus = exports.$Enums.CfdiStatus = {
   STAMPED: 'STAMPED',
   CANCELLED: 'CANCELLED',
   ERROR: 'ERROR'
+};
+
+exports.SeasonPassPurchaseStatus = exports.$Enums.SeasonPassPurchaseStatus = {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED'
 };
 
 exports.Prisma.ModelName = {

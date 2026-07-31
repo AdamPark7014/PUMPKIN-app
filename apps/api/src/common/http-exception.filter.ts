@@ -6,7 +6,8 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 
 /**
  * Catches everything Nest's default handler would otherwise leak straight to
@@ -22,19 +23,60 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+    const suppliedCorrelationId = request.headers['x-correlation-id'];
+    const correlationId =
+      typeof suppliedCorrelationId === 'string' &&
+      /^[a-zA-Z0-9._-]{8,128}$/.test(suppliedCorrelationId)
+        ? suppliedCorrelationId
+        : randomUUID();
+    response.setHeader('X-Correlation-Id', correlationId);
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      response.status(status).json(exception.getResponse());
+      const body = exception.getResponse();
+      const message = this.publicMessage(body, status);
+      this.log(exception, request, correlationId, status);
+      response.status(status).json({ statusCode: status, message, correlationId });
       return;
     }
 
-    this.logger.error(
-      exception instanceof Error ? exception.stack : String(exception),
-    );
+    this.log(exception, request, correlationId, HttpStatus.INTERNAL_SERVER_ERROR);
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Internal server error',
+      correlationId,
     });
+  }
+
+  private publicMessage(body: string | object, status: number): string | string[] {
+    if (status >= 500) return 'Internal server error';
+    if (typeof body === 'string') return body;
+    if ('message' in body) {
+      const message = (body as { message?: unknown }).message;
+      if (typeof message === 'string') return message;
+      if (Array.isArray(message) && message.every((item) => typeof item === 'string')) {
+        return message;
+      }
+    }
+    return 'Request failed';
+  }
+
+  private log(
+    exception: unknown,
+    request: Request,
+    correlationId: string,
+    status: number,
+  ): void {
+    const detail = exception instanceof Error ? exception.stack ?? exception.message : String(exception);
+    this.logger.error(
+      JSON.stringify({
+        correlationId,
+        status,
+        method: request.method,
+        path: request.originalUrl,
+        detail,
+      }),
+    );
   }
 }

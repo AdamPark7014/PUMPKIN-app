@@ -1,0 +1,56 @@
+# Preferred ignore list for repo-root build context.
+# This Docker CLI may not support --ignorefile; use docker/build.ps1 or
+# docker/build.sh (they swap this file into place for the build only).
+#
+# The repo-root .dockerignore excludes pnpm-workspace.yaml / turbo.json /
+# tsconfig*.json and will break monorepo image builds.
+
+node_modules
+**/node_modules
+npm-debug.log
+.git
+.gitignore
+.github
+.claude
+.turbo
+**/.turbo
+.next
+**/.next
+dist
+**/dist
+build
+**/build
+out
+coverage
+**/coverage
+test-results
+e2e
+docs
+*.log
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Secrets / local env (build args supply NEXT_PUBLIC_* when needed)
+.env
+.env.*
+!.env.example
+
+# Heavy / non-runtime docs (keep package READMEs if any)
+*.md
+!docker/README.md
+
+# Playwright / local artifacts
+playwright-report
+test-results
+dev-output.log
+sched-api*.log
+
+# Legacy root Dockerfiles (superseded by docker/*.Dockerfile)
+Dockerfile.api
+Dockerfile.web
+DOCKER_SETUP.md
+QUICK_START_LOCAL.md

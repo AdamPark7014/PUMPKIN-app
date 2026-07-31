@@ -4,6 +4,19 @@ dist
 .turbo
 .env
 .env.local
+.env.*.local
 *.log
 coverage
+test-results
+playwright-report
 .DS_Store
+infra/observability/.env
+
+# Local agent / tooling scratch
+.tmp-*
+.types-baseline.txt
+*.tsbuildinfo
+
+# Prisma engine rename leftovers on Windows
+packages/database/generated/client/*.tmp*
+packages/database/generated/client/*.bad

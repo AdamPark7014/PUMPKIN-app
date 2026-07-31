@@ -1,6 +1,24 @@
 {
   "$schema": "https://turbo.build/json-schema.json",
-  "globalDependencies": ["**/.env", "**/.env.local", ".env.example"],
+  "globalDependencies": [
+    ".env",
+    ".env.local",
+    ".env.*.local",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "tsconfig.json",
+    "tsconfig.packages.json"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "CI",
+    "DATABASE_URL",
+    "DIRECT_DATABASE_URL",
+    "REDIS_URL",
+    "NEXT_PUBLIC_API_URL",
+    "NEXT_PUBLIC_ADMIN_API_URL",
+    "NEXT_PUBLIC_WEB_URL"
+  ],
   "tasks": {
     "dev": {
       "cache": false,
@@ -12,17 +30,21 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "build/**"]
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local", ".env.*.local"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"]
     },
     "check-types": {
+      "dependsOn": ["^check-types"],
       "outputs": []
     },
     "lint": {
+      "dependsOn": ["^lint"],
       "outputs": []
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "inputs": ["$TURBO_DEFAULT$", ".env.test", ".env.test.local"],
+      "outputs": []
     },
     "test:watch": {
       "cache": false,
@@ -30,7 +52,8 @@
     },
     "test:e2e": {
       "cache": false,
-      "persistent": true
+      "dependsOn": ["build"],
+      "outputs": ["playwright-report/**", "test-results/**"]
     }
   }
 }

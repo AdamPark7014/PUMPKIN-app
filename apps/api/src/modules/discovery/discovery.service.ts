@@ -1,11 +1,45 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { EventCategory, EventStatus, Prisma } from '@prisma/client';
+import { EventCategory, EventStatus, Prisma, SalePhaseStatus } from '@prisma/client';
+import { resolveSaleStatus } from '@boletera/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
-const CATEGORIES = new Set(Object.values(EventCategory));
+/** Sale-phase columns needed to derive the storefront sale state. */
+const SALE_PHASE_SELECT = {
+  where: { status: { not: SalePhaseStatus.CANCELLED } },
+  select: { id: true, name: true, kind: true, startsAt: true, endsAt: true, code: true },
+  orderBy: { startsAt: 'asc' as const },
+};
+
+type SaleWindowFields = {
+  status: EventStatus;
+  startsAt: Date;
+  endsAt: Date | null;
+  announceAt: Date | null;
+  publishAt: Date | null;
+  salesStartAt: Date | null;
+  salesEndAt: Date | null;
+  salePhases: {
+    id: string;
+    name: string;
+    kind: 'PRESALE' | 'MEMBERS' | 'PUBLIC' | 'LAST_MINUTE' | 'DOOR';
+    startsAt: Date;
+    endsAt: Date;
+    code: string | null;
+  }[];
+};
+
+const CATEGORIES = new Set<string>(Object.values(EventCategory));
+const PUBLIC_STATUSES: EventStatus[] = [
+  EventStatus.SCHEDULED,
+  EventStatus.LIVE,
+  EventStatus.RESCHEDULED,
+];
+const SUGGEST_STATUSES: EventStatus[] = [EventStatus.SCHEDULED, EventStatus.LIVE];
+
+type OrgScope = string | string[];
 
 type ListParams = {
-  orgId?: string;
+  orgId: OrgScope;
   q?: string;
   city?: string;
   category?: string;
@@ -17,9 +51,45 @@ type ListParams = {
   cursor?: string;
 };
 
+type PosterMetadata = { posterAspect?: string } | null;
+
 @Injectable()
 export class DiscoveryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
+
+  private orgWhere(orgId: OrgScope): string | { in: string[] } {
+    return Array.isArray(orgId) ? { in: orgId } : orgId;
+  }
+
+  /** Events scheduled to be announced later must stay out of the storefront. */
+  private announcedFilter(now = new Date()): Prisma.EventWhereInput {
+    return { OR: [{ announceAt: null }, { announceAt: { lte: now } }] };
+  }
+
+  private saleStateOf(event: SaleWindowFields, now = new Date()) {
+    const status = resolveSaleStatus(
+      {
+        status: event.status,
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        announceAt: event.announceAt,
+        publishAt: event.publishAt,
+        salesStartAt: event.salesStartAt,
+        salesEndAt: event.salesEndAt,
+        phases: event.salePhases,
+      },
+      now,
+    );
+    return {
+      state: status.state,
+      canPurchase: status.canPurchase,
+      requiresCode: status.gatedPhases.length > 0,
+      nextChangeAt: status.nextChangeAt ?? null,
+      activePhase: status.activePhase
+        ? { id: status.activePhase.id, name: status.activePhase.name, kind: status.activePhase.kind }
+        : null,
+    };
+  }
 
   private whenRange(when?: string): { gte?: Date; lte?: Date } | undefined {
     if (!when || when === 'ALL') return undefined;
@@ -32,21 +102,31 @@ export class DiscoveryService {
     return undefined;
   }
 
+  private clampLimit(limit: number | undefined, fallback: number, max: number): number {
+    if (limit == null || Number.isNaN(limit)) return fallback;
+    return Math.min(Math.max(Math.trunc(limit), 1), max);
+  }
+
+  private posterAspectOf(metadata: unknown): string | undefined {
+    const posterAspect = (metadata as PosterMetadata)?.posterAspect;
+    return typeof posterAspect === 'string' ? posterAspect : undefined;
+  }
+
   async listEvents(params: ListParams) {
     const range = this.whenRange(params.when);
     const from = params.from ? new Date(params.from) : range?.gte;
     const to = params.to ? new Date(params.to) : range?.lte;
+    const take = this.clampLimit(params.limit, 40, 100);
 
     const where: Prisma.EventWhereInput = {
-      status: { in: [EventStatus.SCHEDULED, EventStatus.LIVE] },
-      ...(params.orgId ? { organizationId: params.orgId } : {}),
+      organizationId: this.orgWhere(params.orgId),
+      status: { in: PUBLIC_STATUSES },
+      AND: [this.announcedFilter()],
       ...(params.city
         ? { venue: { city: { equals: params.city, mode: 'insensitive' } } }
         : {}),
-      ...(params.venueSlug
-        ? { venue: { slug: params.venueSlug } }
-        : {}),
-      ...(params.category && CATEGORIES.has(params.category as EventCategory)
+      ...(params.venueSlug ? { venue: { slug: params.venueSlug } } : {}),
+      ...(params.category && CATEGORIES.has(params.category)
         ? { category: params.category as EventCategory }
         : {}),
       ...(from || to
@@ -57,26 +137,44 @@ export class DiscoveryService {
             },
           }
         : {}),
-      ...(params.q
+      ...(params.q?.trim()
         ? {
             OR: [
-              { title: { contains: params.q, mode: 'insensitive' } },
-              { slug: { contains: params.q, mode: 'insensitive' } },
-              { venue: { name: { contains: params.q, mode: 'insensitive' } } },
-              { venue: { city: { contains: params.q, mode: 'insensitive' } } },
-              { genre: { contains: params.q, mode: 'insensitive' } },
+              { title: { contains: params.q.trim(), mode: 'insensitive' } },
+              { slug: { contains: params.q.trim(), mode: 'insensitive' } },
+              { venue: { name: { contains: params.q.trim(), mode: 'insensitive' } } },
+              { venue: { city: { contains: params.q.trim(), mode: 'insensitive' } } },
+              { genre: { contains: params.q.trim(), mode: 'insensitive' } },
             ],
           }
         : {}),
     };
 
-    const take = Math.min(Math.max(params.limit ?? 40, 1), 100);
     let events = await this.prisma.event.findMany({
       where,
       take: params.when === 'WEEKEND' ? Math.min(take * 3, 120) : take,
       ...(params.cursor ? { skip: 1, cursor: { id: params.cursor } } : {}),
-      orderBy: { startsAt: 'asc' },
-      include: {
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        description: true,
+        image: true,
+        bannerImage: true,
+        metadata: true,
+        startsAt: true,
+        endsAt: true,
+        doorsAt: true,
+        status: true,
+        announceAt: true,
+        publishAt: true,
+        salesStartAt: true,
+        salesEndAt: true,
+        category: true,
+        genre: true,
+        currency: true,
+        maxPrice: true,
         venue: { select: { name: true, city: true, slug: true } },
         organization: { select: { name: true, slug: true } },
         offers: {
@@ -90,6 +188,7 @@ export class DiscoveryService {
             isAvailable: true,
           },
         },
+        salePhases: SALE_PHASE_SELECT,
       },
     });
 
@@ -112,12 +211,14 @@ export class DiscoveryService {
         description: e.description,
         image: e.image,
         bannerImage: e.bannerImage,
-        posterAspect:
-          ((e.metadata as { posterAspect?: string } | null)?.posterAspect) ??
-          undefined,
+        posterAspect: this.posterAspectOf(e.metadata),
         startsAt: e.startsAt,
         endsAt: e.endsAt,
+        doorsAt: e.doorsAt,
         status: e.status,
+        sale: this.saleStateOf(e),
+        salesStartAt: e.salesStartAt,
+        salesEndAt: e.salesEndAt,
         category: e.category,
         genre: e.genre,
         currency: e.currency ?? 'MXN',
@@ -138,31 +239,40 @@ export class DiscoveryService {
     });
   }
 
-  async getBySlug(slug: string) {
-    const event = await this.prisma.event.findUnique({
-      where: { slug },
+  async getBySlug(slug: string, orgId: OrgScope) {
+    const event = await this.prisma.event.findFirst({
+      where: {
+        slug,
+        organizationId: this.orgWhere(orgId),
+        AND: [this.announcedFilter()],
+      },
       include: {
         venue: true,
         organization: { include: { tenantTheme: true } },
         offers: { where: { isAvailable: true } },
         seatMap: true,
+        salePhases: SALE_PHASE_SELECT,
+        series: { select: { id: true, name: true, kind: true } },
       },
     });
     if (!event) throw new NotFoundException('Event not found');
-    const posterAspect =
-      ((event.metadata as { posterAspect?: string } | null)?.posterAspect) ?? undefined;
-    return { ...event, posterAspect };
+    return {
+      ...event,
+      posterAspect: this.posterAspectOf(event.metadata),
+      sale: this.saleStateOf(event),
+    };
   }
 
   /** Lightweight typeahead rows for discovery search. */
-  async suggest(params: { orgId?: string; q: string; limit?: number }) {
+  async suggest(params: { orgId: OrgScope; q: string; limit?: number }) {
     const q = params.q.trim();
     if (q.length < 2) return [];
-    const take = Math.min(Math.max(params.limit ?? 8, 1), 12);
+    const take = this.clampLimit(params.limit, 8, 12);
     const events = await this.prisma.event.findMany({
       where: {
-        status: { in: [EventStatus.SCHEDULED, EventStatus.LIVE] },
-        ...(params.orgId ? { organizationId: params.orgId } : {}),
+        organizationId: this.orgWhere(params.orgId),
+        status: { in: SUGGEST_STATUSES },
+        AND: [this.announcedFilter()],
         OR: [
           { title: { contains: q, mode: 'insensitive' } },
           { slug: { contains: q, mode: 'insensitive' } },
@@ -172,7 +282,7 @@ export class DiscoveryService {
         ],
       },
       take,
-      orderBy: { startsAt: 'asc' },
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
         slug: true,
@@ -193,16 +303,19 @@ export class DiscoveryService {
     }));
   }
 
-  async facets(orgId?: string) {
+  async facets(orgId: OrgScope) {
     const events = await this.prisma.event.findMany({
       where: {
-        status: { in: [EventStatus.SCHEDULED, EventStatus.LIVE] },
-        ...(orgId ? { organizationId: orgId } : {}),
+        organizationId: this.orgWhere(orgId),
+        status: { in: SUGGEST_STATUSES },
+        AND: [this.announcedFilter()],
       },
       select: {
         category: true,
         venue: { select: { city: true } },
       },
+      take: 2000,
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
     });
 
     const cityMap = new Map<string, number>();
@@ -219,20 +332,23 @@ export class DiscoveryService {
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
       categories: Array.from(categoryMap.entries())
         .map(([key, count]) => ({ key, count }))
-        .sort((a, b) => b.count - a.count),
+        .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key)),
     };
   }
 
-  async listVenues(params: { orgId?: string; limit?: number; city?: string }) {
-    const take = Math.min(Math.max(params.limit ?? 24, 1), 60);
+  async listVenues(params: { orgId: OrgScope; limit?: number; city?: string }) {
+    const take = this.clampLimit(params.limit, 24, 60);
     const venues = await this.prisma.venue.findMany({
       where: {
-        ...(params.orgId ? { organizationId: params.orgId } : {}),
+        organizationId: this.orgWhere(params.orgId),
         ...(params.city
           ? { city: { equals: params.city, mode: 'insensitive' } }
           : {}),
         events: {
-          some: { status: { in: [EventStatus.SCHEDULED, EventStatus.LIVE] } },
+          some: {
+            status: { in: SUGGEST_STATUSES },
+            AND: [this.announcedFilter()],
+          },
         },
       },
       take,
@@ -248,7 +364,10 @@ export class DiscoveryService {
         _count: {
           select: {
             events: {
-              where: { status: { in: [EventStatus.SCHEDULED, EventStatus.LIVE] } },
+              where: {
+                status: { in: SUGGEST_STATUSES },
+                AND: [this.announcedFilter()],
+              },
             },
           },
         },
@@ -267,11 +386,28 @@ export class DiscoveryService {
     }));
   }
 
-  async getVenueBySlug(slug: string, orgId?: string) {
+  async getVenueBySlug(slug: string, orgId: OrgScope) {
     const venue = await this.prisma.venue.findFirst({
       where: {
         slug,
-        ...(orgId ? { organizationId: orgId } : {}),
+        organizationId: this.orgWhere(orgId),
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        description: true,
+        address: true,
+        city: true,
+        state: true,
+        country: true,
+        postalCode: true,
+        latitude: true,
+        longitude: true,
+        phone: true,
+        website: true,
+        image: true,
+        totalCapacity: true,
       },
     });
     if (!venue) throw new NotFoundException('Venue not found');
@@ -283,21 +419,7 @@ export class DiscoveryService {
     });
 
     return {
-      id: venue.id,
-      slug: venue.slug,
-      name: venue.name,
-      description: venue.description,
-      address: venue.address,
-      city: venue.city,
-      state: venue.state,
-      country: venue.country,
-      postalCode: venue.postalCode,
-      latitude: venue.latitude,
-      longitude: venue.longitude,
-      phone: venue.phone,
-      website: venue.website,
-      image: venue.image,
-      totalCapacity: venue.totalCapacity,
+      ...venue,
       eventCount: events.length,
       events,
     };

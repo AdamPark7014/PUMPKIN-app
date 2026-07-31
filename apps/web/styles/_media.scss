@@ -1,0 +1,83 @@
+// Breakpoints compartidos del storefront. Enfoque móvil primero:
+// el estilo base es el de teléfono y estas media queries sólo amplían.
+//
+// Uso desde cualquier *.module.scss (includePath `styles` en next.config):
+//   @use 'media' as m;
+//   .grid { display: grid; @include m.md { grid-template-columns: 1fr 1fr; } }
+
+$bp-sm: 480px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+$bp-xl: 1280px;
+
+@mixin sm {
+  @media (min-width: $bp-sm) {
+    @content;
+  }
+}
+
+@mixin md {
+  @media (min-width: $bp-md) {
+    @content;
+  }
+}
+
+@mixin lg {
+  @media (min-width: $bp-lg) {
+    @content;
+  }
+}
+
+@mixin xl {
+  @media (min-width: $bp-xl) {
+    @content;
+  }
+}
+
+/// Sólo teléfono: útil para barras de compra fijas al pie.
+@mixin below-md {
+  @media (max-width: #{$bp-md - 1px}) {
+    @content;
+  }
+}
+
+/// Puntero grueso (dedo): objetivos táctiles de 44px mínimo.
+@mixin touch {
+  @media (pointer: coarse) {
+    @content;
+  }
+}
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}
+
+/// Contenedor central estándar del storefront.
+@mixin shell($max: var(--shell-max)) {
+  width: 100%;
+  max-width: $max;
+  margin-inline: auto;
+  padding-inline: var(--shell-pad);
+}
+
+/// Oculta visualmente sin sacar del árbol de accesibilidad.
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/// Objetivo táctil mínimo accesible (WCAG 2.5.8).
+@mixin tap-target($size: 44px) {
+  min-height: $size;
+  min-width: $size;
+}

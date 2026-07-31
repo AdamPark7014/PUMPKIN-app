@@ -60,6 +60,19 @@ export function normalizeCartItem(item: CartItem): CartItem {
   return { ...item, lines: item.lines ?? [], seatCount: item.seatCount ?? 0 };
 }
 
+/** Estimated line total from persisted cart data (fees confirmed at checkout). */
+export function cartItemEstimatedTotal(item: CartItem): number {
+  const normalized = normalizeCartItem(item);
+  const fromLines = normalized.lines.reduce((s, l) => s + (l.lineTotal ?? 0), 0);
+  if (fromLines > 0) return fromLines;
+  return normalized.lineTotal ?? 0;
+}
+
+export function cartHoldIds(item: CartItem): string[] {
+  const normalized = normalizeCartItem(item);
+  return normalized.lines.flatMap((l) => l.holdIds);
+}
+
 export const useCartStore = create<CartState>()(
   persist(
     (set) => ({

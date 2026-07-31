@@ -1,3 +1,6 @@
+import { http, HttpError } from './http';
+import { getTokenStorage } from './session';
+
 const API = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://127.0.0.1:4000/api/v1';
 
 export type AuthUser = {
@@ -7,61 +10,48 @@ export type AuthUser = {
   role: string;
 };
 
-export class ApiError extends Error {
+/** @deprecated Usa `HttpError` de `@/lib/http`. */
+export class ApiError extends HttpError {
   statusCode: number;
   body: string;
 
   constructor(statusCode: number, body: string) {
-    super(body || `Request failed (${statusCode})`);
+    super(body || `La solicitud falló (${statusCode})`, statusCode, 'REQUEST_FAILED', body);
     this.name = 'ApiError';
     this.statusCode = statusCode;
     this.body = body;
   }
 }
 
-function clearSessionAndRedirectToLogin() {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem('boletera_token');
-  localStorage.removeItem('boletera_org');
-  if (!window.location.pathname.startsWith('/login')) {
-    window.location.replace('/login');
-  }
-}
-
+/**
+ * @deprecated Las páginas nuevas deben usar `http` o los hooks de `@/lib/queries`.
+ * Se conserva para las pantallas aún no migradas.
+ */
 export async function adminApi<T>(path: string, token: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...init?.headers,
-    },
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    if (res.status === 401) {
-      clearSessionAndRedirectToLogin();
+  try {
+    return await http<T>(path, { ...init, token });
+  } catch (error) {
+    if (error instanceof HttpError && error.status !== null) {
+      throw new ApiError(error.status, error.message);
     }
-    throw new ApiError(res.status, body);
+    throw error;
   }
-  return res.json() as Promise<T>;
 }
 
 export async function login(email: string, password: string) {
-  const res = await fetch(`${API}/auth/login`, {
+  return http<{ accessToken: string; user: AuthUser }>(`${API}/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: { email, password },
+    auth: false,
   });
-  if (!res.ok) throw new Error('Login failed');
-  return res.json() as Promise<{ accessToken: string; user: AuthUser }>;
 }
 
+/** @deprecated Usa `useSession()`. */
 export async function fetchMe(token: string) {
   return adminApi<AuthUser>('/auth/me', token);
 }
 
+/** @deprecated Usa `useSession()` o `getTokenStorage()`. */
 export function getStoredToken() {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('boletera_token');
+  return getTokenStorage().getToken();
 }

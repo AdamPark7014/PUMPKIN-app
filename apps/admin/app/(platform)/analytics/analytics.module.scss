@@ -1,160 +1,397 @@
-.wrap {
+// Panel de inteligencia de negocio.
+//
+// Los tokens se consumen desde la capa SCSS de @boletera/ui: cada `$c-*` es un
+// `var(--bl-*)` con el valor del tema claro como respaldo, asi que la pantalla
+// se ve correcta aunque el layout raiz todavia no importe `theme.scss`.
+// La ruta es relativa porque el `sassOptions.includePaths` del paquete solo
+// esta configurado en apps/web.
+@use '../../../../../packages/ui/src/styles/variables' as *;
+
+.workspace {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: $space-5;
+  padding-bottom: $space-10;
+  color: $c-text-primary;
 }
 
-.periodTabs {
+// ---------------------------------------------------------------- encabezado
+
+.headerMeta {
   display: flex;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-2 $space-4;
+  font-size: $text-xs;
+  color: $c-text-tertiary;
 }
 
-.tab,
-.tabOn {
-  padding: 0.5rem 0.85rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid #e5e5e5;
-  background: #fff;
-  color: #525252;
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
 }
 
-.tabOn {
-  background: #0a0a0a;
-  border-color: #0a0a0a;
-  color: #fff;
+// ------------------------------------------------------------------ filtros
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: $space-3 $space-4;
+  padding: $space-3 $space-4;
+  background: $c-elevated;
+  border: 1px solid $c-border-subtle;
+  border-radius: $radius-lg;
 }
 
-.error {
-  color: #b91c1c;
-  font-size: 0.9rem;
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1-5;
+  min-width: 0;
 }
 
-.kpis {
+.controlLabel {
+  @include type('2xs', $weight-semibold);
+
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $c-text-tertiary;
+}
+
+.controlSpacer {
+  flex: 1 1 $space-4;
+  min-width: 0;
+}
+
+.select,
+.dateInput {
+  height: 32px;
+  padding: 0 $space-2;
+  font: inherit;
+  font-size: $text-sm;
+  color: $c-text-primary;
+  background: $c-elevated;
+  border: 1px solid $c-border;
+  border-radius: $radius-sm;
+
+  @include focus-ring(1px);
+}
+
+.dateFields {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.dateSeparator {
+  font-size: $text-xs;
+  color: $c-text-tertiary;
+}
+
+// -------------------------------------------------------------------- rejilla
+
+.kpiGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: $space-3;
+}
 
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr 1fr;
-  }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: $space-4;
+  align-items: start;
+}
 
-  article {
-    background: #fff;
-    border: 1px solid #e5e5e5;
-    border-radius: 12px;
-    padding: 1rem 1.1rem;
+.span12 {
+  grid-column: span 12;
+}
 
-    span {
-      display: block;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #737373;
-      margin-bottom: 0.45rem;
-    }
+.span8 {
+  grid-column: span 8;
+}
 
-    strong {
-      font-size: 1.45rem;
-      font-variant-numeric: tabular-nums;
+.span6 {
+  grid-column: span 6;
+}
 
-      em {
-        font-style: normal;
-        font-size: 0.75rem;
-        color: #737373;
-        font-weight: 600;
-      }
-    }
+.span4 {
+  grid-column: span 4;
+}
+
+@include below('xl') {
+  .span8,
+  .span6,
+  .span4 {
+    grid-column: span 12;
   }
 }
 
-.kpiHero {
-  background: linear-gradient(145deg, #fff 0%, #fff1f2 100%) !important;
-  border-color: #fecdd3 !important;
-}
+// --------------------------------------------------------------------- panel
 
 .panel {
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  padding: 1.1rem 1.2rem 1.25rem;
-}
-
-.panelHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-
-  h2 {
-    margin: 0;
-    font-size: 1.05rem;
-  }
-}
-
-.muted {
-  color: #737373;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.bars {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: $space-3;
+  min-width: 0;
 }
 
-.barMeta {
+.panelBody {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: baseline;
-  margin-bottom: 0.35rem;
-
-  strong {
-    font-size: 0.9rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-  }
-
-  span {
-    font-size: 0.78rem;
-    color: #737373;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
+  flex-direction: column;
+  gap: $space-3;
+  min-width: 0;
 }
 
-.rank {
-  display: inline-grid;
-  place-items: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 4px;
-  background: #0a0a0a;
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 700;
+.panelSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
 }
 
-.barTrack {
-  height: 0.45rem;
-  background: #f4f4f5;
-  border-radius: 999px;
+.panelFootnote {
+  margin: 0;
+  font-size: $text-xs;
+  color: $c-text-tertiary;
+}
+
+// ------------------------------------------------------------------ resumenes
+
+.statList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: $space-3;
+  margin: 0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  padding: $space-2-5 $space-3;
+  background: $c-surface-sunken;
+  border-radius: $radius-md;
+}
+
+.statLabel {
+  @include type('2xs', $weight-semibold);
+
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $c-text-tertiary;
+}
+
+.statValue {
+  @include type('xl', $weight-semibold);
+
+  font-variant-numeric: tabular-nums;
+  color: $c-text-primary;
+}
+
+.statHint {
+  font-size: $text-xs;
+  color: $c-text-secondary;
+}
+
+.inlineMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-2;
+  font-size: $text-xs;
+  color: $c-text-secondary;
+}
+
+// ------------------------------------------------------------------ hallazgos
+
+.insightList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: $space-3;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.insight {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  padding: $space-3;
+  background: $c-elevated;
+  border: 1px solid $c-border-subtle;
+  border-left-width: 3px;
+  border-radius: $radius-md;
+}
+
+.insightTitle {
+  @include type('sm', $weight-semibold);
+
+  margin: 0;
+  color: $c-text-primary;
+}
+
+.insightDetail {
+  margin: 0;
+  font-size: $text-xs;
+  line-height: 1.5;
+  color: $c-text-secondary;
+}
+
+.tonePositive {
+  border-left-color: $c-success;
+}
+
+.toneWarning {
+  border-left-color: $c-warning;
+}
+
+.toneCritical {
+  border-left-color: $c-danger;
+}
+
+.toneNeutral {
+  border-left-color: $c-border-strong;
+}
+
+// -------------------------------------------------------------------- alertas
+
+.alertList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.alert {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1-5;
+  padding: $space-3;
+  background: $c-elevated;
+  border: 1px solid $c-border-subtle;
+  border-radius: $radius-md;
+}
+
+.alertHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-2;
+}
+
+.alertTitle {
+  @include type('sm', $weight-semibold);
+
+  margin: 0;
+  color: $c-text-primary;
+}
+
+.alertText {
+  margin: 0;
+  font-size: $text-xs;
+  line-height: 1.5;
+  color: $c-text-secondary;
+}
+
+.alertAction {
+  margin: 0;
+  font-size: $text-xs;
+  line-height: 1.5;
+  color: $c-text-primary;
+}
+
+.alertMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-3;
+  font-size: $text-2xs;
+  color: $c-text-tertiary;
+}
+
+// --------------------------------------------------------------------- tablas
+
+.cellStack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cellPrimary {
+  @include truncate;
+
+  font-size: $text-sm;
+  color: $c-text-primary;
+}
+
+.cellSecondary {
+  @include truncate;
+
+  font-size: $text-2xs;
+  color: $c-text-tertiary;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+.meter {
+  width: 100%;
+  height: 6px;
   overflow: hidden;
+  background: $c-surface-sunken;
+  border-radius: $radius-full;
 }
 
-.barFill {
+.meterFill {
   height: 100%;
-  background: linear-gradient(90deg, #e11d48, #fb7185);
-  border-radius: 999px;
-  min-width: 0.35rem;
+  background: $c-accent;
+  border-radius: $radius-full;
+
+  @include motion-safe {
+    transition: width $duration-slow $ease-standard;
+  }
+}
+
+.meterSuccess {
+  background: $c-success;
+}
+
+.meterWarning {
+  background: $c-warning;
+}
+
+.meterDanger {
+  background: $c-danger;
+}
+
+// -------------------------------------------------------------------- leyenda
+
+.legendRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-3;
+  font-size: $text-xs;
+  color: $c-text-secondary;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1-5;
+}
+
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.srOnly {
+  @include visually-hidden;
 }

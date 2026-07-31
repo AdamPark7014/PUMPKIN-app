@@ -1,150 +1,372 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { adminApi, fetchMe, getStoredToken } from '@/lib/api';
-import platform from '../_styles/platform.module.scss';
+import { Suspense, useCallback, useMemo } from 'react';
+import { Badge } from '@boletera/ui/src/components/Badge';
+import { Button } from '@boletera/ui/src/components/Button';
+import { PageHeader } from '@boletera/ui/src/components/PageHeader';
+import {
+  useAccessMetrics,
+  useCampaignMetrics,
+  useEventSalesPace,
+  useExecutiveMetrics,
+  useFraudMetrics,
+  useInventoryMetrics,
+  useMetricsAlerts,
+  useMetricsTimeseries,
+  useOrdersMetrics,
+  useResaleMetrics,
+  useSettlementsMetrics,
+  useWaitlistMetrics,
+} from '@/lib/queries';
+import { AccessSection } from './_components/AccessSection';
+import { AlertsPanel } from './_components/AlertsPanel';
+import { AnalyticsToolbar } from './_components/AnalyticsToolbar';
+import { FunnelsSection } from './_components/FunnelsSection';
+import { InsightsPanel } from './_components/InsightsPanel';
+import { InventorySection } from './_components/InventorySection';
+import { OrdersSection } from './_components/OrdersSection';
+import { OverviewSection } from './_components/OverviewSection';
+import { RiskSection } from './_components/RiskSection';
+import { SalesPaceSection } from './_components/SalesPaceSection';
+import { SettlementsSection } from './_components/SettlementsSection';
+import { formatTimestamp } from './_lib/format';
+import { buildInsights } from './_lib/insights';
+import {
+  COMPARISON_MODES,
+  RANGE_PRESETS,
+  coerceGranularity,
+  comparisonRange,
+  formatRangeLabel,
+} from './_lib/range';
+import { useAnalyticsUrlState } from './_lib/use-analytics-url-state';
 import styles from './analytics.module.scss';
 
-type PromoterDashboard = {
-  metrics?: {
-    totalRevenue?: number;
-    totalOrders?: number;
-    totalTicketsSold?: number;
-    netRevenue?: number;
-    currency?: string;
-  };
-  topEvents?: { eventId: string; eventTitle: string; revenue: number; orders: number }[];
-};
-
-function fmtMoney(n?: number) {
-  if (typeof n !== 'number') return '—';
-  return `$${n.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`;
+export default function AnalyticsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className={styles.workspace} aria-busy="true">
+          <PageHeader
+            eyebrow="Business Intelligence"
+            title="Analítica"
+            description="Cargando panel…"
+            breadcrumbs={[
+              { label: 'Plataforma', href: '/dashboard' },
+              { label: 'Analítica' },
+            ]}
+            bordered
+          />
+        </div>
+      }
+    >
+      <AnalyticsPageContent />
+    </Suspense>
+  );
 }
 
-export default function AnalyticsPage() {
-  const [data, setData] = useState<PromoterDashboard | null>(null);
-  const [error, setError] = useState('');
-  const [period, setPeriod] = useState<'WEEK' | 'MONTH' | 'YEAR'>('MONTH');
+function AnalyticsPageContent() {
+  const {
+    view,
+    preset,
+    range,
+    comparison,
+    metric,
+    granularity,
+    eventId,
+    setView,
+    setPreset,
+    setCustomRange,
+    setComparison,
+    setMetric,
+    setGranularity,
+    setEventId,
+  } = useAnalyticsUrlState();
 
-  useEffect(() => {
-    const token = getStoredToken();
-    if (!token) return;
-    (async () => {
-      try {
-        setError('');
-        const orgId =
-          localStorage.getItem('boletera_org') ?? (await fetchMe(token)).organizationId;
-        if (!orgId) {
-          setError('Usuario sin organización asignada');
-          return;
-        }
-        const dash = await adminApi<PromoterDashboard>(
-          `/analytics/promoters/${orgId}/dashboard?period=${period}`,
-          token,
-        );
-        setData(dash);
-      } catch {
-        setError('No se pudieron cargar las métricas');
-      }
-    })();
-  }, [period]);
+  const effectiveGranularity = coerceGranularity(granularity, range);
 
-  const maxRevenue = useMemo(() => {
-    const list = data?.topEvents ?? [];
-    return Math.max(1, ...list.map((e) => e.revenue));
-  }, [data]);
+  const metricsParams = useMemo(
+    () => ({
+      from: range.from,
+      to: range.to,
+      eventId: eventId || undefined,
+    }),
+    [eventId, range.from, range.to],
+  );
 
-  const periodLabel =
-    period === 'WEEK' ? 'esta semana' : period === 'YEAR' ? 'este año' : 'este mes';
+  const previousRange = useMemo(
+    () => comparisonRange(range, comparison),
+    [comparison, range],
+  );
+
+  const comparisonLabel =
+    COMPARISON_MODES.find((mode) => mode.id === comparison)?.label ?? 'Periodo anterior';
+
+  const executive = useExecutiveMetrics(metricsParams);
+  const timeseries = useMetricsTimeseries({
+    ...metricsParams,
+    granularity: effectiveGranularity,
+    metric,
+  });
+  const comparisonTimeseries = useMetricsTimeseries({
+    from: previousRange?.from,
+    to: previousRange?.to,
+    eventId: metricsParams.eventId,
+    granularity: effectiveGranularity,
+    metric,
+  });
+  const salesPace = useEventSalesPace(metricsParams);
+  const inventory = useInventoryMetrics(metricsParams);
+  const orders = useOrdersMetrics(metricsParams);
+  const access = useAccessMetrics(metricsParams);
+  const resale = useResaleMetrics(metricsParams);
+  const waitlist = useWaitlistMetrics(metricsParams);
+  const campaigns = useCampaignMetrics(metricsParams);
+  const fraud = useFraudMetrics(metricsParams);
+  const settlements = useSettlementsMetrics(metricsParams);
+  const alerts = useMetricsAlerts(metricsParams);
+
+  const eventOptions = useMemo(
+    () =>
+      (salesPace.data?.events ?? []).map((event) => ({
+        id: event.eventId,
+        title: event.title,
+      })),
+    [salesPace.data?.events],
+  );
+
+  const insights = useMemo(
+    () =>
+      buildInsights({
+        executive: executive.data,
+        pace: salesPace.data,
+        inventory: inventory.data,
+        orders: orders.data,
+        campaigns: campaigns.data,
+        waitlist: waitlist.data,
+        access: access.data,
+        comparisonLabel,
+      }),
+    [
+      access.data,
+      campaigns.data,
+      comparisonLabel,
+      executive.data,
+      inventory.data,
+      orders.data,
+      salesPace.data,
+      waitlist.data,
+    ],
+  );
+
+  const generatedAt =
+    executive.data?.generatedAt ??
+    timeseries.data?.generatedAt ??
+    alerts.data?.generatedAt ??
+    null;
+
+  const refetchAll = useCallback(() => {
+    void executive.refetch();
+    void timeseries.refetch();
+    void comparisonTimeseries.refetch();
+    void salesPace.refetch();
+    void inventory.refetch();
+    void orders.refetch();
+    void access.refetch();
+    void resale.refetch();
+    void waitlist.refetch();
+    void campaigns.refetch();
+    void fraud.refetch();
+    void settlements.refetch();
+    void alerts.refetch();
+  }, [
+    access,
+    alerts,
+    campaigns,
+    comparisonTimeseries,
+    executive,
+    fraud,
+    inventory,
+    orders,
+    resale,
+    salesPace,
+    settlements,
+    timeseries,
+    waitlist,
+  ]);
+
+  const presetLabel =
+    RANGE_PRESETS.find((item) => item.id === preset)?.label ?? formatRangeLabel(range);
 
   return (
-    <div className={styles.wrap}>
-      <header className={platform.pageHeader}>
-        <div>
-          <h1>Analítica</h1>
-          <p>Rendimiento de ventas {periodLabel}</p>
-        </div>
-        <div className={styles.periodTabs} role="tablist" aria-label="Periodo">
-          {(
-            [
-              ['WEEK', 'Semana'],
-              ['MONTH', 'Mes'],
-              ['YEAR', 'Año'],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={period === id}
-              className={period === id ? styles.tabOn : styles.tab}
-              onClick={() => setPeriod(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </header>
-
-      {error && <p className={styles.error}>{error}</p>}
-
-      <section className={styles.kpis}>
-        <article className={styles.kpiHero}>
-          <span>Ingresos</span>
-          <strong>
-            {fmtMoney(data?.metrics?.totalRevenue)}{' '}
-            <em>{data?.metrics?.currency || 'MXN'}</em>
-          </strong>
-        </article>
-        <article>
-          <span>Órdenes</span>
-          <strong>{data?.metrics?.totalOrders ?? '—'}</strong>
-        </article>
-        <article>
-          <span>Boletos</span>
-          <strong>{data?.metrics?.totalTicketsSold ?? '—'}</strong>
-        </article>
-        <article>
-          <span>Neto promotor</span>
-          <strong>{fmtMoney(data?.metrics?.netRevenue)}</strong>
-        </article>
-      </section>
-
-      <section className={styles.panel}>
-        <div className={styles.panelHead}>
-          <h2>Top eventos</h2>
-          <Link href="/events" className={platform.ghostBtn}>
-            Ver eventos
-          </Link>
+    <div className={styles.workspace}>
+      <PageHeader
+        eyebrow="Business Intelligence"
+        title="Analítica"
+        description="KPIs, series, embudos, inventario, riesgo y liquidaciones · MXN · America/Mexico_City"
+        breadcrumbs={[
+          { label: 'Plataforma', href: '/dashboard' },
+          { label: 'Analítica' },
+        ]}
+        actions={
+          <div className={styles.headerActions}>
+            {generatedAt ? (
+              <Badge tone="neutral" variant="outline" size="sm" dot>
+                Actualizado {formatTimestamp(generatedAt)}
+              </Badge>
+            ) : null}
+            <Button type="button" variant="outline" size="sm" onClick={refetchAll}>
+              Actualizar
+            </Button>
+          </div>
+        }
+        bordered
+      >
+        <div className={styles.headerMeta} role="status">
+          <span>{presetLabel}</span>
+          <span aria-hidden="true">·</span>
+          <span>{formatRangeLabel(range)}</span>
+          {comparison !== 'none' ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>Comparando con {comparisonLabel.toLowerCase()}</span>
+            </>
+          ) : null}
+          {eventId ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>Filtrado por evento</span>
+            </>
+          ) : null}
         </div>
 
-        {!data?.topEvents?.length ? (
-          <p className={styles.muted}>Aún no hay datos de eventos en este periodo.</p>
-        ) : (
-          <ul className={styles.bars}>
-            {data.topEvents.map((e, i) => {
-              const pct = Math.round((e.revenue / maxRevenue) * 100);
-              return (
-                <li key={e.eventId}>
-                  <div className={styles.barMeta}>
-                    <strong>
-                      <span className={styles.rank}>{i + 1}</span>
-                      {e.eventTitle}
-                    </strong>
-                    <span>
-                      {e.orders} órdenes · {fmtMoney(e.revenue)}
-                    </span>
-                  </div>
-                  <div className={styles.barTrack} aria-hidden>
-                    <div className={styles.barFill} style={{ width: `${pct}%` }} />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+        <AnalyticsToolbar
+          view={view}
+          onViewChange={setView}
+          preset={preset}
+          onPresetChange={setPreset}
+          range={range}
+          onCustomRangeChange={setCustomRange}
+          comparison={comparison}
+          onComparisonChange={setComparison}
+          metric={metric}
+          onMetricChange={setMetric}
+          granularity={effectiveGranularity}
+          onGranularityChange={setGranularity}
+          eventId={eventId}
+          onEventChange={setEventId}
+          events={eventOptions}
+          eventsLoading={salesPace.isPending}
+        />
+      </PageHeader>
+
+      {view === 'overview' ? (
+        <OverviewSection
+          executive={executive.data}
+          executivePending={executive.isPending}
+          executiveError={executive.error}
+          onRetryExecutive={() => void executive.refetch()}
+          timeseries={timeseries.data}
+          timeseriesPending={timeseries.isPending}
+          timeseriesError={timeseries.error}
+          onRetryTimeseries={() => void timeseries.refetch()}
+          comparisonTimeseries={
+            comparison === 'none' ? undefined : comparisonTimeseries.data
+          }
+          metric={metric}
+          granularity={effectiveGranularity}
+          comparisonLabel={comparisonLabel}
+          showComparison={comparison !== 'none'}
+        />
+      ) : null}
+
+      {view === 'sales' ? (
+        <SalesPaceSection
+          data={salesPace.data}
+          isPending={salesPace.isPending}
+          error={salesPace.error}
+          onRetry={() => void salesPace.refetch()}
+        />
+      ) : null}
+
+      {view === 'inventory' ? (
+        <InventorySection
+          data={inventory.data}
+          isPending={inventory.isPending}
+          error={inventory.error}
+          onRetry={() => void inventory.refetch()}
+        />
+      ) : null}
+
+      {view === 'orders' ? (
+        <OrdersSection
+          data={orders.data}
+          isPending={orders.isPending}
+          error={orders.error}
+          onRetry={() => void orders.refetch()}
+          comparisonLabel={comparisonLabel}
+        />
+      ) : null}
+
+      {view === 'access' ? (
+        <AccessSection
+          data={access.data}
+          isPending={access.isPending}
+          error={access.error}
+          onRetry={() => void access.refetch()}
+        />
+      ) : null}
+
+      {view === 'funnels' ? (
+        <FunnelsSection
+          waitlist={waitlist.data}
+          waitlistPending={waitlist.isPending}
+          waitlistError={waitlist.error}
+          onRetryWaitlist={() => void waitlist.refetch()}
+          campaigns={campaigns.data}
+          campaignsPending={campaigns.isPending}
+          campaignsError={campaigns.error}
+          onRetryCampaigns={() => void campaigns.refetch()}
+        />
+      ) : null}
+
+      {view === 'risk' ? (
+        <RiskSection
+          fraud={fraud.data}
+          fraudPending={fraud.isPending}
+          fraudError={fraud.error}
+          onRetryFraud={() => void fraud.refetch()}
+          resale={resale.data}
+          resalePending={resale.isPending}
+          resaleError={resale.error}
+          onRetryResale={() => void resale.refetch()}
+        />
+      ) : null}
+
+      {view === 'settlements' ? (
+        <SettlementsSection
+          data={settlements.data}
+          isPending={settlements.isPending}
+          error={settlements.error}
+          onRetry={() => void settlements.refetch()}
+        />
+      ) : null}
+
+      {view === 'overview' || view === 'risk' ? (
+        <div className={styles.grid}>
+          <div className={styles.span6}>
+            <InsightsPanel insights={insights} />
+          </div>
+          <div className={styles.span6}>
+            <AlertsPanel
+              alerts={alerts.data?.alerts}
+              counts={alerts.data?.countsBySeverity}
+              isPending={alerts.isPending}
+              error={alerts.error}
+              onRetry={() => void alerts.refetch()}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

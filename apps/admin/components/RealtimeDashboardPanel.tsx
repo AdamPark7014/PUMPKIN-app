@@ -1,128 +1,152 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { fetchMe } from '@/lib/api';
+import { useMemo } from 'react';
+import { Badge, Button, EmptyState, Skeleton, StatusDot } from '@boletera/ui';
+import { useRealtimeDashboard } from '@/lib/queries';
+import { useRealtimeDashboardUpdates, type RealtimeStatus } from '@/lib/use-realtime';
+import { useSession } from '@/lib/use-session';
 import {
-  getRealtimeDashboard,
-  realtimeDashboardStreamUrl,
-  type RealtimeDashboard,
-} from '@/lib/platform-api';
-import platform from '../app/(platform)/_styles/platform.module.scss';
+  channelLabel,
+  errorMessage,
+  formatCount,
+  formatMxn,
+  formatPercentPoints,
+} from '../app/(platform)/dashboard/format';
+import styles from '../app/(platform)/dashboard/dashboard.module.scss';
+
+function statusPresentation(status: RealtimeStatus): {
+  text: string;
+  tone: 'success' | 'warning' | 'danger' | 'neutral';
+  pulse: boolean;
+} {
+  switch (status) {
+    case 'connected':
+      return { text: 'En vivo · SSE', tone: 'success', pulse: true };
+    case 'connecting':
+      return { text: 'Conectando…', tone: 'warning', pulse: true };
+    case 'reconnecting':
+      return { text: 'Reconectando…', tone: 'warning', pulse: true };
+    case 'error':
+      return { text: 'Modo sondeo', tone: 'danger', pulse: false };
+    default:
+      return { text: 'En espera', tone: 'neutral', pulse: false };
+  }
+}
 
 export function RealtimeDashboardPanel({ eventId }: { eventId?: string }) {
-  const [data, setData] = useState<RealtimeDashboard | null>(null);
+  const { organizationId } = useSession();
+  const query = useRealtimeDashboard(organizationId, eventId);
+  const stream = useRealtimeDashboardUpdates(eventId);
+  const data = query.data;
+  const status = statusPresentation(stream.status);
 
-  useEffect(() => {
-    const token = localStorage.getItem('boletera_token');
-    if (!token) return;
+  const channels = useMemo(() => {
+    const rows = data?.channels ?? [];
+    return [...rows].sort((a, b) => Number(b.revenue) - Number(a.revenue));
+  }, [data?.channels]);
 
-    let cancelled = false;
-    let es: EventSource | null = null;
-    let pollId: ReturnType<typeof setInterval> | null = null;
+  if (query.isPending && !data) {
+    return (
+      <div className={styles.rtWrap} aria-busy="true" role="status">
+        <div className={styles.rtGrid}>
+          {[0, 1, 2, 3].map((index) => (
+            <Skeleton key={index} height={88} radius={12} delay={index * 70} />
+          ))}
+        </div>
+        <Skeleton height={120} radius={12} delay={280} />
+        <span className={styles.srOnly}>Cargando métricas en vivo…</span>
+      </div>
+    );
+  }
 
-    const apply = (payload: RealtimeDashboard) => {
-      if (!cancelled) setData(payload);
-    };
-
-    const startPolling = (org: string) => {
-      const load = () => {
-        getRealtimeDashboard(token, org, eventId).then(apply).catch(() => {});
-      };
-      load();
-      pollId = setInterval(load, 10_000);
-    };
-
-    const connect = async () => {
-      let org = localStorage.getItem('boletera_org');
-      if (!org) {
-        try {
-          const me = await fetchMe(token);
-          if (me.organizationId) {
-            localStorage.setItem('boletera_org', me.organizationId);
-            org = me.organizationId;
-          }
-        } catch {
-          return;
+  if (query.error && !data) {
+    return (
+      <EmptyState
+        size="sm"
+        tone="danger"
+        illustration="error"
+        title="No se pudo cargar el pulso en vivo"
+        description={errorMessage(
+          query.error,
+          'Revisa la sesión o reintenta en unos segundos.',
+        )}
+        action={
+          <Button type="button" variant="outline" size="sm" onClick={() => void query.refetch()}>
+            Reintentar
+          </Button>
         }
-      }
-      if (!org || cancelled) return;
+      />
+    );
+  }
 
-      const url = realtimeDashboardStreamUrl(org, eventId);
-      if (typeof EventSource !== 'undefined') {
-        es = new EventSource(url);
-        es.onmessage = (ev) => {
-          try {
-            apply(JSON.parse(ev.data) as RealtimeDashboard);
-          } catch {
-            /* ignore malformed */
-          }
-        };
-        es.onerror = () => {
-          es?.close();
-          es = null;
-          if (!cancelled && !pollId) startPolling(org!);
-        };
-      } else {
-        startPolling(org);
-      }
-    };
+  if (!data) {
+    return (
+      <div className={styles.rtEmpty} role="status">
+        Sin datos en tiempo real todavía.
+      </div>
+    );
+  }
 
-    void connect();
-
-    return () => {
-      cancelled = true;
-      es?.close();
-      if (pollId) clearInterval(pollId);
-    };
-  }, [eventId]);
-
-  if (!data) return <p style={{ color: '#737373' }}>Cargando métricas en vivo…</p>;
+  const { metrics } = data;
 
   return (
-    <div>
-      <div className={platform.cardGrid}>
-        <article className={platform.statCard}>
+    <div className={styles.rtWrap}>
+      <div className={styles.rtStatusRow}>
+        <StatusDot tone={status.tone} size="sm" pulse={status.pulse} label={status.text} />
+        {stream.error ? (
+          <Badge tone="warning" size="sm" variant="soft">
+            SSE intermitente · sondeo activo
+          </Badge>
+        ) : null}
+      </div>
+
+      <div className={styles.rtGrid}>
+        <article className={styles.rtCard}>
           <span>Hoy</span>
-          <strong>${data.metrics.todayRevenue.toLocaleString()}</strong>
-          <small>{data.metrics.todayOrders} órdenes</small>
+          <strong>{formatMxn(metrics.todayRevenue)}</strong>
+          <small>{formatCount(metrics.todayOrders)} órdenes</small>
         </article>
-        <article className={platform.statCard}>
+        <article className={styles.rtCard}>
           <span>Semana</span>
-          <strong>${data.metrics.weekRevenue.toLocaleString()}</strong>
-          <small>{data.metrics.weekOrders} órdenes</small>
+          <strong>{formatMxn(metrics.weekRevenue)}</strong>
+          <small>{formatCount(metrics.weekOrders)} órdenes</small>
         </article>
-        <article className={platform.statCard}>
+        <article className={styles.rtCard}>
           <span>Ticket promedio</span>
-          <strong>${data.metrics.avgOrderValue.toFixed(0)}</strong>
+          <strong>{formatMxn(metrics.avgOrderValue)}</strong>
+          <small>Valor medio por orden</small>
         </article>
-        <article className={platform.statCard}>
+        <article className={styles.rtCard}>
           <span>Ocupación</span>
-          <strong>{data.metrics.occupancy}%</strong>
+          <strong>{formatPercentPoints(metrics.occupancy)}</strong>
           <small>
-            {data.metrics.soldTickets}/{data.metrics.totalTickets} boletos
+            {formatCount(metrics.soldTickets)} / {formatCount(metrics.totalTickets)} boletos
           </small>
         </article>
       </div>
 
-      {data.channels.length > 0 && (
-        <table className={platform.table} style={{ marginTop: '1rem' }}>
+      {channels.length > 0 ? (
+        <table className={styles.rtChannels}>
+          <caption className={styles.srOnly}>Ingresos por canal (7 días)</caption>
           <thead>
             <tr>
-              <th>Canal (7d)</th>
-              <th>Órdenes</th>
-              <th>Ingresos</th>
+              <th scope="col">Canal (7d)</th>
+              <th scope="col">Órdenes</th>
+              <th scope="col">Ingresos</th>
             </tr>
           </thead>
           <tbody>
-            {data.channels.map((c) => (
-              <tr key={c.channel}>
-                <td>{c.channel}</td>
-                <td>{c.orders}</td>
-                <td>${Number(c.revenue).toLocaleString()}</td>
+            {channels.map((channel) => (
+              <tr key={channel.channel}>
+                <td>{channelLabel(channel.channel)}</td>
+                <td>{formatCount(channel.orders)}</td>
+                <td>{formatMxn(Number(channel.revenue))}</td>
               </tr>
             ))}
           </tbody>
         </table>
+      ) : (
+        <p className={styles.rtEmpty}>Sin desglose de canales en la ventana de 7 días.</p>
       )}
     </div>
   );

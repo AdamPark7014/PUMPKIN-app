@@ -1,119 +1,149 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { ResaleService } from './resale.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Permissions } from '../auth/permissions.decorator';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import {
+  CreateResaleListingDto,
+  ListResaleQueryDto,
+  MakeResaleOfferDto,
+  ResaleEventParamDto,
+  ResaleListingParamDto,
+  ResaleOfferParamDto,
+  ResaleTicketParamDto,
+} from './resale.dto';
+import { ResaleService } from './resale.service';
 
 @ApiTags('Resale')
 @Controller('resale')
 export class ResaleController {
-  constructor(private resaleService: ResaleService) {}
-
-  // ==================== CREATE LISTING ====================
+  constructor(private readonly resaleService: ResaleService) {}
 
   @Post('listings')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Permissions('order:write')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create resale listing' })
-  async createListing(
-    @Body()
-    dto: {
-      ticketId?: string;
-      ticketCode?: string;
-      askingPrice: number;
-      currency?: string;
-      sellerName?: string;
-    },
-    @Request() req: { user: { sub: string; email?: string } },
+  @ApiOperation({ summary: 'Crear anuncio de reventa' })
+  createListing(
+    @Body() dto: CreateResaleListingDto,
+    @Req() req: { user: AuthenticatedUser },
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return await this.resaleService.createListing({
+    return this.resaleService.createListing({
       ...dto,
       sellerId: req.user.sub,
-      sellerName: dto.sellerName ?? req.user.email ?? 'Seller',
+      sellerEmail: req.user.email,
+      sellerName: dto.sellerName ?? req.user.email,
+      idempotencyKey,
     });
   }
-
-  // ==================== MAKE OFFER ====================
 
   @Post('listings/:listingId/offers')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Permissions('order:write')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Make offer on resale listing' })
-  async makeOffer(
-    @Param('listingId') listingId: string,
-    @Body() dto: { offerPrice: number },
-    @Request() req: { user: { sub: string; email?: string } },
+  @ApiOperation({ summary: 'Hacer oferta sobre un anuncio de reventa' })
+  makeOffer(
+    @Param() params: ResaleListingParamDto,
+    @Body() dto: MakeResaleOfferDto,
+    @Req() req: { user: AuthenticatedUser },
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return await this.resaleService.makeOffer({
-      listingId,
+    return this.resaleService.makeOffer({
+      listingId: params.listingId,
       offerPrice: dto.offerPrice,
       buyerId: req.user.sub,
-      buyerEmail: req.user.email ?? 'buyer@resale.local',
+      buyerEmail: req.user.email,
+      idempotencyKey,
     });
   }
-
-  // ==================== ACCEPT OFFER ====================
 
   @Post('offers/:offerId/accept')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Permissions('order:write')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Accept resale offer' })
-  async acceptOffer(@Param('offerId') offerId: string) {
-    return await this.resaleService.acceptOffer(offerId);
+  @ApiOperation({ summary: 'Aceptar oferta de reventa' })
+  acceptOffer(
+    @Param() params: ResaleOfferParamDto,
+    @Req() req: { user: AuthenticatedUser },
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.resaleService.acceptOffer(
+      params.offerId,
+      { userId: req.user.sub, role: req.user.role },
+      idempotencyKey,
+    );
   }
-
-  // ==================== REJECT OFFER ====================
 
   @Post('offers/:offerId/reject')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Permissions('order:write')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Reject resale offer' })
-  async rejectOffer(@Param('offerId') offerId: string) {
-    return await this.resaleService.rejectOffer(offerId);
-  }
-
-  // ==================== CANCEL LISTING ====================
-
-  @Post('listings/:listingId/cancel')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Cancel resale listing' })
-  async cancelListing(@Param('listingId') listingId: string) {
-    return await this.resaleService.cancelListing(listingId);
-  }
-
-  // ==================== LIST ACTIVE LISTINGS ====================
-
-  @Get('listings')
-  @ApiOperation({ summary: 'List active resale listings' })
-  async listListings(
-    @Query('eventId') eventId?: string,
-    @Query('offerId') offerId?: string,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+  @ApiOperation({ summary: 'Rechazar oferta de reventa' })
+  rejectOffer(
+    @Param() params: ResaleOfferParamDto,
+    @Req() req: { user: AuthenticatedUser },
   ) {
-    return await this.resaleService.listActiveListings({
-      eventId,
-      offerId,
-      limit,
-      offset,
+    return this.resaleService.rejectOffer(params.offerId, {
+      userId: req.user.sub,
+      role: req.user.role,
     });
   }
 
-  // ==================== MARKETPLACE STATS ====================
+  @Post('listings/:listingId/cancel')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Permissions('order:write')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancelar anuncio de reventa' })
+  cancelListing(
+    @Param() params: ResaleListingParamDto,
+    @Req() req: { user: AuthenticatedUser },
+  ) {
+    return this.resaleService.cancelListing(params.listingId, {
+      userId: req.user.sub,
+      role: req.user.role,
+    });
+  }
+
+  @Get('listings')
+  @ApiOperation({ summary: 'Listar anuncios activos de reventa' })
+  listListings(@Query() query: ListResaleQueryDto) {
+    return this.resaleService.listActiveListings({
+      eventId: query.eventId,
+      offerId: query.offerId,
+      limit: query.limit,
+      offset: query.offset,
+    });
+  }
 
   @Get('events/:eventId/stats')
-  @ApiOperation({ summary: 'Get resale marketplace stats' })
-  async getMarketplaceStats(@Param('eventId') eventId: string) {
-    return await this.resaleService.getMarketplaceStats(eventId);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER', 'VENUE_MANAGER')
+  @Permissions('event:read')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Estadísticas del marketplace de reventa' })
+  getMarketplaceStats(@Param() params: ResaleEventParamDto) {
+    return this.resaleService.getMarketplaceStats(params.eventId);
   }
-
-  // ==================== ANTI-SCALPING CHECK ====================
 
   @Get('tickets/:ticketId/anti-scalping-check')
-  @ApiOperation({ summary: 'Check anti-scalping restrictions' })
-  async performAntiScalpingCheck(@Param('ticketId') ticketId: string) {
-    return await this.resaleService.performAntiScalpingCheck(ticketId);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Permissions('order:read')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verificar restricciones anti-especulación' })
+  performAntiScalpingCheck(@Param() params: ResaleTicketParamDto) {
+    return this.resaleService.performAntiScalpingCheck(params.ticketId);
   }
 }
-
-

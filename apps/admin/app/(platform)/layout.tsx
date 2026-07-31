@@ -2,370 +2,653 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { listVenues } from '@/lib/platform-api';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import { Skeleton, Tooltip } from '@boletera/ui';
+import {
+  LogoMark,
+  ShellIcon,
+  ThemeProvider,
+  type IconName,
+} from '@/components/shell';
+import {
+  ShellCommandPalette,
+  type CommandPaletteMode,
+} from '@/components/shell/ShellCommandPalette';
+import { ShellTopbar } from '@/components/shell/ShellTopbar';
+import { ShellUserMenu } from '@/components/shell/ShellUserMenu';
+import { useShellPrefs, type ShellPrefs } from '@/components/shell/use-shell-prefs';
+import { usePrefetchNavigation } from '@/lib/prefetch';
+import { useVenues } from '@/lib/queries';
+import { useSession } from '@/lib/use-session';
 import styles from './shell.module.scss';
 
-type NavItem = {
+/* -------------------------------------------------------------------------- */
+/* Nav catalog                                                                */
+/* -------------------------------------------------------------------------- */
+
+type NavMatch = 'exact' | 'prefix' | 'events' | 'reports';
+
+type NavItemDef = {
+  id: string;
   href: string;
   label: string;
-  icon: React.ReactNode;
-  badge?: string;
+  icon: IconName;
+  match?: NavMatch;
 };
 
-type NavGroup = {
+type NavGroupDef = {
+  id: string;
   label: string;
-  items: NavItem[];
+  items: readonly NavItemDef[];
+  showVenues?: boolean;
+  defaultCollapsed?: boolean;
 };
 
-const Icon = ({ d }: { d: string }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d={d} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const navGroups: NavGroup[] = [
+const NAV_GROUPS: readonly NavGroupDef[] = [
   {
+    id: 'operation',
     label: 'Operación',
     items: [
-      {
-        href: '/dashboard',
-        label: 'Inicio',
-        icon: <Icon d="M3 12 12 3l9 9M5 10v10h14V10" />,
-      },
-      {
-        href: '/events',
-        label: 'Eventos',
-        icon: <Icon d="M4 7h16v13H4zM4 7l2-3h12l2 3M9 12h6" />,
-      },
-      {
-        href: '/calendar',
-        label: 'Calendario',
-        icon: <Icon d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" />,
-      },
-      {
-        href: '/orders',
-        label: 'Órdenes',
-        icon: <Icon d="M6 4h12l2 6-7 10-7-10z M3 10h18" />,
-      },
+      { id: 'dashboard', href: '/dashboard', label: 'Inicio', icon: 'home', match: 'exact' },
+      { id: 'events', href: '/events', label: 'Eventos', icon: 'events', match: 'events' },
+      { id: 'calendar', href: '/calendar', label: 'Calendario', icon: 'calendar' },
+      { id: 'series', href: '/events/series', label: 'Series', icon: 'series' },
+      { id: 'orders', href: '/orders', label: 'Órdenes', icon: 'orders' },
+      { id: 'waitlist', href: '/waitlist', label: 'Lista de espera', icon: 'waitlist' },
     ],
   },
   {
+    id: 'venues',
     label: 'Venues y mapas',
+    showVenues: true,
     items: [
-      {
-        href: '/maps',
-        label: 'Creador de mapas',
-        icon: <Icon d="M12 21s-7-7-7-12a7 7 0 0 1 14 0c0 5-7 12-7 12z M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />,
-      },
+      { id: 'venues-list', href: '/venues', label: 'Venues', icon: 'building', match: 'exact' },
+      { id: 'maps', href: '/maps', label: 'Creador de mapas', icon: 'mapPin' },
     ],
   },
   {
-    label: 'Ventas',
+    id: 'revenue',
+    label: 'Revenue',
     items: [
-      {
-        href: '/channels',
-        label: 'Canales',
-        icon: <Icon d="M4 12h4l3-7 4 14 3-7h2" />,
-      },
-      {
-        href: '/campaigns',
-        label: 'Campañas',
-        icon: <Icon d="M3 11l18-7-7 18-2-7-9-4z" />,
-      },
-      {
-        href: '/resale',
-        label: 'Reventa',
-        icon: <Icon d="M7 7h13l-1.5 9H7zM7 7L6 4H3 M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM18 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />,
-      },
+      { id: 'channels', href: '/channels', label: 'Canales', icon: 'channels' },
+      { id: 'campaigns', href: '/campaigns', label: 'Campañas', icon: 'campaigns' },
+      { id: 'pricing', href: '/pricing', label: 'Pricing', icon: 'payments' },
+      { id: 'crm', href: '/crm', label: 'CRM', icon: 'partners' },
+      { id: 'resale', href: '/resale', label: 'Reventa', icon: 'resale' },
+      { id: 'memberships', href: '/memberships', label: 'Membresías', icon: 'season' },
+      { id: 'sponsorships', href: '/sponsorships', label: 'Patrocinios', icon: 'campaigns' },
+      { id: 'season', href: '/season', label: 'Abonos', icon: 'season' },
     ],
   },
   {
-    label: 'Reportes',
+    id: 'inventory',
+    label: 'Inventario y reservas',
     items: [
-      {
-        href: '/analytics',
-        label: 'Analítica',
-        icon: <Icon d="M3 21V3 M3 21h18 M7 17v-5 M11 17v-9 M15 17v-3 M19 17v-7" />,
-      },
-      {
-        href: '/reports',
-        label: 'Reportes',
-        icon: <Icon d="M6 3h9l5 5v13H6zM14 3v6h6" />,
-      },
-      {
-        href: '/reports/egress',
-        label: 'Egress',
-        icon: <Icon d="M4 12h10 M14 12l-3-3 M14 12l-3 3 M18 5v14" />,
-      },
-      {
-        href: '/payouts',
-        label: 'Liquidaciones',
-        icon: <Icon d="M2 8h20v10H2z M6 12h2 M14 12h4" />,
-      },
-      {
-        href: '/fraud',
-        label: 'Antifraude',
-        icon: <Icon d="M12 3l8 4v5c0 5-4 8-8 9-4-1-8-4-8-9V7l8-4z M9 12l2 2 4-4" />,
-      },
+      { id: 'inventory', href: '/inventory', label: 'Inventario', icon: 'orders' },
+      { id: 'reservations', href: '/reservations', label: 'Reservas', icon: 'calendar' },
     ],
   },
   {
-    label: 'Herramientas',
+    id: 'access',
+    label: 'Accesos y staff',
     items: [
-      {
-        href: '/scanner',
-        label: 'Escáner',
-        icon: <Icon d="M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M3 12h18" />,
-      },
-      {
-        href: '/settings/branding',
-        label: 'Marca',
-        icon: <Icon d="M12 3a9 9 0 1 0 9 9c0-1-3 0-5-2s-1-5-2-6-1-1-2-1z M7 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M16 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M16 16a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M10 17a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />,
-      },
-      {
-        href: '/settings/payments',
-        label: 'Pagos Banorte',
-        icon: <Icon d="M2 7h20v10H2z M6 12h4 M14 12h4" />,
-      },
+      { id: 'scanner', href: '/scanner', label: 'Escáner', icon: 'scanner' },
+      { id: 'access-control', href: '/access-control', label: 'Control de acceso', icon: 'fraud' },
+      { id: 'staff', href: '/staff', label: 'Staff', icon: 'team' },
     ],
   },
   {
-    label: 'Organización',
+    id: 'finance',
+    label: 'Finanzas',
     items: [
-      {
-        href: '/platform',
-        label: 'Capacidades',
-        icon: <Icon d="M4 6h16v12H4z M8 10h8 M8 14h5 M12 2v4 M12 18v4" />,
-      },
-      {
-        href: '/waitlist',
-        label: 'Lista de espera',
-        icon: <Icon d="M4 6h16v12H4z M8 10h8 M8 14h5 M12 2v4" />,
-      },
-      {
-        href: '/partners',
-        label: 'Partners',
-        icon: <Icon d="M12 3l8 4v5c0 5-4 8-8 9-4-1-8-4-8-9V7l8-4z M9 12h6 M12 9v6" />,
-      },
-      {
-        href: '/billing/cfdi',
-        label: 'Facturación',
-        icon: <Icon d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M9 15h6 M9 11h6" />,
-      },
-      {
-        href: '/season',
-        label: 'Abonos',
-        icon: <Icon d="M4 4h16v4H4z M4 10h10v10H4z M16 10h4v10h-4z" />,
-      },
-      {
-        href: '/settings/organization',
-        label: 'Equipo',
-        icon: <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" />,
-      },
-      {
-        href: '/audit',
-        label: 'Auditoría',
-        icon: <Icon d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" />,
-      },
+      { id: 'payouts', href: '/payouts', label: 'Liquidaciones', icon: 'payouts' },
+      { id: 'billing', href: '/billing/cfdi', label: 'Facturación', icon: 'billing' },
+    ],
+  },
+  {
+    id: 'intelligence',
+    label: 'Inteligencia',
+    items: [
+      { id: 'analytics', href: '/analytics', label: 'Analítica', icon: 'analytics' },
+      { id: 'ai', href: '/ai', label: 'IA', icon: 'analytics' },
+      { id: 'automations', href: '/automations', label: 'Automatizaciones', icon: 'series' },
+      { id: 'reports', href: '/reports', label: 'Reportes', icon: 'reports', match: 'reports' },
+      { id: 'fraud', href: '/fraud', label: 'Antifraude', icon: 'fraud' },
+      { id: 'egress', href: '/reports/egress', label: 'Egress', icon: 'egress' },
+    ],
+  },
+  {
+    id: 'platform',
+    label: 'Plataforma',
+    defaultCollapsed: true,
+    items: [
+      { id: 'platform-caps', href: '/platform', label: 'Capacidades', icon: 'platform' },
+      { id: 'partners', href: '/partners', label: 'Partners', icon: 'partners' },
+      { id: 'integrations', href: '/integrations', label: 'Integraciones', icon: 'platform' },
+      { id: 'api-management', href: '/api-management', label: 'API', icon: 'external' },
+      { id: 'audit', href: '/audit', label: 'Auditoría', icon: 'audit' },
+      { id: 'team', href: '/settings/organization', label: 'Equipo', icon: 'team' },
+      { id: 'branding', href: '/settings/branding', label: 'Marca', icon: 'branding' },
+      { id: 'payments', href: '/settings/payments', label: 'Pagos Banorte', icon: 'payments' },
     ],
   },
 ];
 
-export default function PlatformLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [userEmail, setUserEmail] = useState<string>('');
-  const [venues, setVenues] = useState<{ id: string; name: string }[]>([]);
+function flattenNavItems(): NavItemDef[] {
+  return NAV_GROUPS.flatMap((group) => [...group.items]);
+}
 
-  useEffect(() => {
-    const token = localStorage.getItem('boletera_token');
-    if (!token) router.replace('/login');
-    try {
-      const payload = JSON.parse(atob(token?.split('.')[1] ?? ''));
-      setUserEmail(payload?.email ?? '');
-    } catch {
-      /* ignore */
-    }
-  }, [router]);
+function isNavItemActive(pathname: string, item: NavItemDef): boolean {
+  const match = item.match ?? 'prefix';
+  if (match === 'exact') return pathname === item.href;
+  if (match === 'events') {
+    if (pathname === '/events') return true;
+    if (!pathname.startsWith('/events/')) return false;
+    return !pathname.startsWith('/events/series');
+  }
+  if (match === 'reports') {
+    if (pathname === '/reports') return true;
+    if (!pathname.startsWith('/reports/')) return false;
+    return !pathname.startsWith('/reports/egress');
+  }
+  if (pathname === item.href) return true;
+  return pathname.startsWith(`${item.href}/`);
+}
 
-  useEffect(() => {
-    const token = localStorage.getItem('boletera_token');
-    if (!token) return;
-    listVenues(token)
-      .then(setVenues)
-      .catch(() => {
-        // 401 redirects in adminApi; other failures just hide venue shortcuts
-        setVenues([]);
-      });
-  }, []);
+/* -------------------------------------------------------------------------- */
+/* Sidebar                                                                    */
+/* -------------------------------------------------------------------------- */
 
-  const breadcrumb = pathname.split('/').filter(Boolean);
+type LinkPropsFn = (href: string) => {
+  onMouseEnter: () => void;
+  onFocus: () => void;
+};
+
+function NavLink({
+  item,
+  pathname,
+  compact,
+  favorite,
+  onToggleFavorite,
+  onNavigate,
+  linkProps,
+}: {
+  item: NavItemDef;
+  pathname: string;
+  compact: boolean;
+  favorite: boolean;
+  onToggleFavorite: (href: string) => void;
+  onNavigate: () => void;
+  linkProps: LinkPropsFn;
+}) {
+  const active = isNavItemActive(pathname, item);
+  const className = active ? styles.active : styles.navItem;
+
+  const link = (
+    <Link
+      href={item.href}
+      className={className}
+      aria-current={active ? 'page' : undefined}
+      onClick={onNavigate}
+      title={compact ? item.label : undefined}
+      {...linkProps(item.href)}
+    >
+      <span className={styles.navIcon}>
+        <ShellIcon name={item.icon} size={18} />
+      </span>
+      {!compact ? <span className={styles.navText}>{item.label}</span> : null}
+    </Link>
+  );
 
   return (
-    <div className={styles.shell}>
-      <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ''}`}>
-        <div className={styles.sidebarTop}>
-          <div className={styles.logoBlock}>
-            <div className={styles.logoMark}>
-              <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                <rect width="32" height="32" rx="9" fill="#fafafa" />
-                <path d="M9 11h14M9 16h14M9 21h9" stroke="#0a0a0a" strokeWidth="2.4" strokeLinecap="round" />
-                <circle cx="22" cy="21" r="2.5" fill="#0a0a0a" />
-              </svg>
-            </div>
+    <div className={styles.navItemRow}>
+      {compact ? (
+        <Tooltip content={item.label} placement="right">
+          {link}
+        </Tooltip>
+      ) : (
+        link
+      )}
+      {!compact ? (
+        <button
+          type="button"
+          className={`${styles.favBtn} ${favorite ? styles.favBtnActive : ''}`}
+          aria-label={
+            favorite
+              ? `Quitar ${item.label} de favoritos`
+              : `Añadir ${item.label} a favoritos`
+          }
+          aria-pressed={favorite}
+          onClick={() => onToggleFavorite(item.href)}
+        >
+          <ShellIcon name={favorite ? 'starFilled' : 'star'} size={14} />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function AdminSidebar({
+  pathname,
+  mobileOpen,
+  onCloseMobile,
+  prefs,
+  linkProps,
+  onOpenCommand,
+  onOpenShortcuts,
+}: {
+  pathname: string;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
+  prefs: ShellPrefs;
+  linkProps: LinkPropsFn;
+  onOpenCommand: () => void;
+  onOpenShortcuts: () => void;
+}) {
+  const { data: venues = [] } = useVenues();
+  const [localCollapsed, setLocalCollapsed] = useState<ReadonlySet<string>>(() => {
+    return new Set(
+      NAV_GROUPS.filter((g) => g.defaultCollapsed).map((g) => g.id),
+    );
+  });
+
+  const itemsByHref = useMemo(() => {
+    const map = new Map<string, NavItemDef>();
+    for (const item of flattenNavItems()) map.set(item.href, item);
+    return map;
+  }, []);
+
+  const favoriteItems = useMemo(() => {
+    return prefs.favorites
+      .map((href) => itemsByHref.get(href))
+      .filter((item): item is NavItemDef => Boolean(item));
+  }, [itemsByHref, prefs.favorites]);
+
+  const isGroupClosed = useCallback(
+    (groupId: string) => localCollapsed.has(groupId),
+    [localCollapsed],
+  );
+
+  const toggleGroup = useCallback((groupId: string) => {
+    setLocalCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
+
+  const sidebarClass = [
+    styles.sidebar,
+    prefs.compact ? styles.sidebarCompact : '',
+    mobileOpen ? styles.sidebarOpen : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <aside
+      className={sidebarClass}
+      aria-label="Navegación principal"
+      data-compact={prefs.compact ? 'true' : 'false'}
+    >
+      <div className={styles.sidebarTop}>
+        <Link
+          href="/dashboard"
+          className={styles.logoBlock}
+          onClick={onCloseMobile}
+          {...linkProps('/dashboard')}
+        >
+          <div className={styles.logoMark}>
+            <LogoMark />
+          </div>
+          {!prefs.compact ? (
             <div>
-              <p className={styles.logoText}>BOLETERA</p>
+              <p className={styles.logoText}>TicketOS</p>
               <p className={styles.logoSub}>Administración</p>
             </div>
-          </div>
+          ) : null}
+        </Link>
+        <div className={styles.sidebarTopActions}>
+          <Tooltip
+            content={prefs.compact ? 'Expandir barra' : 'Modo compacto'}
+            placement="bottom"
+          >
+            <button
+              type="button"
+              className={styles.iconBtnGhost}
+              aria-label={
+                prefs.compact ? 'Expandir barra lateral' : 'Compactar barra lateral'
+              }
+              aria-pressed={prefs.compact}
+              onClick={prefs.toggleCompact}
+            >
+              <ShellIcon
+                name={prefs.compact ? 'panelLeft' : 'panelLeftClose'}
+                size={16}
+              />
+            </button>
+          </Tooltip>
           <button
             type="button"
             className={styles.closeBtn}
-            onClick={() => setOpen(false)}
+            onClick={onCloseMobile}
             aria-label="Cerrar menú"
           >
-            ✕
+            <ShellIcon name="close" size={16} />
           </button>
         </div>
-
-        <nav className={styles.nav}>
-          {navGroups.map((group) => (
-            <div key={group.label} className={styles.navGroup}>
-              <p className={styles.navLabel}>{group.label}</p>
-              {group.items.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={pathname === item.href ? styles.active : styles.navItem}
-                  onClick={() => setOpen(false)}
-                >
-                  <span className={styles.navIcon}>{item.icon}</span>
-                  <span className={styles.navText}>{item.label}</span>
-                  {item.badge && <span className={styles.navBadge}>{item.badge}</span>}
-                </Link>
-              ))}
-
-              {group.label === 'Venues y mapas' &&
-                venues.map((venue) => (
-                  <div key={venue.id} className={styles.navSubRow}>
-                    <Link
-                      href={`/venues/${venue.id}/3d?studio=1`}
-                      className={
-                        pathname.startsWith(`/venues/${venue.id}/`)
-                          ? styles.navSubActive
-                          : styles.navSubItem
-                      }
-                      onClick={() => setOpen(false)}
-                      title={`Estudio 3D — ${venue.name}`}
-                    >
-                      {venue.name}
-                    </Link>
-                    <Link
-                      href={`/venues/${venue.id}/3d?studio=1`}
-                      className={
-                        pathname === `/venues/${venue.id}/3d` ? styles.navSubTagActive : styles.navSubTag
-                      }
-                      onClick={() => setOpen(false)}
-                      title={`Estudio 3D — ${venue.name}`}
-                    >
-                      3D
-                    </Link>
-                    <Link
-                      href={`/venues/${venue.id}/map`}
-                      className={
-                        pathname === `/venues/${venue.id}/map`
-                          ? styles.navSubTagActive
-                          : styles.navSubTag
-                      }
-                      onClick={() => setOpen(false)}
-                      title={`Vista planta — ${venue.name}`}
-                    >
-                      Planta
-                    </Link>
-                  </div>
-                ))}
-            </div>
-          ))}
-        </nav>
-
-        <div className={styles.sidebarFooter}>
-          <div className={styles.profile}>
-            <div className={styles.avatar}>{userEmail ? userEmail.charAt(0).toUpperCase() : 'A'}</div>
-            <div className={styles.profileMeta}>
-              <strong>{userEmail || 'Admin'}</strong>
-              <span>Organizador</span>
-            </div>
-            <button
-              type="button"
-              className={styles.logoutBtn}
-              aria-label="Cerrar sesión"
-              onClick={() => {
-                localStorage.removeItem('boletera_token');
-                localStorage.removeItem('boletera_org');
-                router.push('/login');
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      <div className={styles.content}>
-        {/* Topbar */}
-        <header className={styles.topbar}>
-          <div className={styles.topLeft}>
-            <button
-              type="button"
-              className={styles.menuBtn}
-              onClick={() => setOpen(true)}
-              aria-label="Abrir menú"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
-            <div className={styles.crumbs}>
-              <Link href="/dashboard">Admin</Link>
-              {breadcrumb.map((c, i) => (
-                <span key={c + i}>
-                  <span className={styles.crumbSep}>/</span>
-                  <span className={i === breadcrumb.length - 1 ? styles.crumbCurrent : ''}>
-                    {c.replaceAll('-', ' ')}
-                  </span>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.topRight}>
-            <div className={styles.statusPill}>
-              <span className={styles.pillDot} />
-              En línea
-            </div>
-            <button type="button" className={styles.iconBtn} aria-label="Notificaciones">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M6 8a6 6 0 1 1 12 0v5l2 3H4l2-3V8z M10 19a2 2 0 1 0 4 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className={styles.iconBadge}>3</span>
-            </button>
-            <button type="button" className={styles.iconBtn} aria-label="Ayuda">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-1 .4-1 1.2-1 1.7 M12 17h.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-        </header>
-
-        <main className={styles.main}>{children}</main>
       </div>
 
-      {open && <div className={styles.overlay} onClick={() => setOpen(false)} />}
+      <button
+        type="button"
+        className={styles.searchTrigger}
+        onClick={onOpenCommand}
+        aria-label="Abrir buscador de comandos"
+      >
+        <ShellIcon name="search" size={16} />
+        {!prefs.compact ? (
+          <>
+            <span>Buscar…</span>
+            <kbd className={styles.kbd}>⌘K</kbd>
+          </>
+        ) : null}
+      </button>
+
+      <nav className={styles.nav} aria-label="Módulos">
+        {favoriteItems.length > 0 ? (
+          <div className={styles.navGroup}>
+            {!prefs.compact ? <p className={styles.navLabel}>Favoritos</p> : null}
+            {favoriteItems.map((item) => (
+              <NavLink
+                key={`fav-${item.href}`}
+                item={item}
+                pathname={pathname}
+                compact={prefs.compact}
+                favorite
+                onToggleFavorite={prefs.toggleFavorite}
+                onNavigate={onCloseMobile}
+                linkProps={linkProps}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {NAV_GROUPS.map((group) => {
+          const collapsed = isGroupClosed(group.id);
+
+          return (
+            <div key={group.id} className={styles.navGroup} data-group={group.id}>
+              {!prefs.compact ? (
+                <button
+                  type="button"
+                  className={styles.navGroupToggle}
+                  aria-expanded={!collapsed}
+                  onClick={() => toggleGroup(group.id)}
+                >
+                  <span className={styles.navLabel}>{group.label}</span>
+                  <ShellIcon
+                    name={collapsed ? 'chevronRight' : 'chevronDown'}
+                    size={14}
+                  />
+                </button>
+              ) : null}
+
+              {!collapsed || prefs.compact ? (
+                <>
+                  {group.items.map((item) => (
+                    <NavLink
+                      key={item.id}
+                      item={item}
+                      pathname={pathname}
+                      compact={prefs.compact}
+                      favorite={prefs.isFavorite(item.href)}
+                      onToggleFavorite={prefs.toggleFavorite}
+                      onNavigate={onCloseMobile}
+                      linkProps={linkProps}
+                    />
+                  ))}
+
+                  {group.showVenues
+                    ? venues.map((venue) => {
+                        const base = `/venues/${venue.id}`;
+                        const active = pathname.startsWith(`${base}/`);
+                        if (prefs.compact) {
+                          return (
+                            <Tooltip
+                              key={venue.id}
+                              content={venue.name}
+                              placement="right"
+                            >
+                              <Link
+                                href={`${base}/3d?studio=1`}
+                                className={active ? styles.active : styles.navItem}
+                                onClick={onCloseMobile}
+                                aria-label={`${venue.name} — Estudio 3D`}
+                                {...linkProps(`${base}/3d?studio=1`)}
+                              >
+                                <span className={styles.navIcon}>
+                                  <ShellIcon name="mapPin" size={18} />
+                                </span>
+                              </Link>
+                            </Tooltip>
+                          );
+                        }
+                        return (
+                          <div key={venue.id} className={styles.navSubRow}>
+                            <Link
+                              href={`${base}/3d?studio=1`}
+                              className={
+                                active ? styles.navSubActive : styles.navSubItem
+                              }
+                              onClick={onCloseMobile}
+                              title={`Estudio 3D — ${venue.name}`}
+                              {...linkProps(`${base}/3d?studio=1`)}
+                            >
+                              {venue.name}
+                            </Link>
+                            <Link
+                              href={`${base}/3d?studio=1`}
+                              className={
+                                pathname.startsWith(`${base}/3d`)
+                                  ? styles.navSubTagActive
+                                  : styles.navSubTag
+                              }
+                              onClick={onCloseMobile}
+                              title={`Estudio 3D — ${venue.name}`}
+                              {...linkProps(`${base}/3d?studio=1`)}
+                            >
+                              3D
+                            </Link>
+                            <Link
+                              href={`${base}/map`}
+                              className={
+                                pathname === `${base}/map`
+                                  ? styles.navSubTagActive
+                                  : styles.navSubTag
+                              }
+                              onClick={onCloseMobile}
+                              title={`Vista planta — ${venue.name}`}
+                              {...linkProps(`${base}/map`)}
+                            >
+                              Planta
+                            </Link>
+                          </div>
+                        );
+                      })
+                    : null}
+                </>
+              ) : null}
+            </div>
+          );
+        })}
+      </nav>
+
+      <div className={styles.sidebarFooter}>
+        <ShellUserMenu linkProps={linkProps} onOpenShortcuts={onOpenShortcuts} />
+      </div>
+    </aside>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Shell                                                                      */
+/* -------------------------------------------------------------------------- */
+
+function SkipLink() {
+  return (
+    <a href="#contenido-principal" className={styles.skipLink}>
+      Saltar al contenido
+    </a>
+  );
+}
+
+function ShellLoading() {
+  return (
+    <div className={styles.shell} aria-busy="true" aria-live="polite">
+      <div className={styles.loadingSidebar} aria-hidden="true">
+        <Skeleton shape="rect" height={40} width="80%" />
+        <Skeleton shape="rect" height={32} width="100%" delay={40} />
+        <Skeleton shape="rect" height={32} width="90%" delay={80} />
+        <Skeleton shape="rect" height={32} width="95%" delay={120} />
+      </div>
+      <div className={styles.content}>
+        <div className={styles.loadingTopbar}>
+          <Skeleton shape="text" width={180} height={16} />
+        </div>
+        <main className={styles.main}>
+          <Skeleton shape="text" width="40%" height={28} />
+          <Skeleton shape="rect" height={160} delay={60} />
+        </main>
+      </div>
     </div>
   );
+}
+
+function PlatformShellInner({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { status } = useSession();
+  const { linkProps } = usePrefetchNavigation();
+  const prefs = useShellPrefs();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandMode, setCommandMode] = useState<CommandPaletteMode>('all');
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login');
+    }
+  }, [router, status]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  const toggleCompact = prefs.toggleCompact;
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === '[' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        const target = event.target as HTMLElement | null;
+        const tag = target?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) {
+          return;
+        }
+        event.preventDefault();
+        toggleCompact();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [toggleCompact]);
+
+  const openCommand = useCallback(() => {
+    setCommandMode('all');
+    setCommandOpen(true);
+  }, []);
+
+  const openShortcuts = useCallback(() => {
+    setCommandMode('shortcuts');
+    setCommandOpen(true);
+  }, []);
+
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+  const openMobile = useCallback(() => setMobileOpen(true), []);
+
+  if (status === 'loading') {
+    return <ShellLoading />;
+  }
+
+  if (status !== 'authenticated') {
+    return null;
+  }
+
+  return (
+    <div className={styles.shell}>
+      <SkipLink />
+      <AdminSidebar
+        pathname={pathname}
+        mobileOpen={mobileOpen}
+        onCloseMobile={closeMobile}
+        prefs={prefs}
+        linkProps={linkProps}
+        onOpenCommand={openCommand}
+        onOpenShortcuts={openShortcuts}
+      />
+
+      <div className={styles.content}>
+        <ShellTopbar
+          pathname={pathname}
+          onOpenMobile={openMobile}
+          onOpenCommand={openCommand}
+          linkProps={linkProps}
+        />
+        <main id="contenido-principal" className={styles.main} tabIndex={-1}>
+          {children}
+        </main>
+      </div>
+
+      {mobileOpen ? (
+        <button
+          type="button"
+          className={styles.overlay}
+          aria-label="Cerrar menú"
+          onClick={closeMobile}
+        />
+      ) : null}
+
+      <ShellCommandPalette
+        open={commandOpen}
+        onOpenChange={(open) => {
+          setCommandOpen(open);
+          if (!open) setCommandMode('all');
+        }}
+        mode={commandMode}
+        onToggleCompact={prefs.toggleCompact}
+      />
+    </div>
+  );
+}
+
+const PlatformShell = memo(function PlatformShell({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <ThemeProvider>
+      <PlatformShellInner>{children}</PlatformShellInner>
+    </ThemeProvider>
+  );
+});
+
+export default function PlatformLayout({ children }: { children: ReactNode }) {
+  return <PlatformShell>{children}</PlatformShell>;
 }

@@ -1,116 +1,189 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { SeatMapData } from '@boletera/shared';
-import { SeatMapEditor } from '@/components/SeatMapEditor';
+import { useParams } from 'next/navigation';
 import {
-  applyLayoutTemplate,
-  suggestLayout,
-  getVenueLayout,
-  listEvents,
-  publishEvent,
-  saveVenueLayout,
-} from '@/lib/platform-api';
-import platform from '../../../_styles/platform.module.scss';
+  Button,
+  EmptyState,
+  PageHeader,
+  Skeleton,
+} from '@boletera/ui';
+import { SeatMapEditor } from '@/components/SeatMapEditor';
+import { useToast } from '@/components/Toast/ToastProvider';
+import { http } from '@/lib/http';
+import { useEvents } from '@/lib/queries/events';
+import {
+  useApplyLayoutTemplate,
+  useSaveVenueLayout,
+  useSuggestLayout,
+  useVenueLayout,
+} from '@/lib/queries/venues';
+import { getTokenStorage } from '@/lib/session';
+import { useSession } from '@/lib/use-session';
+import styles from '../../venues.module.scss';
+
+type PublishResult = {
+  totalSeats: number;
+  sections: number;
+};
 
 export default function VenueMapEditorPage() {
-  const { id: venueId } = useParams<{ id: string }>();
-  const [map, setMap] = useState<SeatMapData | null>(null);
-  const [venueName, setVenueName] = useState('');
-  const [events, setEvents] = useState<{ id: string; title: string; venueId?: string }[]>([]);
+  const { id } = useParams<{ id: string }>();
+  const venueId = String(id ?? '');
+  const toast = useToast();
+  const { can } = useSession();
+  const canWriteEvent = can('event:write');
+
+  const layoutQuery = useVenueLayout(venueId);
+  const eventsQuery = useEvents();
+  const saveLayout = useSaveVenueLayout(venueId);
+  const applyTemplate = useApplyLayoutTemplate(venueId);
+  const suggestLayout = useSuggestLayout(venueId);
+
+  const venueEvents = useMemo(
+    () => (eventsQuery.data ?? []).filter((event) => event.venueId === venueId),
+    [eventsQuery.data, venueId],
+  );
+
   const [publishEventId, setPublishEventId] = useState('');
-  const [publishMsg, setPublishMsg] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem('boletera_token');
-    if (!token || !venueId) return;
-    getVenueLayout(token, venueId).then((data) => {
-      setMap(data.layout.mapData);
-      setVenueName(data.venue?.name ?? 'Venue');
-    });
-    listEvents(token).then((list) => {
-      const filtered = list.filter((e) => (e as { venueId?: string }).venueId === venueId);
-      setEvents(filtered);
-      if (filtered[0]) setPublishEventId(filtered[0].id);
-    });
-  }, [venueId]);
+  const selectedPublishId = publishEventId || venueEvents[0]?.id || '';
+  const mapData = layoutQuery.data?.layout.mapData ?? null;
+  const venueName = layoutQuery.data?.venue.name ?? 'Venue';
 
-  if (!map) return <p>Cargando editor de mapa…</p>;
+  async function handlePublish() {
+    if (!canWriteEvent || !selectedPublishId) return;
+    setPublishing(true);
+    try {
+      const result = await http<PublishResult>(`/events/${selectedPublishId}/publish`, {
+        method: 'POST',
+      });
+      toast.success(
+        `Publicado: ${result.totalSeats.toLocaleString('es-MX')} boletos en ${result.sections.toLocaleString('es-MX')} zonas`,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo publicar');
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  if (layoutQuery.isPending) {
+    return (
+      <div className={styles.studioPage} aria-busy="true" aria-label="Cargando layout">
+        <Skeleton shape="text" width="40%" height={28} />
+        <Skeleton shape="rect" height={480} delay={60} />
+      </div>
+    );
+  }
+
+  if (layoutQuery.error || !mapData) {
+    return (
+      <div className={styles.studioPage}>
+        <PageHeader
+          eyebrow="Venues"
+          title="Layout del recinto"
+          description="No se pudo cargar el mapa activo."
+          breadcrumbs={[
+            { label: 'Venues', href: '/venues' },
+            { label: 'Layout' },
+          ]}
+        />
+        <EmptyState
+          title="Layout no disponible"
+          description={
+            layoutQuery.error instanceof Error
+              ? layoutQuery.error.message
+              : 'Este venue aún no tiene un layout activo.'
+          }
+          illustration="error"
+          tone="danger"
+          action={
+            <div className={styles.actions}>
+              <Button type="button" variant="secondary" onClick={() => void layoutQuery.refetch()}>
+                Reintentar
+              </Button>
+              <Link href="/venues" className={styles.secondaryLink}>
+                Volver al portafolio
+              </Link>
+            </div>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <header className={platform.pageHeader}>
-        <div>
-          <h1>Diseñador de mapa — {venueName}</h1>
-          <p>
-            Vista planta derivada del estudio 3D · mismas coordenadas · al guardar sincroniza eventos
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          {events.length > 0 && (
-            <>
-              <select
-                value={publishEventId}
-                onChange={(e) => setPublishEventId(e.target.value)}
-                style={{ padding: '0.5rem', borderRadius: 8, border: '1px solid #d4d4d4' }}
-              >
-                {events.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.title}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className={platform.primaryBtn}
-                onClick={async () => {
-                  const token = localStorage.getItem('boletera_token');
-                  if (!token || !publishEventId) return;
-                  setPublishMsg(null);
-                  try {
-                    const r = await publishEvent(token, publishEventId);
-                    setPublishMsg(`✓ ${r.totalSeats} boletos en ${r.sections} zonas`);
-                  } catch (e) {
-                    setPublishMsg(e instanceof Error ? e.message : 'Error');
-                  }
-                }}
-              >
-                Publicar en evento
-              </button>
-            </>
-          )}
-          <Link href={`/venues/${venueId}/3d`} className={platform.ghostBtn}>
-            Vista 3D
-          </Link>
-        </div>
-      </header>
-      {publishMsg && <p style={{ marginBottom: '1rem', fontSize: '0.875rem' }}>{publishMsg}</p>}
-
-      <SeatMapEditor
-        initial={map}
-        venueId={venueId}
-        getAuthToken={() => localStorage.getItem('boletera_token')}
-        onSave={async (mapData) => {
-          const token = localStorage.getItem('boletera_token')!;
-          await saveVenueLayout(token, venueId, mapData);
-          const refreshed = await getVenueLayout(token, venueId);
-          setMap(refreshed.layout.mapData);
-        }}
-        onApplyTemplate={async (template) => {
-          const token = localStorage.getItem('boletera_token')!;
-          const result = await applyLayoutTemplate(token, venueId, template);
-          setMap(result.layout.mapData);
-          return result.layout.mapData;
-        }}
-        onAiSuggest={async (description) => {
-          const token = localStorage.getItem('boletera_token')!;
-          const result = await suggestLayout(token, venueId, description);
-          setMap(result.layout.mapData);
-          return result.layout.mapData;
-        }}
+    <div className={styles.studioPage}>
+      <PageHeader
+        eyebrow="Layout · 2D"
+        title={venueName}
+        description="Constructor de mapa · misma geometría que la vista 3D · Ctrl/⌘+S para guardar"
+        breadcrumbs={[
+          { label: 'Venues', href: '/venues' },
+          { label: venueName, href: `/venues?venue=${venueId}` },
+          { label: 'Layout' },
+        ]}
+        actions={
+          <div className={styles.studioActions}>
+            {canWriteEvent && venueEvents.length > 0 ? (
+              <>
+                <label className={styles.selectField}>
+                  <span className={styles.srOnly}>Evento para publicar</span>
+                  <select
+                    value={selectedPublishId}
+                    onChange={(event) => setPublishEventId(event.target.value)}
+                    aria-label="Evento para publicar inventario"
+                  >
+                    {venueEvents.map((event) => (
+                      <option key={event.id} value={event.id}>
+                        {event.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!selectedPublishId || publishing}
+                  onClick={() => void handlePublish()}
+                >
+                  {publishing ? 'Publicando…' : 'Publicar en evento'}
+                </Button>
+              </>
+            ) : null}
+            <Link href={`/venues/${venueId}/3d`} className={styles.secondaryLink}>
+              Vista 3D
+            </Link>
+            <Link href="/venues" className={styles.mapLink}>
+              Portafolio
+            </Link>
+          </div>
+        }
       />
+
+      <div className={styles.studioFrame}>
+        <SeatMapEditor
+          initial={mapData}
+          venueId={venueId}
+          getAuthToken={() => getTokenStorage().getToken()}
+          onSave={async (nextMap) => {
+            await saveLayout.mutateAsync(nextMap);
+            toast.success('Layout guardado');
+          }}
+          onApplyTemplate={async (template) => {
+            const result = await applyTemplate.mutateAsync({ template });
+            toast.success('Plantilla aplicada');
+            return result.layout.mapData;
+          }}
+          onAiSuggest={async (description) => {
+            const result = await suggestLayout.mutateAsync(description);
+            return result.layout.mapData;
+          }}
+        />
+      </div>
     </div>
   );
 }

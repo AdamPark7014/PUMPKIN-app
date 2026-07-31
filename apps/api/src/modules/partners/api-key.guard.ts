@@ -1,10 +1,10 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   SetMetadata,
   UnauthorizedException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PartnersService } from './partners.service';
@@ -13,29 +13,40 @@ export const API_KEY_SCOPES_KEY = 'apiKeyScopes';
 export const RequireApiScopes = (...scopes: string[]) =>
   SetMetadata(API_KEY_SCOPES_KEY, scopes);
 
+type PartnerRequest = {
+  headers: Record<string, string | string[] | undefined>;
+  apiKey?: unknown;
+  partnerOrganization?: unknown;
+  organizationId?: string;
+};
+
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
   constructor(
-    private partners: PartnersService,
-    private reflector: Reflector,
+    private readonly partners: PartnersService,
+    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<PartnerRequest>();
+    const headerValue = req.headers['x-api-key'];
+    const authorization = req.headers.authorization;
     const header =
-      (req.headers['x-api-key'] as string | undefined) ||
-      (typeof req.headers.authorization === 'string' &&
-      req.headers.authorization.toLowerCase().startsWith('bearer blk_')
-        ? req.headers.authorization.slice(7).trim()
+      (typeof headerValue === 'string' ? headerValue : undefined) ||
+      (typeof authorization === 'string' &&
+      authorization.toLowerCase().startsWith('bearer blk_')
+        ? authorization.slice(7).trim()
         : undefined);
 
     if (!header) {
-      throw new UnauthorizedException('API key required (X-Api-Key or Bearer blk_…)');
+      throw new UnauthorizedException(
+        'Se requiere API key (X-Api-Key o Bearer blk_…)',
+      );
     }
 
     const key = await this.partners.validateApiKey(header);
     if (!key) {
-      throw new UnauthorizedException('Invalid or expired API key');
+      throw new UnauthorizedException('API key inválida o expirada');
     }
 
     const required = this.reflector.getAllAndOverride<string[]>(API_KEY_SCOPES_KEY, [
@@ -45,9 +56,11 @@ export class ApiKeyGuard implements CanActivate {
 
     if (required?.length) {
       const scopes = key.scopes ?? [];
-      const ok = required.every((s) => scopes.includes(s) || scopes.includes('*'));
+      const ok = required.every((scope) => scopes.includes(scope) || scopes.includes('*'));
       if (!ok) {
-        throw new ForbiddenException(`API key missing scopes: ${required.join(', ')}`);
+        throw new ForbiddenException(
+          `La API key no tiene los permisos: ${required.join(', ')}`,
+        );
       }
     }
 

@@ -16,6 +16,7 @@ export { NotificationModule } from './notification/notification.module';
 export { AccessModule } from './access/access.module';
 export { SeatMapping3DModule } from './seat-mapping-3d/seat-mapping-3d.module';
 export { EventManagementModule } from './event-management/event-management.module';
+export { EventSchedulingModule } from './event-scheduling/event-scheduling.module';
 export { ChannelManagementModule } from './channel-management/channel-management.module';
 export { TaquillaPosModule } from './taquilla-pos/taquilla-pos.module';
 export { LayoutManagementModule } from './layout-management/layout-management.module';

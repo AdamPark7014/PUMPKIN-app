@@ -1,37 +1,68 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/SiteHeader';
-import { EventPosterArt } from '@/components/EventPosterArt';
-import { api } from '@/lib/api';
-import type { EventHit } from '@/components/EventDiscoveryPanel';
+import { Breadcrumbs } from '@/components/storefront/Breadcrumbs';
+import { EventCard } from '@/components/storefront/EventCard';
+import { JsonLd } from '@/components/storefront/JsonLd';
+import { apiCachedSafe, REVALIDATE } from '@/lib/api';
+import { categoryLabel, count, plural } from '@/lib/format';
+import {
+  absoluteUrl,
+  canonical,
+  eventListJsonLd,
+  mapsUrl,
+  SITE_NAME,
+  venueJsonLd,
+} from '@/lib/seo';
+import type { VenueDetail } from '@/lib/storefront-types';
 import styles from '../../hub.module.scss';
 
-type VenueDetail = {
-  id: string;
-  slug: string;
-  name: string;
-  description?: string | null;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  postalCode?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  phone?: string | null;
-  website?: string | null;
-  image?: string | null;
-  totalCapacity?: number;
-  events: EventHit[];
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const venue = await apiCachedSafe<VenueDetail>(
+    `/discovery/venues/${encodeURIComponent(slug)}`,
+    REVALIDATE.facets,
+    [`discovery-venue-${slug}`],
+  );
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-MX', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  if (!venue) {
+    return { title: 'Recinto no encontrado' };
+  }
+
+  const place = [venue.city, venue.state].filter(Boolean).join(', ');
+  const title = `${venue.name} — boletos y eventos`;
+  const description =
+    venue.description?.slice(0, 155) ||
+    `Próximos eventos en ${venue.name}${place ? `, ${place}` : ''}. Compra boletos oficiales en ${SITE_NAME}.`;
+  const path = `/venues/${venue.slug}`;
+  const url = canonical(path);
+  const image = absoluteUrl(venue.image);
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      type: 'website',
+      locale: 'es_MX',
+      siteName: SITE_NAME,
+      images: image ? [{ url: image }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: image ? [image] : undefined,
+    },
+    alternates: { canonical: url },
+  };
 }
 
 export default async function VenuePage({
@@ -40,107 +71,148 @@ export default async function VenuePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  let venue: VenueDetail | null = null;
-  try {
-    venue = await api<VenueDetail>(`/discovery/venues/${slug}`);
-  } catch {
-    venue = null;
-  }
+  const venue = await apiCachedSafe<VenueDetail>(
+    `/discovery/venues/${encodeURIComponent(slug)}`,
+    REVALIDATE.facets,
+    [`discovery-venue-${slug}`],
+  );
 
-  if (!venue) {
-    return (
-      <>
-        <SiteHeader />
-        <main className={styles.page}>
-          <p className={styles.empty}>
-            Recinto no encontrado. <Link href="/venues">Ver recintos</Link>
-          </p>
-        </main>
-      </>
-    );
-  }
+  if (!venue) notFound();
 
-  const mapsUrl =
-    venue.latitude != null && venue.longitude != null
-      ? `https://www.google.com/maps/search/?api=1&query=${venue.latitude},${venue.longitude}`
-      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-          `${venue.name} ${venue.address} ${venue.city}`,
-        )}`;
+  const events = [...(venue.events ?? [])].sort(
+    (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+  );
+
+  const directions = mapsUrl({
+    name: venue.name,
+    address: venue.address,
+    city: venue.city,
+    latitude: venue.latitude,
+    longitude: venue.longitude,
+  });
+
+  const categoryKeys = [
+    ...new Set(
+      events
+        .map((e) => e.category)
+        .filter((c): c is string => typeof c === 'string' && c.length > 0),
+    ),
+  ].slice(0, 6);
+
+  const trail = [
+    { name: 'Cartelera', path: '/' },
+    { name: 'Recintos', path: '/venues' },
+    { name: venue.name },
+  ] as const;
+
+  const placeLabel = [venue.city, venue.state].filter(Boolean).join(', ');
 
   return (
     <>
       <SiteHeader />
       <main className={styles.page}>
-        <div className={styles.crumb}>
-          <Link href="/">Cartelera</Link>
-          <span>/</span>
-          <Link href="/venues">Recintos</Link>
-          <span>/</span>
-          <span>{venue.name}</span>
-        </div>
+        <Breadcrumbs trail={trail} />
+        <JsonLd
+          data={[
+            venueJsonLd(venue),
+            ...(events.length > 0
+              ? [eventListJsonLd(events, `Próximos eventos en ${venue.name}`)]
+              : []),
+          ]}
+        />
+
         <header className={styles.hero}>
           <h1>{venue.name}</h1>
           <p>
-            {venue.city}
-            {venue.state ? `, ${venue.state}` : ''}
+            {placeLabel}
+            {events.length > 0
+              ? ` · ${plural(events.length, 'próximo evento', 'próximos eventos')}`
+              : ''}
           </p>
         </header>
 
-        <section className={styles.metaBlock}>
+        <section className={styles.metaBlock} aria-label="Datos del recinto">
           <p>
             <strong>Dirección:</strong> {venue.address}
             {venue.postalCode ? ` · CP ${venue.postalCode}` : ''}
+            {placeLabel ? ` · ${placeLabel}` : ''}
           </p>
-          {venue.description && <p>{venue.description}</p>}
-          {typeof venue.totalCapacity === 'number' && (
+          {venue.description ? <p>{venue.description}</p> : null}
+          {typeof venue.totalCapacity === 'number' && venue.totalCapacity > 0 ? (
             <p>
-              <strong>Capacidad:</strong> {venue.totalCapacity.toLocaleString('es-MX')}
+              <strong>Capacidad:</strong> {count(venue.totalCapacity)} personas
             </p>
-          )}
-          {venue.phone && (
+          ) : null}
+          {venue.phone ? (
             <p>
-              <strong>Teléfono:</strong> {venue.phone}
+              <strong>Teléfono:</strong>{' '}
+              <a href={`tel:${venue.phone.replace(/\s+/g, '')}`}>{venue.phone}</a>
             </p>
-          )}
-          <p>
-            <a href={mapsUrl} target="_blank" rel="noreferrer">
+          ) : null}
+          <div className={styles.metaActions}>
+            <a href={directions} target="_blank" rel="noopener noreferrer">
               Cómo llegar
             </a>
             {venue.website ? (
-              <>
-                {' · '}
-                <a href={venue.website} target="_blank" rel="noreferrer">
-                  Sitio del recinto
-                </a>
-              </>
+              <a href={venue.website} target="_blank" rel="noopener noreferrer">
+                Sitio del recinto
+              </a>
             ) : null}
-          </p>
+            {venue.city ? (
+              <Link href={`/ciudades/${encodeURIComponent(venue.city)}`}>
+                Eventos en {venue.city}
+              </Link>
+            ) : null}
+          </div>
         </section>
 
-        <h2 style={{ fontSize: '1.1rem', marginBottom: '0.85rem' }}>Próximos eventos</h2>
-        {venue.events.length === 0 ? (
-          <p className={styles.empty}>Sin eventos programados en este recinto.</p>
-        ) : (
-          <ul className={styles.grid}>
-            {venue.events.map((e) => (
-              <li key={e.id}>
-                <Link href={`/events/${e.slug}`} className={styles.card}>
-                  <EventPosterArt event={e} size="sm" />
-                  <div>
-                    <strong>{e.title}</strong>
-                    <span>{fmtDate(e.startsAt)}</span>
-                  </div>
-                  <em>
-                    {Number(e.minPrice) > 0
-                      ? `$${Number(e.minPrice).toLocaleString('es-MX', {
-                          maximumFractionDigits: 0,
-                        })}`
-                      : '—'}
-                  </em>
+        <section className={styles.section} aria-labelledby="venue-events">
+          <h2 id="venue-events">Próximos eventos</h2>
+          {events.length === 0 ? (
+            <div className={styles.empty}>
+              <p>Sin eventos programados en este recinto.</p>
+              <div className={styles.emptyLinks}>
+                <Link href="/venues">Otros recintos</Link>
+                <Link href="/">Ver cartelera</Link>
+                {venue.city ? (
+                  <Link href={`/ciudades/${encodeURIComponent(venue.city)}`}>
+                    Eventos en {venue.city}
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <ul className={styles.grid}>
+              {events.map((event) => (
+                <li key={event.id}>
+                  <EventCard event={event} showVenue={false} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {categoryKeys.length > 0 && (
+          <section className={styles.section} aria-labelledby="venue-cats">
+            <h2 id="venue-cats">Categorías en cartelera</h2>
+            <ul className={styles.chipRow}>
+              {categoryKeys.map((key) => (
+                <li key={key}>
+                  <Link
+                    href={`/categoria/${key.toLowerCase()}`}
+                    className={styles.chip}
+                  >
+                    {categoryLabel(key)}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href="/ciudades" className={styles.chip}>
+                  Ciudades
                 </Link>
               </li>
-            ))}
-          </ul>
+            </ul>
+          </section>
         )}
       </main>
     </>

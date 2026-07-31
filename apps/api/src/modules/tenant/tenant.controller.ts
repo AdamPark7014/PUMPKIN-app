@@ -1,23 +1,26 @@
 import { Controller, Get, Headers } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { TenantService } from './tenant.service';
+import type { TenantCurrentResponse } from './tenant.types';
 
 @ApiTags('Tenant')
 @Controller('tenant')
 export class TenantController {
-  constructor(private tenant: TenantService) {}
+  constructor(private readonly tenant: TenantService) {}
 
   @Get('current')
-  async current(@Headers('host') host: string) {
-    const org = await this.tenant.resolveByHost(host || 'localhost');
-    if (!org) return { error: 'Tenant not found' };
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'Resolve the storefront tenant (public branding only) from the Host header',
+  })
+  async current(@Headers('host') host?: string): Promise<TenantCurrentResponse> {
+    const organization = await this.tenant.resolveByHost(host ?? 'localhost');
     return {
-      id: org.id,
-      name: org.name,
-      slug: org.slug,
-      theme: org.tenantTheme,
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug,
+      theme: organization.tenantTheme,
     };
   }
 }
-
-

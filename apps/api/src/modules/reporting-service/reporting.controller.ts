@@ -1,92 +1,112 @@
-import { Controller, Get, Header, Param, Query, Sse, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Header,
+  Param,
+  ParseIntPipe,
+  Query,
+  Sse,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { Permissions } from '../auth/permissions.decorator';
 import { OrgAccessGuard } from '../auth/org-access.guard';
 import { ReportingService } from './reporting.service';
+import {
+  ExportSalesQueryDto,
+  ReportingEventQueryDto,
+} from './reporting.dto';
 
 @ApiTags('Reporting & Analytics')
 @ApiBearerAuth()
 @Controller('reports')
 @UseGuards(JwtAuthGuard, RolesGuard, OrgAccessGuard)
 @Roles('PROMOTER', 'ADMIN', 'SUPER_ADMIN', 'VENUE_MANAGER')
+@Permissions('analytics:read')
 export class ReportingController {
-  constructor(private reportingService: ReportingService) {}
+  constructor(private readonly reportingService: ReportingService) {}
 
   @Get('dashboard/realtime/:organizationId')
   @ApiOperation({ summary: 'Get real-time dashboard' })
-  async getRealtimeDashboard(
+  getRealtimeDashboard(
     @Param('organizationId') orgId: string,
-    @Query('eventId') eventId?: string,
+    @Query() query: ReportingEventQueryDto,
   ) {
-    return await this.reportingService.getRealtimeDashboard(orgId, eventId);
+    return this.reportingService.getRealtimeDashboard(orgId, query.eventId);
   }
 
   @Sse('dashboard/realtime/:organizationId/stream')
   @ApiOperation({ summary: 'SSE stream for realtime dashboard (10s)' })
   streamRealtime(
     @Param('organizationId') orgId: string,
-    @Query('eventId') eventId?: string,
+    @Query() query: ReportingEventQueryDto,
   ) {
-    return this.reportingService.streamRealtimeDashboard(orgId, eventId);
+    return this.reportingService.streamRealtimeDashboard(orgId, query.eventId);
   }
 
   @Get('settlement/:organizationId/:period')
   @ApiOperation({ summary: 'Generate settlement report' })
-  async getSettlement(
+  getSettlement(
     @Param('organizationId') orgId: string,
     @Param('period') period: 'DAILY' | 'WEEKLY' | 'MONTHLY',
   ) {
-    return await this.reportingService.generateSettlementReport(orgId, period);
+    return this.reportingService.generateSettlementReport(orgId, period);
   }
 
   @Get('heatmap/:eventId')
   @ApiOperation({ summary: 'Get occupancy heatmap' })
-  async getHeatmap(@Param('eventId') eventId: string) {
-    return await this.reportingService.getOccupancyHeatmap(eventId);
+  getHeatmap(@Param('eventId') eventId: string) {
+    return this.reportingService.getOccupancyHeatmap(eventId);
   }
 
   @Get('predict/:eventId')
   @ApiOperation({ summary: 'Get occupancy prediction' })
-  async predictOccupancy(@Param('eventId') eventId: string) {
-    return await this.reportingService.predictOccupancy(eventId);
+  predictOccupancy(@Param('eventId') eventId: string) {
+    return this.reportingService.predictOccupancy(eventId);
   }
 
   @Get('channels/:organizationId')
   @ApiOperation({ summary: 'Get channel performance' })
-  async getChannelPerformance(@Param('organizationId') orgId: string) {
-    return await this.reportingService.getChannelPerformance(orgId);
+  getChannelPerformance(
+    @Param('organizationId') orgId: string,
+    @Query() query: ReportingEventQueryDto,
+  ) {
+    return this.reportingService.getChannelPerformance(orgId, query.eventId);
   }
 
   @Get('customers/:organizationId')
   @ApiOperation({ summary: 'Get customer analytics' })
-  async getCustomerAnalytics(@Param('organizationId') orgId: string) {
-    return await this.reportingService.getCustomerAnalytics(orgId);
+  getCustomerAnalytics(@Param('organizationId') orgId: string) {
+    return this.reportingService.getCustomerAnalytics(orgId);
   }
 
   @Get('export/sales/:organizationId')
+  @Permissions('data:export')
   @Header('Content-Type', 'text/csv')
   @ApiOperation({ summary: 'Export completed sales as CSV' })
   async exportSales(
     @Param('organizationId') orgId: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
+    @Query() query: ExportSalesQueryDto,
   ) {
     const result = await this.reportingService.exportSalesCsv(
       orgId,
-      from ? new Date(from) : undefined,
-      to ? new Date(to) : undefined,
+      query.from ? new Date(query.from) : undefined,
+      query.to ? new Date(query.to) : undefined,
+      query.page ?? 1,
+      query.pageSize ?? 5000,
     );
     return result.csv;
   }
 
   @Get('forecast/:organizationId/:days')
   @ApiOperation({ summary: 'Get revenue forecast' })
-  async getRevenueForecast(
+  getRevenueForecast(
     @Param('organizationId') orgId: string,
-    @Param('days') days: string,
+    @Param('days', ParseIntPipe) days: number,
   ) {
-    return await this.reportingService.generateRevenueForecast(orgId, parseInt(days, 10));
+    return this.reportingService.generateRevenueForecast(orgId, days);
   }
 }

@@ -1,12 +1,28 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { createHash } from 'crypto';
+import { Prisma } from '@prisma/client';
+import { AuditService } from '../../common/audit.service';
+import { TenantContextService } from '../../common/tenant-context.service';
 import { PrismaService } from '../prisma/prisma.service';
-import type { ChannelConfigDto, ApiPartnerDto, TaquillaLocationDto } from './channel.dto';
+import type { ApiPartnerDto, ChannelConfigDto, TaquillaLocationDto } from './channel.dto';
 
-type ChannelInventoryBucket = { tickets?: number; sold?: number };
+type ChannelInventoryBucket = {
+  tickets: number;
+  available: number;
+  allocated: number;
+  sold: number;
+};
+
 type ChannelInventory = {
-  web?: ChannelInventoryBucket;
-  taquilla?: ChannelInventoryBucket;
-  api?: ChannelInventoryBucket;
+  web: ChannelInventoryBucket;
+  taquilla: ChannelInventoryBucket;
+  api: ChannelInventoryBucket;
+  phone: ChannelInventoryBucket;
 };
 
 type ApiPartnerRecord = {
@@ -17,10 +33,10 @@ type ApiPartnerRecord = {
   commissionRate: number;
   rateLimit: number;
   active: boolean;
-  createdAt: Date;
+  createdAt: string;
 };
 
-type TaquillaLocationRecord = TaquillaLocationDto & { id: string; createdAt: Date };
+type TaquillaLocationRecord = TaquillaLocationDto & { id: string; createdAt: string };
 
 type OrderAggRow = {
   channel: string | null;
@@ -29,13 +45,72 @@ type OrderAggRow = {
   createdAt: Date;
 };
 
+type EventMetadata = {
+  channels?: ChannelConfigDto;
+  channelInventory?: ChannelInventory;
+  apiPartners?: ApiPartnerRecord[];
+  taquillaLocations?: TaquillaLocationRecord[];
+  channelConfiguredAt?: string;
+  lastReallocationAt?: string;
+  [key: string]: unknown;
+};
+
 @Injectable()
 export class ChannelManagementService {
-  private logger = new Logger(ChannelManagementService.name);
+  private readonly logger = new Logger(ChannelManagementService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenant: TenantContextService,
+    private readonly audit: AuditService,
+  ) {}
 
-  // ==================== CHANNEL CONFIGURATION ====================
+  private asMetadata(metadata: unknown): EventMetadata {
+    return typeof metadata === 'object' && metadata !== null && !Array.isArray(metadata)
+      ? ({ ...(metadata as EventMetadata) } as EventMetadata)
+      : {};
+  }
+
+  private async requireOwnedEvent(eventId: string) {
+    const context = this.tenant.current();
+    const event = await this.prisma.event.findFirst({
+      where: context.privileged
+        ? { id: eventId }
+        : { id: eventId, organizationId: this.tenant.requireOrganization() },
+      select: { id: true, organizationId: true, metadata: true },
+    });
+    if (!event) throw new NotFoundException('Evento no encontrado');
+    this.tenant.assertOrganization(event.organizationId);
+    return event;
+  }
+
+  private emptyBucket(tickets: number): ChannelInventoryBucket {
+    return { tickets, available: tickets, allocated: 0, sold: 0 };
+  }
+
+  private readChannelInventory(metadata: unknown): ChannelInventory {
+    const inv = this.asMetadata(metadata).channelInventory;
+    return {
+      web: { ...this.emptyBucket(0), ...(inv?.web ?? {}) },
+      taquilla: { ...this.emptyBucket(0), ...(inv?.taquilla ?? {}) },
+      api: { ...this.emptyBucket(0), ...(inv?.api ?? {}) },
+      phone: { ...this.emptyBucket(0), ...(inv?.phone ?? {}) },
+    };
+  }
+
+  private readApiPartners(metadata: unknown): ApiPartnerRecord[] {
+    const partners = this.asMetadata(metadata).apiPartners;
+    return Array.isArray(partners) ? [...partners] : [];
+  }
+
+  private readTaquillaLocations(metadata: unknown): TaquillaLocationRecord[] {
+    const locations = this.asMetadata(metadata).taquillaLocations;
+    return Array.isArray(locations) ? [...locations] : [];
+  }
+
+  private hashApiKey(key: string): string {
+    return createHash('sha256').update(key).digest('hex');
+  }
 
   async configureChannels(eventId: string, config: ChannelConfigDto) {
     const totalAllocation =
@@ -45,11 +120,13 @@ export class ChannelManagementService {
       (config.phone?.allocation || 0);
 
     if (totalAllocation !== 100) {
-      throw new BadRequestException(`Channel allocation must equal 100%, got ${totalAllocation}%`);
+      throw new BadRequestException(
+        `La asignación de canales debe sumar 100%; se recibió ${totalAllocation}%`,
+      );
     }
 
-    const existing = await this.prisma.event.findUnique({ where: { id: eventId } });
-    const prev = this.asMetadataObject(existing?.metadata);
+    const existing = await this.requireOwnedEvent(eventId);
+    const prev = this.asMetadata(existing.metadata);
 
     const event = await this.prisma.event.update({
       where: { id: eventId },
@@ -63,80 +140,94 @@ export class ChannelManagementService {
             phone: config.phone,
           },
           channelConfiguredAt: new Date().toISOString(),
-        },
+        } as unknown as Prisma.InputJsonValue,
       },
+    });
+
+    await this.audit.log({
+      action: 'CHANNELS_CONFIGURED',
+      entityType: 'Event',
+      entityId: eventId,
+      organizationId: existing.organizationId,
+      userId: this.tenant.current().userId,
+      metadata: { allocations: totalAllocation },
     });
 
     this.logger.log(`Channels configured for event ${eventId}`);
     return event;
   }
 
-  // ==================== CHANNEL ALLOCATION BY INVENTORY ====================
-
   async allocateInventoryToChannels(eventId: string, totalTickets: number) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-    });
-    if (!event) throw new BadRequestException('Event not found');
-
-    const channels = (event.metadata as Record<string, unknown>)?.channels as Record<
-      string,
-      { allocation?: number }
-    > ?? {};
-
-    const allocation = {
-      web: {
-        tickets: Math.floor(totalTickets * ((channels.web?.allocation || 0) / 100)),
-        available: Math.floor(totalTickets * ((channels.web?.allocation || 0) / 100)),
-        allocated: 0,
-        sold: 0
-      },
-      taquilla: {
-        tickets: Math.floor(totalTickets * ((channels.taquilla?.allocation || 0) / 100)),
-        available: Math.floor(totalTickets * ((channels.taquilla?.allocation || 0) / 100)),
-        allocated: 0,
-        sold: 0
-      },
-      api: {
-        tickets: Math.floor(totalTickets * ((channels.api?.allocation || 0) / 100)),
-        available: Math.floor(totalTickets * ((channels.api?.allocation || 0) / 100)),
-        allocated: 0,
-        sold: 0
-      },
-      phone: {
-        tickets: Math.floor(totalTickets * ((channels.phone?.allocation || 0) / 100)),
-        available: Math.floor(totalTickets * ((channels.phone?.allocation || 0) / 100)),
-        allocated: 0,
-        sold: 0
-      }
-    };
-
-    // Handle rounding remainder
-    const allocated = Object.values(allocation).reduce((sum, ch) => sum + ch.tickets, 0);
-    const remainder = totalTickets - allocated;
-    if (remainder > 0) {
-      allocation.web.tickets += remainder;
-      allocation.web.available += remainder;
+    if (!Number.isInteger(totalTickets) || totalTickets < 0) {
+      throw new BadRequestException('El total de boletos debe ser un entero no negativo');
     }
 
-    const prev = (event.metadata as Record<string, unknown>) ?? {};
-    await this.prisma.event.update({
-      where: { id: eventId },
-      data: {
-        metadata: { ...prev, channelInventory: allocation },
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ id: string; organizationId: string; metadata: unknown }>>`
+        SELECT id, "organizationId", metadata
+        FROM "Event"
+        WHERE id = ${eventId}
+        FOR UPDATE
+      `;
+      const locked = rows[0];
+      if (!locked) throw new NotFoundException('Evento no encontrado');
+      this.tenant.assertOrganization(locked.organizationId);
 
-    this.logger.log(`Inventory allocated to channels for event ${eventId}`);
-    return allocation;
+      const context = this.tenant.current();
+      if (!context.privileged && locked.organizationId !== context.organizationId) {
+        throw new NotFoundException('Evento no encontrado');
+      }
+
+      const metadata = this.asMetadata(locked.metadata);
+      const channels = (metadata.channels ?? {}) as Record<string, { allocation?: number }>;
+
+      const allocation: ChannelInventory = {
+        web: this.emptyBucket(Math.floor(totalTickets * ((channels.web?.allocation || 0) / 100))),
+        taquilla: this.emptyBucket(
+          Math.floor(totalTickets * ((channels.taquilla?.allocation || 0) / 100)),
+        ),
+        api: this.emptyBucket(Math.floor(totalTickets * ((channels.api?.allocation || 0) / 100))),
+        phone: this.emptyBucket(
+          Math.floor(totalTickets * ((channels.phone?.allocation || 0) / 100)),
+        ),
+      };
+
+      const allocated = Object.values(allocation).reduce((sum, ch) => sum + ch.tickets, 0);
+      const remainder = totalTickets - allocated;
+      if (remainder > 0) {
+        allocation.web.tickets += remainder;
+        allocation.web.available += remainder;
+      }
+
+      await tx.event.update({
+        where: { id: eventId },
+        data: {
+          metadata: {
+            ...metadata,
+            channelInventory: allocation,
+          } as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      this.logger.log(`Inventory allocated to channels for event ${eventId}`);
+      return { allocation, organizationId: locked.organizationId };
+    }).then(async ({ allocation, organizationId }) => {
+      await this.audit.log({
+        action: 'CHANNEL_INVENTORY_ALLOCATED',
+        entityType: 'Event',
+        entityId: eventId,
+        organizationId,
+        userId: this.tenant.current().userId,
+        metadata: { totalTickets },
+      });
+      return allocation;
+    });
   }
 
-  // ==================== REAL-TIME CHANNEL HEALTH ====================
-
   async getChannelHealth(eventId: string) {
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    const event = await this.requireOwnedEvent(eventId);
 
-    const [tickets, holds, orders] = await Promise.all([
+    const [tickets, holds, orders, readyTerminals] = await Promise.all([
       this.prisma.ticket.groupBy({
         by: ['status'],
         where: { eventId },
@@ -147,13 +238,22 @@ export class ChannelManagementService {
       }),
       this.prisma.order.groupBy({
         by: ['channel'],
-        where: { eventId },
+        where: { eventId, organizationId: event.organizationId },
         _count: true,
         _sum: { totalAmount: true },
       }),
+      this.prisma.posTerminal.count({
+        where: {
+          status: 'READY',
+          organizationId: event.organizationId,
+        },
+      }),
     ]);
 
-    const channelStats: Record<string, { total: number; sold: number; held: number; orders: number; revenue: number }> = {
+    const channelStats: Record<
+      string,
+      { total: number; sold: number; held: number; orders: number; revenue: number }
+    > = {
       WEB: { total: 0, sold: 0, held: 0, orders: 0, revenue: 0 },
       TAQUILLA: { total: 0, sold: 0, held: 0, orders: 0, revenue: 0 },
       API: { total: 0, sold: 0, held: 0, orders: 0, revenue: 0 },
@@ -173,92 +273,138 @@ export class ChannelManagementService {
     channelStats.WEB.total = soldCount + availCount;
     channelStats.WEB.held = holds;
 
-    const health = {
+    const inventory = this.readChannelInventory(event.metadata);
+    const partners = this.readApiPartners(event.metadata);
+
+    return {
       web: {
         status: 'healthy',
-        responseTimeMs: Math.round(Math.random() * 100 + 50),
-        errorRate: 0.001,
+        responseTimeMs: 0,
+        errorRate: 0,
+        quota: inventory.web,
         ...channelStats.WEB,
       },
       taquilla: {
         status: 'healthy',
-        syncLagSec: Math.round(Math.random() * 5 + 1),
-        activeTerminals: await this.prisma.posTerminal.count({ where: { status: 'READY' } }),
-        errorRate: 0.002,
+        syncLagSec: 0,
+        activeTerminals: readyTerminals,
+        errorRate: 0,
+        quota: inventory.taquilla,
         ...channelStats.TAQUILLA,
       },
       api: {
         status: 'healthy',
-        activePartners: ((event?.metadata as Record<string, unknown>)?.apiPartners as unknown[])?.length ?? 0,
-        rateLimitUsage: Math.round(Math.random() * 40),
-        errorRate: 0.001,
+        activePartners: partners.filter((partner) => partner.active).length,
+        rateLimitUsage: 0,
+        errorRate: 0,
+        quota: inventory.api,
         ...channelStats.API,
       },
     };
-
-    return health;
   }
-
-  // ==================== DYNAMIC CHANNEL REALLOCATION ====================
 
   async dynamicReallocate(eventId: string) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId }
-    });
-    if (!event) throw new BadRequestException('Event not found');
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ id: string; organizationId: string; metadata: unknown }>>`
+        SELECT id, "organizationId", metadata
+        FROM "Event"
+        WHERE id = ${eventId}
+        FOR UPDATE
+      `;
+      const locked = rows[0];
+      if (!locked) throw new NotFoundException('Evento no encontrado');
+      this.tenant.assertOrganization(locked.organizationId);
 
-    const inventory = this.readChannelInventory(event.metadata);
-    const occupancy = 
-      (inventory.web?.sold || 0) / (inventory.web?.tickets || 1);
-
-    // If web sales are slow, reallocate some inventory
-    if (occupancy < 0.3) {
-      this.logger.log(`Reallocating inventory: web occupancy is ${occupancy * 100}%`);
-      // Move some tickets from web to taquilla
-      inventory.web.tickets -= 50;
-      inventory.taquilla.tickets += 50;
-    }
-
-    // If web sales are fast, move more to web
-    if (occupancy > 0.8) {
-      this.logger.log(`High web occupancy: ${occupancy * 100}%`);
-      inventory.taquilla.tickets -= 50;
-      inventory.web.tickets += 50;
-    }
-
-    await this.prisma.event.update({
-      where: { id: eventId },
-      data: {
-        metadata: {
-          ...this.asMetadataObject(event.metadata),
-          channelInventory: inventory,
-          lastReallocationAt: new Date()
-        }
+      const context = this.tenant.current();
+      if (!context.privileged && locked.organizationId !== context.organizationId) {
+        throw new NotFoundException('Evento no encontrado');
       }
-    });
 
-    return { status: 'reallocated', inventory };
+      const metadata = this.asMetadata(locked.metadata);
+      const inventory = this.readChannelInventory(metadata);
+      const occupancy =
+        (inventory.web.sold || 0) / Math.max(inventory.web.tickets || 1, 1);
+
+      if (occupancy < 0.3 && inventory.web.tickets >= 50) {
+        this.logger.log(`Reallocating inventory: web occupancy is ${occupancy * 100}%`);
+        inventory.web.tickets -= 50;
+        inventory.web.available = Math.max(0, inventory.web.available - 50);
+        inventory.taquilla.tickets += 50;
+        inventory.taquilla.available += 50;
+      }
+
+      if (occupancy > 0.8 && inventory.taquilla.tickets >= 50) {
+        this.logger.log(`High web occupancy: ${occupancy * 100}%`);
+        inventory.taquilla.tickets -= 50;
+        inventory.taquilla.available = Math.max(0, inventory.taquilla.available - 50);
+        inventory.web.tickets += 50;
+        inventory.web.available += 50;
+      }
+
+      await tx.event.update({
+        where: { id: eventId },
+        data: {
+          metadata: {
+            ...metadata,
+            channelInventory: inventory,
+            lastReallocationAt: new Date().toISOString(),
+          } as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      return {
+        status: 'reallocated' as const,
+        inventory,
+        organizationId: locked.organizationId,
+        occupancy,
+      };
+    }).then(async ({ status, inventory, organizationId, occupancy }) => {
+      await this.audit.log({
+        action: 'CHANNEL_REALLOCATED',
+        entityType: 'Event',
+        entityId: eventId,
+        organizationId,
+        userId: this.tenant.current().userId,
+        metadata: { occupancy },
+      });
+      return { status, inventory };
+    });
   }
 
-  // ==================== CHANNEL PERFORMANCE ANALYTICS ====================
-
   async getChannelAnalytics(eventId: string) {
-    const orders = await this.prisma.order.findMany({
-      where: { eventId },
-      select: { channel: true, totalAmount: true, status: true, createdAt: true }
-    });
-
+    const event = await this.requireOwnedEvent(eventId);
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const channelAnalytics = {
-      allTime: this.aggregateOrders(orders),
-      last24h: this.aggregateOrders(orders.filter(o => o.createdAt >= oneDayAgo)),
-      last7days: this.aggregateOrders(orders.filter(o => o.createdAt >= sevenDaysAgo))
-    };
+    const [allTime, last24h, last7days] = await Promise.all([
+      this.prisma.order.findMany({
+        where: { eventId, organizationId: event.organizationId },
+        select: { channel: true, totalAmount: true, status: true, createdAt: true },
+      }),
+      this.prisma.order.findMany({
+        where: {
+          eventId,
+          organizationId: event.organizationId,
+          createdAt: { gte: oneDayAgo },
+        },
+        select: { channel: true, totalAmount: true, status: true, createdAt: true },
+      }),
+      this.prisma.order.findMany({
+        where: {
+          eventId,
+          organizationId: event.organizationId,
+          createdAt: { gte: sevenDaysAgo },
+        },
+        select: { channel: true, totalAmount: true, status: true, createdAt: true },
+      }),
+    ]);
 
-    return channelAnalytics;
+    return {
+      allTime: this.aggregateOrders(allTime),
+      last24h: this.aggregateOrders(last24h),
+      last7days: this.aggregateOrders(last7days),
+    };
   }
 
   private aggregateOrders(orders: OrderAggRow[]) {
@@ -266,125 +412,107 @@ export class ChannelManagementService {
       string,
       { orders: number; revenue: number; avgOrderValue: number; completionRate: number }
     > = {};
+    const completedByChannel: Record<string, number> = {};
 
-    orders.forEach((order) => {
+    for (const order of orders) {
       const channel = order.channel || 'WEB';
       if (!channels[channel]) {
         channels[channel] = {
           orders: 0,
           revenue: 0,
           avgOrderValue: 0,
-          completionRate: 0
+          completionRate: 0,
         };
+        completedByChannel[channel] = 0;
       }
 
       channels[channel].orders++;
-      if (order.status === 'COMPLETED') channels[channel].revenue += Number(order.totalAmount);
-    });
+      if (order.status === 'COMPLETED') {
+        channels[channel].revenue += Number(order.totalAmount);
+        completedByChannel[channel]++;
+      }
+    }
 
-    // Calculate averages
-    Object.keys(channels).forEach((channel) => {
-      const completedOrders = orders.filter(
-        o => o.channel === channel && o.status === 'COMPLETED'
-      ).length;
-      channels[channel].avgOrderValue = 
+    for (const channel of Object.keys(channels)) {
+      channels[channel].avgOrderValue =
         channels[channel].revenue / (channels[channel].orders || 1);
-      channels[channel].completionRate = 
-        (completedOrders / channels[channel].orders) * 100;
-    });
+      channels[channel].completionRate =
+        (completedByChannel[channel] / channels[channel].orders) * 100;
+    }
 
     return channels;
   }
 
-  // ==================== PARTNER API MANAGEMENT ====================
-
   async addApiPartner(eventId: string, partner: ApiPartnerDto) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId }
-    });
-    if (!event) throw new BadRequestException('Event not found');
-
-    const partners = this.readApiPartners(event.metadata);
-    partners.push({
+    const event = await this.requireOwnedEvent(eventId);
+    const metadata = this.asMetadata(event.metadata);
+    const partners = this.readApiPartners(metadata);
+    const record: ApiPartnerRecord = {
       id: `partner_${Date.now()}`,
-      name: partner.name,
+      name: partner.name.trim(),
       apiKeyHash: this.hashApiKey(partner.apiKey),
-      allocation: partner.allocation || 10,
-      commissionRate: partner.commissionRate || 5,
-      rateLimit: partner.rateLimit || 1000,
+      allocation: partner.allocation ?? 10,
+      commissionRate: partner.commissionRate ?? 5,
+      rateLimit: partner.rateLimit ?? 1000,
       active: true,
-      createdAt: new Date()
-    });
+      createdAt: new Date().toISOString(),
+    };
+    partners.push(record);
 
     await this.prisma.event.update({
       where: { id: eventId },
       data: {
         metadata: {
-          ...this.asMetadataObject(event.metadata),
-          apiPartners: partners
-        }
-      }
+          ...metadata,
+          apiPartners: partners,
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    await this.audit.log({
+      action: 'CHANNEL_API_PARTNER_ADDED',
+      entityType: 'Event',
+      entityId: eventId,
+      organizationId: event.organizationId,
+      userId: this.tenant.current().userId,
+      metadata: { partnerId: record.id, name: record.name },
     });
 
     this.logger.log(`API partner added: ${partner.name}`);
-    return { partnerId: partners[partners.length - 1].id };
+    return { partnerId: record.id };
   }
-
-  private asMetadataObject(metadata: unknown): Record<string, unknown> {
-    return typeof metadata === 'object' && metadata !== null && !Array.isArray(metadata)
-      ? (metadata as Record<string, unknown>)
-      : {};
-  }
-
-  private readChannelInventory(metadata: unknown): ChannelInventory {
-    const inv = this.asMetadataObject(metadata).channelInventory;
-    return typeof inv === 'object' && inv !== null && !Array.isArray(inv)
-      ? (inv as ChannelInventory)
-      : {};
-  }
-
-  private readApiPartners(metadata: unknown): ApiPartnerRecord[] {
-    const partners = this.asMetadataObject(metadata).apiPartners;
-    return Array.isArray(partners) ? (partners as ApiPartnerRecord[]) : [];
-  }
-
-  private readTaquillaLocations(metadata: unknown): TaquillaLocationRecord[] {
-    const locations = this.asMetadataObject(metadata).taquillaLocations;
-    return Array.isArray(locations) ? (locations as TaquillaLocationRecord[]) : [];
-  }
-
-  private hashApiKey(key: string): string {
-    // In production, use proper hashing
-    return Buffer.from(key).toString('base64');
-  }
-
-  // ==================== TAQUILLA LOCATION MANAGEMENT ====================
 
   async addTaquillaLocation(eventId: string, location: TaquillaLocationDto) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId }
-    });
-    if (!event) throw new BadRequestException('Event not found');
-
-    const locations = this.readTaquillaLocations(event.metadata);
-    locations.push({
+    const event = await this.requireOwnedEvent(eventId);
+    const metadata = this.asMetadata(event.metadata);
+    const locations = this.readTaquillaLocations(metadata);
+    const record: TaquillaLocationRecord = {
       id: `loc_${Date.now()}`,
       ...location,
-      createdAt: new Date()
-    });
+      name: location.name.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    locations.push(record);
 
     await this.prisma.event.update({
       where: { id: eventId },
       data: {
         metadata: {
-          ...this.asMetadataObject(event.metadata),
-          taquillaLocations: locations
-        }
-      }
+          ...metadata,
+          taquillaLocations: locations,
+        } as unknown as Prisma.InputJsonValue,
+      },
     });
 
-    return { locationId: locations[locations.length - 1].id };
+    await this.audit.log({
+      action: 'TAQUILLA_LOCATION_ADDED',
+      entityType: 'Event',
+      entityId: eventId,
+      organizationId: event.organizationId,
+      userId: this.tenant.current().userId,
+      metadata: { locationId: record.id, name: record.name },
+    });
+
+    return { locationId: record.id };
   }
 }
-
-

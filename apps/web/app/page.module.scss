@@ -3,6 +3,31 @@ $mute: #737373;
 $line: #e5e5e5;
 $accent: #e11d48;
 
+.site {
+  min-height: 100vh;
+}
+
+.skipLink {
+  position: absolute;
+  left: 1rem;
+  top: 0.75rem;
+  z-index: 100;
+  transform: translateY(-160%);
+  padding: 0.65rem 0.9rem;
+  background: $ink;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.15s ease;
+
+  &:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+}
+
 .page {
   position: relative;
   min-height: 100vh;
@@ -14,7 +39,7 @@ $accent: #e11d48;
 }
 
 .board {
-  /* discovery owns its own shell + full-bleed hero */
+  /* Keep above-the-fold discovery paintable for LCP; modules below can defer. */
   width: 100%;
 }
 
@@ -62,6 +87,11 @@ $accent: #e11d48;
     &:hover {
       color: $accent;
     }
+
+    &:focus-visible {
+      outline: 2px solid $accent;
+      outline-offset: 3px;
+    }
   }
 }
 
@@ -69,4 +99,16 @@ $accent: #e11d48;
   margin: 0;
   font-size: 0.75rem;
   color: $mute;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skipLink {
+    transition: none;
+  }
+
+  .page * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

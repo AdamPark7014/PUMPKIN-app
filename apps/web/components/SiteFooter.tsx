@@ -1,32 +1,23 @@
-'use client';
-
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { CATEGORY_LABEL } from '@/lib/format';
 import styles from './SiteFooter.module.scss';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-
 const CATEGORIES = [
-  { key: 'MUSIC', label: 'Conciertos' },
-  { key: 'SPORTS', label: 'Deportes' },
-  { key: 'THEATER', label: 'Artes' },
-  { key: 'COMEDY', label: 'Comedia' },
-  { key: 'FESTIVAL', label: 'Festivales' },
-  { key: 'FAMILY', label: 'Familiares' },
-];
+  { key: 'MUSIC', label: CATEGORY_LABEL.MUSIC },
+  { key: 'SPORTS', label: CATEGORY_LABEL.SPORTS },
+  { key: 'THEATER', label: CATEGORY_LABEL.THEATER },
+  { key: 'COMEDY', label: CATEGORY_LABEL.COMEDY },
+  { key: 'FESTIVAL', label: CATEGORY_LABEL.FESTIVAL },
+  { key: 'FAMILY', label: CATEGORY_LABEL.FAMILY },
+] as const;
 
-export function SiteFooter() {
-  const [cities, setCities] = useState<{ name: string; count: number }[]>([]);
+export type FooterCity = { name: string; count: number };
 
-  useEffect(() => {
-    fetch(`${API}/discovery/facets`, { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.cities?.length) setCities(data.cities.slice(0, 8));
-      })
-      .catch(() => {});
-  }, []);
-
+/**
+ * Footer presentacional. El layout inyecta ciudades cacheadas desde el servidor;
+ * las páginas cliente pueden renderizarlo sin props (sólo enlace a /ciudades).
+ */
+export function SiteFooter({ cities = [] }: { cities?: readonly FooterCity[] }) {
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>

@@ -13,7 +13,12 @@ export class AuditService {
     userId?: string;
     metadata?: Record<string, unknown>;
     ipAddress?: string;
+    userAgent?: string;
   }) {
+    const metadata = {
+      ...params.metadata,
+      ...(params.userAgent ? { userAgent: params.userAgent.slice(0, 512) } : {}),
+    };
     return this.prisma.auditEvent.create({
       data: {
         action: params.action,
@@ -21,7 +26,7 @@ export class AuditService {
         entityId: params.entityId,
         organizationId: params.organizationId,
         userId: params.userId,
-        metadata: params.metadata as object,
+        metadata,
         ipAddress: params.ipAddress,
       },
     });

@@ -2,39 +2,19 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { EmptyState } from '@boletera/ui';
 import { SiteHeader } from '@/components/SiteHeader';
-import { SiteFooter } from '@/components/SiteFooter';
+import { PurchaseSteps } from '@/components/storefront/PurchaseSteps';
+import { TrustRow, TRUST_OFFICIAL, TRUST_QR, trustPayment } from '@/components/storefront/TrustRow';
 import {
   normalizeCartItem,
   secondsUntil,
   useCartStore,
   type CartItem,
 } from '@/lib/cart-store';
+import { countdown, countdownSpoken, dateTime, money } from '@/lib/format';
 import styles from './cart.module.scss';
-
-function fmtMoney(n: number, currency = 'MXN') {
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return `$${n.toLocaleString('es-MX', { maximumFractionDigits: 0 })} ${currency}`;
-}
-
-function fmtDate(iso?: string) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleString('es-MX', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function fmtTimer(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
 
 function seatSummary(item: CartItem) {
   const labels =
@@ -74,36 +54,210 @@ function goCheckout(router: ReturnType<typeof useRouter>, item: CartItem) {
   router.push(`/checkout?${params}`);
 }
 
+function useHoldSeconds(expiresAt: string | undefined) {
+  const [sec, setSec] = useState(() => (expiresAt ? secondsUntil(expiresAt) : 0));
+
+  useEffect(() => {
+    if (!expiresAt) {
+      setSec(0);
+      return;
+    }
+    const tick = () => setSec(secondsUntil(expiresAt));
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [expiresAt]);
+
+  return sec;
+}
+
+function HoldTimer({ seconds }: { seconds: number }) {
+  const urgent = seconds > 0 && seconds < 60;
+  const expired = seconds <= 0;
+
+  return (
+    <div
+      className={`${styles.timer} ${urgent || expired ? styles.timerUrgent : ''}`}
+      role="timer"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-label={
+        expired ? 'Reserva expirada' : `Tiempo restante ${countdownSpoken(seconds)}`
+      }
+    >
+      <span>{expired ? 'Expiró' : 'Tiempo'}</span>
+      <strong>{countdown(seconds)}</strong>
+    </div>
+  );
+}
+
+function CartCard({
+  item,
+  onCheckout,
+  onRemove,
+}: {
+  item: CartItem;
+  onCheckout: () => void;
+  onRemove: () => void;
+}) {
+  const total = itemTotal(item);
+  const seats = seatSummary(item);
+  const zones = lineBreakdown(item);
+  const when = item.startsAt ? dateTime(item.startsAt) : null;
+  const remaining = useHoldSeconds(item.expiresAt);
+  const expired = remaining <= 0;
+  const currency = item.currency || 'MXN';
+
+  return (
+    <article className={`${styles.card} ${expired ? styles.cardExpired : ''}`}>
+      <div className={styles.cardTop}>
+        <div>
+          <p className={expired ? styles.kickerExpired : styles.kicker}>
+            {expired ? 'Hold liberado' : 'Hold activo'}
+          </p>
+          <h2>
+            {item.slug ? (
+              <Link href={`/events/${item.slug}`}>{item.eventTitle}</Link>
+            ) : (
+              item.eventTitle
+            )}
+          </h2>
+          <p className={styles.meta}>
+            {[item.venueName, item.venueCity, when].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+        <HoldTimer seconds={remaining} />
+      </div>
+
+      <dl className={styles.facts}>
+        <div>
+          <dt>Boletos</dt>
+          <dd>
+            {item.seatCount} asiento{item.seatCount === 1 ? '' : 's'}
+          </dd>
+        </div>
+        {zones && (
+          <div>
+            <dt>Zonas</dt>
+            <dd>{zones}</dd>
+          </div>
+        )}
+        {seats && (
+          <div>
+            <dt>Asientos</dt>
+            <dd>{seats}</dd>
+          </div>
+        )}
+        {total > 0 && (
+          <div>
+            <dt>Subtotal est.</dt>
+            <dd>{money(total, currency)}</dd>
+          </div>
+        )}
+      </dl>
+
+      <div className={styles.actions}>
+        {!expired ? (
+          <button type="button" className={styles.primary} onClick={onCheckout}>
+            Ir a pagar
+          </button>
+        ) : item.slug ? (
+          <Link href={`/events/${item.slug}`} className={styles.primary}>
+            Reelegir asientos
+          </Link>
+        ) : (
+          <Link href="/events" className={styles.primary}>
+            Ver eventos
+          </Link>
+        )}
+        {item.slug && !expired && (
+          <Link href={`/events/${item.slug}`} className={styles.ghost}>
+            Ver evento
+          </Link>
+        )}
+        <button type="button" className={styles.danger} onClick={onRemove}>
+          Quitar
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function SummarySoonest({ expiresAt }: { expiresAt: string }) {
+  const soonest = useHoldSeconds(expiresAt);
+  const urgent = soonest > 0 && soonest < 60;
+  return (
+    <li>
+      <span>Expira en</span>
+      <strong
+        className={urgent || soonest <= 0 ? styles.warn : undefined}
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label={
+          soonest <= 0
+            ? 'Reserva expirada'
+            : `La reserva más cercana expira en ${countdownSpoken(soonest)}`
+        }
+      >
+        {countdown(soonest)}
+      </strong>
+    </li>
+  );
+}
+
 export default function CartPage() {
   const rawItems = useCartStore((s) => s.items);
   const removeAt = useCartStore((s) => s.removeAt);
   const clear = useCartStore((s) => s.clear);
   const router = useRouter();
-  const [tick, setTick] = useState(0);
+  const [nowTick, setNowTick] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
+    const id = window.setInterval(() => setNowTick((t) => t + 1), 5000);
+    return () => window.clearInterval(id);
   }, []);
 
-  const items = useMemo(() => rawItems.map(normalizeCartItem), [rawItems, tick]);
-
-  const active = items.filter((i) => secondsUntil(i.expiresAt) > 0);
-  const expired = items.filter((i) => secondsUntil(i.expiresAt) <= 0);
+  const items = useMemo(() => rawItems.map(normalizeCartItem), [rawItems]);
+  const active = useMemo(
+    () => items.filter((i) => secondsUntil(i.expiresAt) > 0),
+    // nowTick refreshes partition without remounting every second.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, nowTick],
+  );
+  const expired = useMemo(
+    () => items.filter((i) => secondsUntil(i.expiresAt) <= 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, nowTick],
+  );
   const estimated = active.reduce((s, i) => s + itemTotal(i), 0);
   const seatCount = active.reduce((s, i) => s + i.seatCount, 0);
   const currency = active[0]?.currency || 'MXN';
-  const soonest = active.reduce(
-    (min, i) => Math.min(min, secondsUntil(i.expiresAt)),
-    Number.POSITIVE_INFINITY,
-  );
+  const soonestExpiresAt = active.reduce<string | null>((minIso, item) => {
+    if (!minIso) return item.expiresAt;
+    return new Date(item.expiresAt).getTime() < new Date(minIso).getTime()
+      ? item.expiresAt
+      : minIso;
+  }, null);
+
+  let emptyArt: ReactNode = null;
+  if (!items.length) {
+    emptyArt = (
+      <div className={styles.emptyArt} aria-hidden>
+        <span />
+        <span />
+        <span />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.shell}>
       <SiteHeader />
       <main className={styles.page}>
+        <PurchaseSteps current="cart" />
+
         <header className={styles.hero}>
-          <p className={styles.eyebrow}>Paso 1 de 3 · Reserva</p>
+          <p className={styles.eyebrow}>Reserva temporal</p>
           <h1>Tu carrito</h1>
           <p className={styles.lead}>
             {items.length
@@ -113,12 +267,8 @@ export default function CartPage() {
         </header>
 
         {!items.length ? (
-          <section className={styles.empty} aria-labelledby="cart-empty-title">
-            <div className={styles.emptyArt} aria-hidden>
-              <span />
-              <span />
-              <span />
-            </div>
+          <section className={styles.empty} aria-label="Carrito vacío">
+            {emptyArt}
             <EmptyState
               title="Carrito vacío"
               description="Explora la cartelera y asegura tus lugares con hold en vivo."
@@ -139,94 +289,23 @@ export default function CartPage() {
             <section className={styles.list} aria-label="Reservas en carrito">
               {active.map((item) => {
                 const idx = rawItems.findIndex((r) => r.eventId === item.eventId);
-                const sec = secondsUntil(item.expiresAt);
-                const urgent = sec > 0 && sec < 120;
-                const total = itemTotal(item);
-                const seats = seatSummary(item);
-                const zones = lineBreakdown(item);
-                const when = fmtDate(item.startsAt);
-
                 return (
-                  <article key={item.eventId} className={styles.card}>
-                    <div className={styles.cardTop}>
-                      <div>
-                        <p className={styles.kicker}>Hold activo</p>
-                        <h2>
-                          {item.slug ? (
-                            <Link href={`/events/${item.slug}`}>{item.eventTitle}</Link>
-                          ) : (
-                            item.eventTitle
-                          )}
-                        </h2>
-                        <p className={styles.meta}>
-                          {[item.venueName, item.venueCity, when].filter(Boolean).join(' · ')}
-                        </p>
-                      </div>
-                      <div
-                        className={`${styles.timer} ${urgent ? styles.timerUrgent : ''}`}
-                        aria-live="polite"
-                      >
-                        <span>Tiempo</span>
-                        <strong>{fmtTimer(sec)}</strong>
-                      </div>
-                    </div>
-
-                    <dl className={styles.facts}>
-                      <div>
-                        <dt>Boletos</dt>
-                        <dd>
-                          {item.seatCount} asiento{item.seatCount === 1 ? '' : 's'}
-                        </dd>
-                      </div>
-                      {zones && (
-                        <div>
-                          <dt>Zonas</dt>
-                          <dd>{zones}</dd>
-                        </div>
-                      )}
-                      {seats && (
-                        <div>
-                          <dt>Asientos</dt>
-                          <dd>{seats}</dd>
-                        </div>
-                      )}
-                      {total > 0 && (
-                        <div>
-                          <dt>Subtotal</dt>
-                          <dd>{fmtMoney(total, item.currency || currency)}</dd>
-                        </div>
-                      )}
-                    </dl>
-
-                    <div className={styles.actions}>
-                      <button
-                        type="button"
-                        className={styles.primary}
-                        onClick={() => goCheckout(router, item)}
-                      >
-                        Ir a pagar
-                      </button>
-                      {item.slug && (
-                        <Link href={`/events/${item.slug}`} className={styles.ghost}>
-                          Ver evento
-                        </Link>
-                      )}
-                      <button
-                        type="button"
-                        className={styles.danger}
-                        onClick={() => idx >= 0 && removeAt(idx)}
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  </article>
+                  <CartCard
+                    key={item.eventId}
+                    item={item}
+                    onCheckout={() => goCheckout(router, item)}
+                    onRemove={() => idx >= 0 && removeAt(idx)}
+                  />
                 );
               })}
 
               {expired.length > 0 && (
-                <div className={styles.expiredBlock}>
+                <div className={styles.expiredBlock} role="region" aria-label="Reservas expiradas">
                   <h3>Reservas expiradas</h3>
-                  <p>El hold se liberó. Vuelve al mapa para elegir de nuevo.</p>
+                  <p>
+                    El hold se liberó. Vuelve al mapa para elegir de nuevo; no se generó ningún
+                    cargo.
+                  </p>
                   <ul>
                     {expired.map((item) => {
                       const idx = rawItems.findIndex((r) => r.eventId === item.eventId);
@@ -234,8 +313,10 @@ export default function CartPage() {
                         <li key={`exp-${item.eventId}`}>
                           <span>{item.eventTitle}</span>
                           <div>
-                            {item.slug && (
-                              <Link href={`/events/${item.slug}`}>Reelegir</Link>
+                            {item.slug ? (
+                              <Link href={`/events/${item.slug}`}>Reelegir asientos</Link>
+                            ) : (
+                              <Link href="/events">Ver eventos</Link>
                             )}
                             <button type="button" onClick={() => idx >= 0 && removeAt(idx)}>
                               Limpiar
@@ -260,24 +341,18 @@ export default function CartPage() {
                   <span>Asientos</span>
                   <strong>{seatCount}</strong>
                 </li>
-                {Number.isFinite(soonest) && soonest < Number.POSITIVE_INFINITY && (
-                  <li>
-                    <span>Expira en</span>
-                    <strong className={soonest < 120 ? styles.warn : undefined}>
-                      {fmtTimer(soonest)}
-                    </strong>
-                  </li>
-                )}
+                {soonestExpiresAt && <SummarySoonest expiresAt={soonestExpiresAt} />}
                 {estimated > 0 && (
                   <li className={styles.totalRow}>
-                    <span>Estimado</span>
-                    <strong>{fmtMoney(estimated, currency)}</strong>
+                    <span>Subtotal estimado</span>
+                    <strong>{money(estimated, currency)}</strong>
                   </li>
                 )}
               </ul>
 
               <p className={styles.hint}>
-                El total final (cargos e impuestos) se confirma en el checkout.
+                Estimado sin cargos de servicio ni impuestos. El total final se confirma en el
+                checkout antes de pagar.
               </p>
 
               {active.length === 1 ? (
@@ -290,18 +365,21 @@ export default function CartPage() {
                 </button>
               ) : active.length > 1 ? (
                 <p className={styles.multiNote}>
-                  Paga cada evento por separado para mantener el hold correcto.
+                  Paga cada evento por separado para mantener el hold correcto y evitar cargos
+                  cruzados.
                 </p>
-              ) : null}
+              ) : (
+                <p className={styles.multiNote} role="status">
+                  No hay holds activos. Reelige asientos para continuar.
+                </p>
+              )}
 
-              <div className={styles.trust}>
-                <span>Boletos oficiales</span>
-                <span>Hold en vivo</span>
-                <span>Pago Banorte</span>
+              <div className={styles.trustWrap}>
+                <TrustRow
+                  items={[TRUST_OFFICIAL, TRUST_QR, trustPayment(true)]}
+                  tone="light"
+                />
               </div>
-              <p className={styles.hint}>
-                Sin credenciales Banorte el checkout opera en modo demo (sin cargo real).
-              </p>
 
               <div className={styles.summaryFooter}>
                 <Link href="/events">Seguir explorando</Link>
@@ -313,7 +391,6 @@ export default function CartPage() {
           </div>
         )}
       </main>
-      <SiteFooter />
     </div>
   );
 }

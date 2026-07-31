@@ -1,12 +1,21 @@
-import { Controller, Post, Get, Param, Body, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
 import { OrgAccessGuard } from '../auth/org-access.guard';
-import { TaquillaPosService } from './taquilla-pos.service';
-import type {
+import { Permissions } from '../auth/permissions.decorator';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import {
+  AnalyticsParamsDto,
   CashDropDto,
   CreateHoldDto,
   EndSessionDto,
@@ -14,35 +23,49 @@ import type {
   HandoffDto,
   InitTerminalDto,
   ManagerPinDto,
+  OrderIdParamDto,
   ProcessPaymentDto,
   QuickCheckoutDto,
+  ReceiptQueryDto,
   ReleaseHoldsDto,
+  ScanBarcodeDto,
+  SessionSummaryQueryDto,
   StartSessionDto,
+  SyncInventoryDto,
   SyncOfflineDto,
+  TerminalIdParamDto,
   VerifyPinDto,
   VoidOrderDto,
   WillcallFulfillDto,
   WillcallLookupDto,
+  ZReportsQueryDto,
 } from './taquilla-pos.dto';
+import { TaquillaPosService } from './taquilla-pos.service';
+
+const POS_STAFF = ['TAQUILLA', 'ADMIN', 'SUPER_ADMIN'] as const;
+const POS_READERS = ['TAQUILLA', 'PROMOTER', 'ADMIN', 'SUPER_ADMIN'] as const;
+const POS_MANAGERS = ['VENUE_MANAGER', 'PROMOTER', 'ADMIN', 'SUPER_ADMIN'] as const;
 
 @ApiTags('Taquilla / POS')
 @ApiBearerAuth()
 @Controller('taquilla')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('TAQUILLA', 'VENUE_MANAGER', 'PROMOTER', 'ADMIN', 'SUPER_ADMIN', 'SCANNER')
+@UseGuards(JwtAuthGuard, RolesGuard, OrgAccessGuard)
+@Roles(...POS_STAFF)
 export class TaquillaPosController {
-  constructor(private posService: TaquillaPosService) {}
+  constructor(private readonly posService: TaquillaPosService) {}
 
   @Post('terminal/init')
+  @Roles(...POS_STAFF, 'VENUE_MANAGER', 'PROMOTER')
   @ApiOperation({ summary: 'Initialize POS terminal' })
-  async initTerminal(@Body() data: InitTerminalDto) {
-    return await this.posService.initializeTerminal(data);
+  initTerminal(@Body() data: InitTerminalDto) {
+    return this.posService.initializeTerminal(data);
   }
 
   @Post('session/start')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Start cashier session with opening cash float' })
-  async startSession(@Body() data: StartSessionDto) {
-    return await this.posService.startCashierSession(
+  startSession(@Body() data: StartSessionDto) {
+    return this.posService.startCashierSession(
       data.terminalId,
       data.cashierId,
       data.openingCash ?? 0,
@@ -50,142 +73,184 @@ export class TaquillaPosController {
   }
 
   @Post('holds')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Create taquilla holds (seats or GA) with short TTL' })
-  async createHold(@Body() data: CreateHoldDto) {
-    return await this.posService.createPosHold(data);
+  createHold(@Body() data: CreateHoldDto) {
+    return this.posService.createPosHold(data);
   }
 
   @Post('holds/release')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Release active holds' })
-  async releaseHolds(@Body() data: ReleaseHoldsDto) {
-    return await this.posService.releaseHolds(data.holdIds);
+  releaseHolds(@Body() data: ReleaseHoldsDto) {
+    return this.posService.releaseHolds(data.holdIds);
   }
 
   @Post('checkout')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Checkout at box office (GA or reserved seats)' })
-  async quickCheckout(@Body() data: QuickCheckoutDto) {
-    return await this.posService.quickCheckout(data.terminalId, data.sessionId, data.checkoutData);
+  quickCheckout(@Body() data: QuickCheckoutDto) {
+    return this.posService.quickCheckout(
+      data.terminalId,
+      data.sessionId,
+      data.checkoutData,
+    );
   }
 
   @Post('terminal/init-org')
-  @UseGuards(JwtAuthGuard, RolesGuard, OrgAccessGuard)
-  @Roles('TAQUILLA', 'PROMOTER', 'ADMIN', 'SUPER_ADMIN', 'VENUE_MANAGER')
+  @Roles(...POS_STAFF, 'VENUE_MANAGER', 'PROMOTER')
   @ApiOperation({ summary: 'Initialize POS terminal for organization' })
-  async initTerminalOrg(
-    @Body()
-    data: {
-      organizationId: string;
-      locationName: string;
-      terminalName: string;
-      hardwareConfig?: Record<string, string>;
-    },
-  ) {
-    return await this.posService.initializeTerminal(data);
+  initTerminalOrg(@Body() data: InitTerminalDto) {
+    return this.posService.initializeTerminal(data);
   }
 
   @Post('payment')
-  @ApiOperation({ summary: 'Legacy payment stub — prefer checkout', deprecated: true })
-  async processPayment(@Body() data: ProcessPaymentDto) {
-    return await this.posService.processPayment(data.orderId, data.paymentData);
+  @Permissions('order:write')
+  @ApiOperation({
+    summary: 'Legacy payment status — prefer checkout',
+    deprecated: true,
+  })
+  processPayment(@Body() data: ProcessPaymentDto) {
+    return this.posService.processPayment(data.orderId, data.paymentData);
   }
 
   @Get('receipt/:orderId')
+  @Roles(...POS_READERS)
+  @Permissions('order:read')
   @ApiOperation({ summary: 'Generate receipt' })
-  async generateReceipt(
-    @Param('orderId') orderId: string,
-    @Query('terminalId') terminalId: string,
+  generateReceipt(
+    @Param() params: OrderIdParamDto,
+    @Query() query: ReceiptQueryDto,
   ) {
-    return await this.posService.generateReceipt(orderId, terminalId ?? 'terminal');
+    return this.posService.generateReceipt(
+      params.orderId,
+      query.terminalId ?? 'terminal',
+    );
   }
 
   @Post('scan')
+  @Roles('TAQUILLA', 'VENUE_MANAGER', 'ADMIN', 'SUPER_ADMIN', 'SCANNER')
   @ApiOperation({ summary: 'Scan ticket barcode or order publicId' })
-  async scanBarcode(@Body() data: { terminalId: string; barcode: string }) {
-    return await this.posService.scanBarcode(data.terminalId, data.barcode);
+  scanBarcode(@Body() data: ScanBarcodeDto) {
+    return this.posService.scanBarcode(data.terminalId, data.barcode);
   }
 
   @Post('void')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Void a taquilla sale (requires manager PIN)' })
-  async voidOrder(@Body() data: VoidOrderDto) {
-    return await this.posService.voidOrder(data);
+  voidOrder(@Body() data: VoidOrderDto) {
+    return this.posService.voidOrder(data);
   }
 
   @Post('willcall/lookup')
+  @Roles(...POS_READERS)
+  @Permissions('order:read')
   @ApiOperation({ summary: 'Lookup orders for will-call pickup' })
-  async willcallLookup(@Body() data: WillcallLookupDto) {
-    return await this.posService.willcallLookup(data.q, data.organizationId);
+  willcallLookup(@Body() data: WillcallLookupDto) {
+    return this.posService.willcallLookup(data.q, data.organizationId);
   }
 
   @Post('willcall/fulfill')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Mark will-call order as picked up' })
-  async willcallFulfill(@Body() data: WillcallFulfillDto) {
-    return await this.posService.willcallFulfill(data.orderId, data.cashierId, data.terminalId);
+  willcallFulfill(@Body() data: WillcallFulfillDto) {
+    return this.posService.willcallFulfill(
+      data.orderId,
+      data.cashierId,
+      data.terminalId,
+    );
   }
 
   @Post('exchange')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Exchange / upgrade seats (void + new sale)' })
-  async exchange(@Body() data: ExchangeDto) {
-    return await this.posService.exchange(data);
+  exchange(@Body() data: ExchangeDto) {
+    return this.posService.exchange(data);
   }
 
   @Post('session/cash-drop')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Record mid-shift cash drawer drop' })
-  async cashDrop(@Body() data: CashDropDto) {
-    return await this.posService.addCashDrop(data.sessionId, data.amount, data.cashierId, data.note);
+  cashDrop(@Body() data: CashDropDto) {
+    return this.posService.addCashDrop(
+      data.sessionId,
+      data.amount,
+      data.cashierId,
+      data.note,
+    );
   }
 
   @Post('session/handoff')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Close current shift and open for another cashier' })
-  async handoff(@Body() data: HandoffDto) {
-    return await this.posService.handoff(data);
+  handoff(@Body() data: HandoffDto) {
+    return this.posService.handoff(data);
   }
 
   @Post('manager-pin')
-  @UseGuards(JwtAuthGuard, RolesGuard, OrgAccessGuard)
-  @Roles('ADMIN', 'SUPER_ADMIN', 'VENUE_MANAGER', 'PROMOTER')
+  @Roles(...POS_MANAGERS)
   @ApiOperation({ summary: 'Set organization manager PIN' })
-  async setManagerPin(@Body() data: ManagerPinDto) {
-    return await this.posService.setManagerPin(data.organizationId, data.pin, data.currentPin);
+  setManagerPin(@Body() data: ManagerPinDto) {
+    return this.posService.setManagerPin(
+      data.organizationId,
+      data.pin,
+      data.currentPin,
+    );
   }
 
   @Post('manager-pin/verify')
   @Throttle({ default: { limit: 8, ttl: 60_000 } })
+  @Roles(...POS_STAFF, 'VENUE_MANAGER', 'PROMOTER')
   @ApiOperation({ summary: 'Verify manager PIN' })
-  async verifyPin(@Body() data: VerifyPinDto) {
-    return await this.posService.verifyManagerPin(data.organizationId, data.pin);
+  verifyPin(@Body() data: VerifyPinDto) {
+    return this.posService.verifyManagerPin(data.organizationId, data.pin);
   }
 
   @Get('z-reports')
+  @Roles(...POS_READERS)
+  @Permissions('order:read')
   @ApiOperation({ summary: 'List archived Z-reports for organization' })
-  async zReports(@Query('organizationId') organizationId: string) {
-    return await this.posService.listZReports(organizationId);
+  zReports(@Query() query: ZReportsQueryDto) {
+    return this.posService.listZReports(
+      query.organizationId,
+      query.take,
+      query.skip,
+    );
   }
 
   @Post('sync-inventory')
+  @Roles(...POS_READERS)
+  @Permissions('order:read')
   @ApiOperation({ summary: 'Sync inventory with terminal' })
-  async syncInventory(@Body() data: { terminalId: string; eventId: string }) {
-    return await this.posService.syncInventory(data.terminalId, data.eventId);
+  syncInventory(@Body() data: SyncInventoryDto) {
+    return this.posService.syncInventory(data.terminalId, data.eventId);
   }
 
   @Post('offline/enable/:terminalId')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Enable offline mode' })
-  async enableOffline(@Param('terminalId') terminalId: string) {
-    return await this.posService.enableOfflineMode(terminalId);
+  enableOffline(@Param() params: TerminalIdParamDto) {
+    return this.posService.enableOfflineMode(params.terminalId);
   }
 
   @Post('offline/sync/:terminalId')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'Sync offline transactions' })
-  async syncOffline(
-    @Param('terminalId') terminalId: string,
+  syncOffline(
+    @Param() params: TerminalIdParamDto,
     @Body() data: SyncOfflineDto,
   ) {
-    return await this.posService.syncOfflineTransactions(terminalId, data.transactions);
+    return this.posService.syncOfflineTransactions(
+      params.terminalId,
+      data.transactions,
+    );
   }
 
   @Post('session/end')
+  @Permissions('order:write')
   @ApiOperation({ summary: 'End cashier session with cash count (Z-report)' })
-  async endSession(@Body() data: EndSessionDto) {
-    return await this.posService.endCashierSession(
+  endSession(@Body() data: EndSessionDto) {
+    return this.posService.endCashierSession(
       data.sessionId,
       data.cashierId,
       data.closingCashCounted,
@@ -194,17 +259,18 @@ export class TaquillaPosController {
   }
 
   @Get('session/summary')
+  @Roles(...POS_READERS)
+  @Permissions('order:read')
   @ApiOperation({ summary: 'Live shift summary for open session' })
-  async sessionSummary(@Query('sessionId') sessionId: string) {
-    return await this.posService.getSessionSummary(sessionId);
+  sessionSummary(@Query() query: SessionSummaryQueryDto) {
+    return this.posService.getSessionSummary(query.sessionId);
   }
 
   @Get('analytics/:terminalId/:period')
+  @Roles(...POS_READERS)
+  @Permissions('order:read')
   @ApiOperation({ summary: 'Terminal analytics' })
-  async getAnalytics(
-    @Param('terminalId') terminalId: string,
-    @Param('period') period: 'TODAY' | 'WEEK' | 'MONTH',
-  ) {
-    return await this.posService.getTerminalAnalytics(terminalId, period);
+  getAnalytics(@Param() params: AnalyticsParamsDto) {
+    return this.posService.getTerminalAnalytics(params.terminalId, params.period);
   }
 }

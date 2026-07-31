@@ -42,6 +42,143 @@
   min-width: 10rem;
 }
 
+.filter {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.8125rem;
+  color: #0a0a0a;
+  cursor: pointer;
+}
+
+.legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  font-size: 0.72rem;
+  color: #52525b;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+}
+
+.stateDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stateChip {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 5px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.warn {
+  color: #b91c1c;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.blackout {
+  background: repeating-linear-gradient(
+    45deg,
+    #fafafa,
+    #fafafa 6px,
+    #f4f4f5 6px,
+    #f4f4f5 12px
+  );
+}
+
+.weekGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.4rem;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.weekColumn {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 0.5rem;
+  min-height: 10rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #71717a;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid #f4f4f5;
+
+    span {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #18181b;
+    }
+  }
+}
+
+.weekCard {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 0 0.35rem;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  font-size: 0.72rem;
+
+  &:hover {
+    border-color: #a3a3a3;
+  }
+
+  strong {
+    font-size: 0.72rem;
+    color: #e11d48;
+  }
+
+  span:last-of-type {
+    grid-column: 1 / -1;
+    line-height: 1.25;
+  }
+
+  small {
+    grid-column: 1 / -1;
+    color: #71717a;
+  }
+}
+
 .todayBtn {
   width: auto !important;
   padding: 0 0.75rem !important;
@@ -126,6 +263,7 @@
 
 .dots li {
   display: flex;
+  align-items: center;
   gap: 0.25rem;
   font-size: 0.62rem;
   line-height: 1.2;

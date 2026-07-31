@@ -21,6 +21,7 @@ import {
   AccessModule,
   SeatMapping3DModule,
   EventManagementModule,
+  EventSchedulingModule,
   ChannelManagementModule,
   TaquillaPosModule,
   LayoutManagementModule,
@@ -35,6 +36,8 @@ import {
   BillingModule,
   SeasonModule,
 } from './modules';
+import { MetricsModule } from './modules/metrics/metrics.module';
+import { AiEngineModule } from './modules/ai-engine/ai-engine.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -81,6 +84,7 @@ import { AppService } from './app.service';
     AccessModule,
     SeatMapping3DModule,
     EventManagementModule,
+    EventSchedulingModule,
     ChannelManagementModule,
     TaquillaPosModule,
     LayoutManagementModule,
@@ -94,6 +98,8 @@ import { AppService } from './app.service';
     PartnersModule,
     BillingModule,
     SeasonModule,
+    MetricsModule,
+    AiEngineModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

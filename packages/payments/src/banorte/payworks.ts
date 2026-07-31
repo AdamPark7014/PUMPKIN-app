@@ -1,18 +1,48 @@
-import { createHmac } from 'crypto';
+import { createHmac } from 'node:crypto';
+import {
+  CURRENCY_NUMERIC_CODES,
+  toCurrencyCode,
+  toGatewayAmountString,
+  toMinorUnits,
+  moneyFromMinor,
+  type CurrencyCode,
+  type MoneyAmount,
+} from '@boletera/shared';
 import type { BanorteConfig } from './config';
+import { parseBanorteStatusText } from './webhook';
+import type { WebhookStatus } from '../types';
 
 export type PayworksChargeParams = {
   orderId: string;
   publicId: string;
+  /** Major-unit amount (legacy). Prefer amountMinor when available. */
   amount: number;
+  amountMinor?: number;
   currency: string;
   buyerEmail: string;
   buyerName: string;
 };
 
-/** Parámetros típicos Payworks / 3-D Secure Banorte (ajusta con el manual de tu afiliación). */
+export { verifyBanorteWebhookSignature, parseBanorteStatusText } from './webhook';
+
+function resolveMoney(params: PayworksChargeParams): MoneyAmount {
+  const currency: CurrencyCode = toCurrencyCode(params.currency);
+  if (params.amountMinor !== undefined) {
+    return moneyFromMinor(params.amountMinor, currency);
+  }
+  return moneyFromMinor(toMinorUnits(params.amount, currency), currency);
+}
+
+/**
+ * Build Payworks 3-D Secure redirect URL.
+ *
+ * WARNING: The URL query includes USUARIO (and optionally FIRMA).
+ * Never log the returned URL — use `redactForLog` if you must record metadata.
+ */
 export function buildPayworksRedirectUrl(cfg: BanorteConfig, params: PayworksChargeParams): string {
-  const amount = params.amount.toFixed(2);
+  const money = resolveMoney(params);
+  const currency = money.currency;
+  const importe = toGatewayAmountString(money);
   const reference = params.publicId.replace(/[^A-Za-z0-9]/g, '').slice(0, 20);
 
   const query = new URLSearchParams({
@@ -20,8 +50,8 @@ export function buildPayworksRedirectUrl(cfg: BanorteConfig, params: PayworksCha
     ID_TERMINAL: cfg.terminal,
     USUARIO: cfg.user,
     REFERENCIA: reference,
-    IMPORTE: amount,
-    MONEDA: params.currency === 'USD' ? '840' : '484',
+    IMPORTE: importe,
+    MONEDA: CURRENCY_NUMERIC_CODES[currency],
     CORREO: params.buyerEmail,
     NOMBRE: params.buyerName.slice(0, 60),
     URL_RESPUESTA: `${cfg.returnUrl.replace(/\/$/, '')}/orders/${params.publicId}/pago?result=ok`,
@@ -43,27 +73,13 @@ function signPayworksPayload(payload: string, secret: string): string {
   return createHmac('sha256', secret).update(payload).digest('hex');
 }
 
-export function verifyBanorteWebhookSignature(
-  body: string,
-  signature: string | undefined,
-  secret: string,
-): boolean {
-  const isProd = process.env.NODE_ENV === 'production';
-  if (!secret) {
-    // Soft-allow only in demo/dev; production must set BANORTE_WEBHOOK_SECRET
-    return !isProd;
-  }
-  if (!signature) return false;
-  const expected = createHmac('sha256', secret).update(body).digest('hex');
-  return expected === signature || expected === signature.toLowerCase();
-}
+export type BanorteQueryStatus = WebhookStatus;
 
-/** Referencia SPEI única ligada a la orden (abono a cuenta Banorte). */
 /** Consulta estado de transacción (ajusta URL según manual Payworks de tu afiliación). */
 export async function queryBanorteTransactionStatus(
   cfg: BanorteConfig,
   reference: string,
-): Promise<{ status: 'completed' | 'pending' | 'failed' }> {
+): Promise<{ status: BanorteQueryStatus }> {
   if (cfg.isDemo || !cfg.user || !cfg.password) {
     return { status: 'pending' };
   }
@@ -84,24 +100,13 @@ export async function queryBanorteTransactionStatus(
 
     const res = await fetch(`${queryUrl}?${params.toString()}`, { method: 'GET' });
     const text = await res.text();
-    const lower = text.toLowerCase();
-    if (
-      lower.includes('aprobada') ||
-      lower.includes('approved') ||
-      lower.includes('"00"') ||
-      lower.includes('exitoso')
-    ) {
-      return { status: 'completed' };
-    }
-    if (lower.includes('rechaz') || lower.includes('declined') || lower.includes('failed')) {
-      return { status: 'failed' };
-    }
-    return { status: 'pending' };
+    return { status: parseBanorteStatusText(text) };
   } catch {
     return { status: 'pending' };
   }
 }
 
+/** Referencia SPEI única ligada a la orden (abono a cuenta Banorte). */
 export function buildSpeiReference(publicId: string, accountClabe: string): {
   clabe: string;
   concept: string;

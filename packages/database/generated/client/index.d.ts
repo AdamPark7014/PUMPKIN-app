@@ -612,6 +612,34 @@ export const CfdiStatus: {
 
 export type CfdiStatus = (typeof CfdiStatus)[keyof typeof CfdiStatus]
 
+
+export const PosTerminalStatus: {
+  READY: 'READY',
+  OFFLINE: 'OFFLINE',
+  DISABLED: 'DISABLED',
+  MAINTENANCE: 'MAINTENANCE'
+};
+
+export type PosTerminalStatus = (typeof PosTerminalStatus)[keyof typeof PosTerminalStatus]
+
+
+export const PosSessionStatus: {
+  ACTIVE: 'ACTIVE',
+  CLOSED: 'CLOSED'
+};
+
+export type PosSessionStatus = (typeof PosSessionStatus)[keyof typeof PosSessionStatus]
+
+
+export const SeasonPassPurchaseStatus: {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED'
+};
+
+export type SeasonPassPurchaseStatus = (typeof SeasonPassPurchaseStatus)[keyof typeof SeasonPassPurchaseStatus]
+
 }
 
 export type OrgType = $Enums.OrgType
@@ -733,6 +761,18 @@ export const TransferStatus: typeof $Enums.TransferStatus
 export type CfdiStatus = $Enums.CfdiStatus
 
 export const CfdiStatus: typeof $Enums.CfdiStatus
+
+export type PosTerminalStatus = $Enums.PosTerminalStatus
+
+export const PosTerminalStatus: typeof $Enums.PosTerminalStatus
+
+export type PosSessionStatus = $Enums.PosSessionStatus
+
+export const PosSessionStatus: typeof $Enums.PosSessionStatus
+
+export type SeasonPassPurchaseStatus = $Enums.SeasonPassPurchaseStatus
+
+export const SeasonPassPurchaseStatus: typeof $Enums.SeasonPassPurchaseStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -5563,6 +5603,7 @@ export namespace Prisma {
     seasonPasses: number
     eventSeries: number
     blackouts: number
+    accessZones: number
   }
 
   export type VenueCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5571,6 +5612,7 @@ export namespace Prisma {
     seasonPasses?: boolean | VenueCountOutputTypeCountSeasonPassesArgs
     eventSeries?: boolean | VenueCountOutputTypeCountEventSeriesArgs
     blackouts?: boolean | VenueCountOutputTypeCountBlackoutsArgs
+    accessZones?: boolean | VenueCountOutputTypeCountAccessZonesArgs
   }
 
   // Custom InputTypes
@@ -5617,6 +5659,13 @@ export namespace Prisma {
    */
   export type VenueCountOutputTypeCountBlackoutsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: VenueBlackoutWhereInput
+  }
+
+  /**
+   * VenueCountOutputType without action
+   */
+  export type VenueCountOutputTypeCountAccessZonesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AccessZoneWhereInput
   }
 
 
@@ -6001,11 +6050,13 @@ export namespace Prisma {
   export type TicketCountOutputType = {
     fraudFlags: number
     transfers: number
+    scans: number
   }
 
   export type TicketCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     fraudFlags?: boolean | TicketCountOutputTypeCountFraudFlagsArgs
     transfers?: boolean | TicketCountOutputTypeCountTransfersArgs
+    scans?: boolean | TicketCountOutputTypeCountScansArgs
   }
 
   // Custom InputTypes
@@ -6031,6 +6082,13 @@ export namespace Prisma {
    */
   export type TicketCountOutputTypeCountTransfersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: TicketTransferWhereInput
+  }
+
+  /**
+   * TicketCountOutputType without action
+   */
+  export type TicketCountOutputTypeCountScansArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TicketScanWhereInput
   }
 
 
@@ -8532,6 +8590,7 @@ export namespace Prisma {
     seasonPasses?: boolean | Venue$seasonPassesArgs<ExtArgs>
     eventSeries?: boolean | Venue$eventSeriesArgs<ExtArgs>
     blackouts?: boolean | Venue$blackoutsArgs<ExtArgs>
+    accessZones?: boolean | Venue$accessZonesArgs<ExtArgs>
     _count?: boolean | VenueCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["venue"]>
 
@@ -8626,6 +8685,7 @@ export namespace Prisma {
     seasonPasses?: boolean | Venue$seasonPassesArgs<ExtArgs>
     eventSeries?: boolean | Venue$eventSeriesArgs<ExtArgs>
     blackouts?: boolean | Venue$blackoutsArgs<ExtArgs>
+    accessZones?: boolean | Venue$accessZonesArgs<ExtArgs>
     _count?: boolean | VenueCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type VenueIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8644,6 +8704,7 @@ export namespace Prisma {
       seasonPasses: Prisma.$SeasonPassPayload<ExtArgs>[]
       eventSeries: Prisma.$EventSeriesPayload<ExtArgs>[]
       blackouts: Prisma.$VenueBlackoutPayload<ExtArgs>[]
+      accessZones: Prisma.$AccessZonePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -9070,6 +9131,7 @@ export namespace Prisma {
     seasonPasses<T extends Venue$seasonPassesArgs<ExtArgs> = {}>(args?: Subset<T, Venue$seasonPassesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SeasonPassPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     eventSeries<T extends Venue$eventSeriesArgs<ExtArgs> = {}>(args?: Subset<T, Venue$eventSeriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EventSeriesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     blackouts<T extends Venue$blackoutsArgs<ExtArgs> = {}>(args?: Subset<T, Venue$blackoutsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VenueBlackoutPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    accessZones<T extends Venue$accessZonesArgs<ExtArgs> = {}>(args?: Subset<T, Venue$accessZonesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AccessZonePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -9636,6 +9698,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: VenueBlackoutScalarFieldEnum | VenueBlackoutScalarFieldEnum[]
+  }
+
+  /**
+   * Venue.accessZones
+   */
+  export type Venue$accessZonesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccessZone
+     */
+    select?: AccessZoneSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccessZone
+     */
+    omit?: AccessZoneOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccessZoneInclude<ExtArgs> | null
+    where?: AccessZoneWhereInput
+    orderBy?: AccessZoneOrderByWithRelationInput | AccessZoneOrderByWithRelationInput[]
+    cursor?: AccessZoneWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AccessZoneScalarFieldEnum | AccessZoneScalarFieldEnum[]
   }
 
   /**
@@ -18087,6 +18173,7 @@ export namespace Prisma {
     slug?: boolean
     capacity?: boolean
     createdAt?: boolean
+    venue?: boolean | VenueDefaultArgs<ExtArgs>
     scans?: boolean | AccessZone$scansArgs<ExtArgs>
     _count?: boolean | AccessZoneCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["accessZone"]>
@@ -18098,6 +18185,7 @@ export namespace Prisma {
     slug?: boolean
     capacity?: boolean
     createdAt?: boolean
+    venue?: boolean | VenueDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["accessZone"]>
 
   export type AccessZoneSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -18107,6 +18195,7 @@ export namespace Prisma {
     slug?: boolean
     capacity?: boolean
     createdAt?: boolean
+    venue?: boolean | VenueDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["accessZone"]>
 
   export type AccessZoneSelectScalar = {
@@ -18120,15 +18209,21 @@ export namespace Prisma {
 
   export type AccessZoneOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "venueId" | "name" | "slug" | "capacity" | "createdAt", ExtArgs["result"]["accessZone"]>
   export type AccessZoneInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    venue?: boolean | VenueDefaultArgs<ExtArgs>
     scans?: boolean | AccessZone$scansArgs<ExtArgs>
     _count?: boolean | AccessZoneCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type AccessZoneIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
-  export type AccessZoneIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type AccessZoneIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    venue?: boolean | VenueDefaultArgs<ExtArgs>
+  }
+  export type AccessZoneIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    venue?: boolean | VenueDefaultArgs<ExtArgs>
+  }
 
   export type $AccessZonePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "AccessZone"
     objects: {
+      venue: Prisma.$VenuePayload<ExtArgs>
       scans: Prisma.$TicketScanPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -18532,6 +18627,7 @@ export namespace Prisma {
    */
   export interface Prisma__AccessZoneClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    venue<T extends VenueDefaultArgs<ExtArgs> = {}>(args?: Subset<T, VenueDefaultArgs<ExtArgs>>): Prisma__VenueClient<$Result.GetResult<Prisma.$VenuePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     scans<T extends AccessZone$scansArgs<ExtArgs> = {}>(args?: Subset<T, AccessZone$scansArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TicketScanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -18817,6 +18913,10 @@ export namespace Prisma {
      */
     data: AccessZoneCreateManyInput | AccessZoneCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccessZoneIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -18887,6 +18987,10 @@ export namespace Prisma {
      * Limit how many AccessZones to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccessZoneIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -19186,6 +19290,7 @@ export namespace Prisma {
     success?: boolean
     reason?: boolean
     scannedAt?: boolean
+    ticket?: boolean | TicketDefaultArgs<ExtArgs>
     zone?: boolean | TicketScan$zoneArgs<ExtArgs>
   }, ExtArgs["result"]["ticketScan"]>
 
@@ -19198,6 +19303,7 @@ export namespace Prisma {
     success?: boolean
     reason?: boolean
     scannedAt?: boolean
+    ticket?: boolean | TicketDefaultArgs<ExtArgs>
     zone?: boolean | TicketScan$zoneArgs<ExtArgs>
   }, ExtArgs["result"]["ticketScan"]>
 
@@ -19210,6 +19316,7 @@ export namespace Prisma {
     success?: boolean
     reason?: boolean
     scannedAt?: boolean
+    ticket?: boolean | TicketDefaultArgs<ExtArgs>
     zone?: boolean | TicketScan$zoneArgs<ExtArgs>
   }, ExtArgs["result"]["ticketScan"]>
 
@@ -19226,18 +19333,22 @@ export namespace Prisma {
 
   export type TicketScanOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "ticketId" | "zoneId" | "scannedBy" | "channel" | "success" | "reason" | "scannedAt", ExtArgs["result"]["ticketScan"]>
   export type TicketScanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ticket?: boolean | TicketDefaultArgs<ExtArgs>
     zone?: boolean | TicketScan$zoneArgs<ExtArgs>
   }
   export type TicketScanIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ticket?: boolean | TicketDefaultArgs<ExtArgs>
     zone?: boolean | TicketScan$zoneArgs<ExtArgs>
   }
   export type TicketScanIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ticket?: boolean | TicketDefaultArgs<ExtArgs>
     zone?: boolean | TicketScan$zoneArgs<ExtArgs>
   }
 
   export type $TicketScanPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "TicketScan"
     objects: {
+      ticket: Prisma.$TicketPayload<ExtArgs>
       zone: Prisma.$AccessZonePayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -19643,6 +19754,7 @@ export namespace Prisma {
    */
   export interface Prisma__TicketScanClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    ticket<T extends TicketDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TicketDefaultArgs<ExtArgs>>): Prisma__TicketClient<$Result.GetResult<Prisma.$TicketPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     zone<T extends TicketScan$zoneArgs<ExtArgs> = {}>(args?: Subset<T, TicketScan$zoneArgs<ExtArgs>>): Prisma__AccessZoneClient<$Result.GetResult<Prisma.$AccessZonePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -30689,6 +30801,7 @@ export namespace Prisma {
     resaleListing?: boolean | Ticket$resaleListingArgs<ExtArgs>
     fraudFlags?: boolean | Ticket$fraudFlagsArgs<ExtArgs>
     transfers?: boolean | Ticket$transfersArgs<ExtArgs>
+    scans?: boolean | Ticket$scansArgs<ExtArgs>
     _count?: boolean | TicketCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["ticket"]>
 
@@ -30775,6 +30888,7 @@ export namespace Prisma {
     resaleListing?: boolean | Ticket$resaleListingArgs<ExtArgs>
     fraudFlags?: boolean | Ticket$fraudFlagsArgs<ExtArgs>
     transfers?: boolean | Ticket$transfersArgs<ExtArgs>
+    scans?: boolean | Ticket$scansArgs<ExtArgs>
     _count?: boolean | TicketCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type TicketIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -30800,6 +30914,7 @@ export namespace Prisma {
       resaleListing: Prisma.$ResaleListingPayload<ExtArgs> | null
       fraudFlags: Prisma.$FraudFlagPayload<ExtArgs>[]
       transfers: Prisma.$TicketTransferPayload<ExtArgs>[]
+      scans: Prisma.$TicketScanPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -31222,6 +31337,7 @@ export namespace Prisma {
     resaleListing<T extends Ticket$resaleListingArgs<ExtArgs> = {}>(args?: Subset<T, Ticket$resaleListingArgs<ExtArgs>>): Prisma__ResaleListingClient<$Result.GetResult<Prisma.$ResaleListingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     fraudFlags<T extends Ticket$fraudFlagsArgs<ExtArgs> = {}>(args?: Subset<T, Ticket$fraudFlagsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FraudFlagPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     transfers<T extends Ticket$transfersArgs<ExtArgs> = {}>(args?: Subset<T, Ticket$transfersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TicketTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    scans<T extends Ticket$scansArgs<ExtArgs> = {}>(args?: Subset<T, Ticket$scansArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TicketScanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -31768,6 +31884,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: TicketTransferScalarFieldEnum | TicketTransferScalarFieldEnum[]
+  }
+
+  /**
+   * Ticket.scans
+   */
+  export type Ticket$scansArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TicketScan
+     */
+    select?: TicketScanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TicketScan
+     */
+    omit?: TicketScanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TicketScanInclude<ExtArgs> | null
+    where?: TicketScanWhereInput
+    orderBy?: TicketScanOrderByWithRelationInput | TicketScanOrderByWithRelationInput[]
+    cursor?: TicketScanWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TicketScanScalarFieldEnum | TicketScanScalarFieldEnum[]
   }
 
   /**
@@ -39513,7 +39653,7 @@ export namespace Prisma {
     organizationId: string | null
     name: string | null
     locationName: string | null
-    status: string | null
+    status: $Enums.PosTerminalStatus | null
     offlineMode: boolean | null
     lastSyncAt: Date | null
     createdAt: Date | null
@@ -39525,7 +39665,7 @@ export namespace Prisma {
     organizationId: string | null
     name: string | null
     locationName: string | null
-    status: string | null
+    status: $Enums.PosTerminalStatus | null
     offlineMode: boolean | null
     lastSyncAt: Date | null
     createdAt: Date | null
@@ -39664,7 +39804,7 @@ export namespace Prisma {
     organizationId: string
     name: string
     locationName: string
-    status: string
+    status: $Enums.PosTerminalStatus
     hardwareConfig: JsonValue | null
     offlineMode: boolean
     lastSyncAt: Date | null
@@ -39775,7 +39915,7 @@ export namespace Prisma {
       organizationId: string
       name: string
       locationName: string
-      status: string
+      status: $Enums.PosTerminalStatus
       hardwareConfig: Prisma.JsonValue | null
       offlineMode: boolean
       lastSyncAt: Date | null
@@ -40211,7 +40351,7 @@ export namespace Prisma {
     readonly organizationId: FieldRef<"PosTerminal", 'String'>
     readonly name: FieldRef<"PosTerminal", 'String'>
     readonly locationName: FieldRef<"PosTerminal", 'String'>
-    readonly status: FieldRef<"PosTerminal", 'String'>
+    readonly status: FieldRef<"PosTerminal", 'PosTerminalStatus'>
     readonly hardwareConfig: FieldRef<"PosTerminal", 'Json'>
     readonly offlineMode: FieldRef<"PosTerminal", 'Boolean'>
     readonly lastSyncAt: FieldRef<"PosTerminal", 'DateTime'>
@@ -40670,7 +40810,7 @@ export namespace Prisma {
     id: string | null
     terminalId: string | null
     cashierId: string | null
-    status: string | null
+    status: $Enums.PosSessionStatus | null
     startedAt: Date | null
     endedAt: Date | null
   }
@@ -40679,7 +40819,7 @@ export namespace Prisma {
     id: string | null
     terminalId: string | null
     cashierId: string | null
-    status: string | null
+    status: $Enums.PosSessionStatus | null
     startedAt: Date | null
     endedAt: Date | null
   }
@@ -40801,7 +40941,7 @@ export namespace Prisma {
     id: string
     terminalId: string
     cashierId: string
-    status: string
+    status: $Enums.PosSessionStatus
     startedAt: Date
     endedAt: Date | null
     metadata: JsonValue | null
@@ -40887,7 +41027,7 @@ export namespace Prisma {
       id: string
       terminalId: string
       cashierId: string
-      status: string
+      status: $Enums.PosSessionStatus
       startedAt: Date
       endedAt: Date | null
       metadata: Prisma.JsonValue | null
@@ -41318,7 +41458,7 @@ export namespace Prisma {
     readonly id: FieldRef<"PosCashierSession", 'String'>
     readonly terminalId: FieldRef<"PosCashierSession", 'String'>
     readonly cashierId: FieldRef<"PosCashierSession", 'String'>
-    readonly status: FieldRef<"PosCashierSession", 'String'>
+    readonly status: FieldRef<"PosCashierSession", 'PosSessionStatus'>
     readonly startedAt: FieldRef<"PosCashierSession", 'DateTime'>
     readonly endedAt: FieldRef<"PosCashierSession", 'DateTime'>
     readonly metadata: FieldRef<"PosCashierSession", 'Json'>
@@ -61937,7 +62077,7 @@ export namespace Prisma {
     buyerName: string | null
     quantity: number | null
     totalAmount: Decimal | null
-    status: string | null
+    status: $Enums.SeasonPassPurchaseStatus | null
     seatSection: string | null
     createdAt: Date | null
   }
@@ -61950,7 +62090,7 @@ export namespace Prisma {
     buyerName: string | null
     quantity: number | null
     totalAmount: Decimal | null
-    status: string | null
+    status: $Enums.SeasonPassPurchaseStatus | null
     seatSection: string | null
     createdAt: Date | null
   }
@@ -62114,7 +62254,7 @@ export namespace Prisma {
     buyerName: string
     quantity: number
     totalAmount: Decimal
-    status: string
+    status: $Enums.SeasonPassPurchaseStatus
     seatSection: string | null
     createdAt: Date
     _count: SeasonPassPurchaseCountAggregateOutputType | null
@@ -62217,7 +62357,7 @@ export namespace Prisma {
       buyerName: string
       quantity: number
       totalAmount: Prisma.Decimal
-      status: string
+      status: $Enums.SeasonPassPurchaseStatus
       seatSection: string | null
       createdAt: Date
     }, ExtArgs["result"]["seasonPassPurchase"]>
@@ -62651,7 +62791,7 @@ export namespace Prisma {
     readonly buyerName: FieldRef<"SeasonPassPurchase", 'String'>
     readonly quantity: FieldRef<"SeasonPassPurchase", 'Int'>
     readonly totalAmount: FieldRef<"SeasonPassPurchase", 'Decimal'>
-    readonly status: FieldRef<"SeasonPassPurchase", 'String'>
+    readonly status: FieldRef<"SeasonPassPurchase", 'SeasonPassPurchaseStatus'>
     readonly seatSection: FieldRef<"SeasonPassPurchase", 'String'>
     readonly createdAt: FieldRef<"SeasonPassPurchase", 'DateTime'>
   }
@@ -64391,6 +64531,34 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'PosTerminalStatus'
+   */
+  export type EnumPosTerminalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PosTerminalStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PosTerminalStatus[]'
+   */
+  export type ListEnumPosTerminalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PosTerminalStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PosSessionStatus'
+   */
+  export type EnumPosSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PosSessionStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PosSessionStatus[]'
+   */
+  export type ListEnumPosSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PosSessionStatus[]'>
+    
+
+
+  /**
    * Reference to a field of type 'ResaleStatus'
    */
   export type EnumResaleStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ResaleStatus'>
@@ -64527,6 +64695,20 @@ export namespace Prisma {
    * Reference to a field of type 'CfdiStatus[]'
    */
   export type ListEnumCfdiStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CfdiStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'SeasonPassPurchaseStatus'
+   */
+  export type EnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeasonPassPurchaseStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'SeasonPassPurchaseStatus[]'
+   */
+  export type ListEnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeasonPassPurchaseStatus[]'>
     
   /**
    * Deep Input Types
@@ -64807,6 +64989,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassListRelationFilter
     eventSeries?: EventSeriesListRelationFilter
     blackouts?: VenueBlackoutListRelationFilter
+    accessZones?: AccessZoneListRelationFilter
   }
 
   export type VenueOrderByWithRelationInput = {
@@ -64840,6 +65023,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassOrderByRelationAggregateInput
     eventSeries?: EventSeriesOrderByRelationAggregateInput
     blackouts?: VenueBlackoutOrderByRelationAggregateInput
+    accessZones?: AccessZoneOrderByRelationAggregateInput
   }
 
   export type VenueWhereUniqueInput = Prisma.AtLeast<{
@@ -64876,6 +65060,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassListRelationFilter
     eventSeries?: EventSeriesListRelationFilter
     blackouts?: VenueBlackoutListRelationFilter
+    accessZones?: AccessZoneListRelationFilter
   }, "id" | "externalId" | "slug">
 
   export type VenueOrderByWithAggregationInput = {
@@ -65528,6 +65713,7 @@ export namespace Prisma {
     slug?: StringFilter<"AccessZone"> | string
     capacity?: IntNullableFilter<"AccessZone"> | number | null
     createdAt?: DateTimeFilter<"AccessZone"> | Date | string
+    venue?: XOR<VenueScalarRelationFilter, VenueWhereInput>
     scans?: TicketScanListRelationFilter
   }
 
@@ -65538,6 +65724,7 @@ export namespace Prisma {
     slug?: SortOrder
     capacity?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    venue?: VenueOrderByWithRelationInput
     scans?: TicketScanOrderByRelationAggregateInput
   }
 
@@ -65552,6 +65739,7 @@ export namespace Prisma {
     slug?: StringFilter<"AccessZone"> | string
     capacity?: IntNullableFilter<"AccessZone"> | number | null
     createdAt?: DateTimeFilter<"AccessZone"> | Date | string
+    venue?: XOR<VenueScalarRelationFilter, VenueWhereInput>
     scans?: TicketScanListRelationFilter
   }, "id" | "venueId_slug">
 
@@ -65593,6 +65781,7 @@ export namespace Prisma {
     success?: BoolFilter<"TicketScan"> | boolean
     reason?: StringNullableFilter<"TicketScan"> | string | null
     scannedAt?: DateTimeFilter<"TicketScan"> | Date | string
+    ticket?: XOR<TicketScalarRelationFilter, TicketWhereInput>
     zone?: XOR<AccessZoneNullableScalarRelationFilter, AccessZoneWhereInput> | null
   }
 
@@ -65605,6 +65794,7 @@ export namespace Prisma {
     success?: SortOrder
     reason?: SortOrderInput | SortOrder
     scannedAt?: SortOrder
+    ticket?: TicketOrderByWithRelationInput
     zone?: AccessZoneOrderByWithRelationInput
   }
 
@@ -65620,6 +65810,7 @@ export namespace Prisma {
     success?: BoolFilter<"TicketScan"> | boolean
     reason?: StringNullableFilter<"TicketScan"> | string | null
     scannedAt?: DateTimeFilter<"TicketScan"> | Date | string
+    ticket?: XOR<TicketScalarRelationFilter, TicketWhereInput>
     zone?: XOR<AccessZoneNullableScalarRelationFilter, AccessZoneWhereInput> | null
   }, "id">
 
@@ -66653,6 +66844,7 @@ export namespace Prisma {
     resaleListing?: XOR<ResaleListingNullableScalarRelationFilter, ResaleListingWhereInput> | null
     fraudFlags?: FraudFlagListRelationFilter
     transfers?: TicketTransferListRelationFilter
+    scans?: TicketScanListRelationFilter
   }
 
   export type TicketOrderByWithRelationInput = {
@@ -66682,11 +66874,13 @@ export namespace Prisma {
     resaleListing?: ResaleListingOrderByWithRelationInput
     fraudFlags?: FraudFlagOrderByRelationAggregateInput
     transfers?: TicketTransferOrderByRelationAggregateInput
+    scans?: TicketScanOrderByRelationAggregateInput
   }
 
   export type TicketWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     code?: string
+    eventId_seatId?: TicketEventIdSeatIdCompoundUniqueInput
     AND?: TicketWhereInput | TicketWhereInput[]
     OR?: TicketWhereInput[]
     NOT?: TicketWhereInput | TicketWhereInput[]
@@ -66714,7 +66908,8 @@ export namespace Prisma {
     resaleListing?: XOR<ResaleListingNullableScalarRelationFilter, ResaleListingWhereInput> | null
     fraudFlags?: FraudFlagListRelationFilter
     transfers?: TicketTransferListRelationFilter
-  }, "id" | "code">
+    scans?: TicketScanListRelationFilter
+  }, "id" | "code" | "eventId_seatId">
 
   export type TicketOrderByWithAggregationInput = {
     id?: SortOrder
@@ -67462,7 +67657,7 @@ export namespace Prisma {
     organizationId?: StringFilter<"PosTerminal"> | string
     name?: StringFilter<"PosTerminal"> | string
     locationName?: StringFilter<"PosTerminal"> | string
-    status?: StringFilter<"PosTerminal"> | string
+    status?: EnumPosTerminalStatusFilter<"PosTerminal"> | $Enums.PosTerminalStatus
     hardwareConfig?: JsonNullableFilter<"PosTerminal">
     offlineMode?: BoolFilter<"PosTerminal"> | boolean
     lastSyncAt?: DateTimeNullableFilter<"PosTerminal"> | Date | string | null
@@ -67497,7 +67692,7 @@ export namespace Prisma {
     organizationId?: StringFilter<"PosTerminal"> | string
     name?: StringFilter<"PosTerminal"> | string
     locationName?: StringFilter<"PosTerminal"> | string
-    status?: StringFilter<"PosTerminal"> | string
+    status?: EnumPosTerminalStatusFilter<"PosTerminal"> | $Enums.PosTerminalStatus
     hardwareConfig?: JsonNullableFilter<"PosTerminal">
     offlineMode?: BoolFilter<"PosTerminal"> | boolean
     lastSyncAt?: DateTimeNullableFilter<"PosTerminal"> | Date | string | null
@@ -67533,7 +67728,7 @@ export namespace Prisma {
     organizationId?: StringWithAggregatesFilter<"PosTerminal"> | string
     name?: StringWithAggregatesFilter<"PosTerminal"> | string
     locationName?: StringWithAggregatesFilter<"PosTerminal"> | string
-    status?: StringWithAggregatesFilter<"PosTerminal"> | string
+    status?: EnumPosTerminalStatusWithAggregatesFilter<"PosTerminal"> | $Enums.PosTerminalStatus
     hardwareConfig?: JsonNullableWithAggregatesFilter<"PosTerminal">
     offlineMode?: BoolWithAggregatesFilter<"PosTerminal"> | boolean
     lastSyncAt?: DateTimeNullableWithAggregatesFilter<"PosTerminal"> | Date | string | null
@@ -67549,7 +67744,7 @@ export namespace Prisma {
     id?: StringFilter<"PosCashierSession"> | string
     terminalId?: StringFilter<"PosCashierSession"> | string
     cashierId?: StringFilter<"PosCashierSession"> | string
-    status?: StringFilter<"PosCashierSession"> | string
+    status?: EnumPosSessionStatusFilter<"PosCashierSession"> | $Enums.PosSessionStatus
     startedAt?: DateTimeFilter<"PosCashierSession"> | Date | string
     endedAt?: DateTimeNullableFilter<"PosCashierSession"> | Date | string | null
     metadata?: JsonNullableFilter<"PosCashierSession">
@@ -67574,7 +67769,7 @@ export namespace Prisma {
     NOT?: PosCashierSessionWhereInput | PosCashierSessionWhereInput[]
     terminalId?: StringFilter<"PosCashierSession"> | string
     cashierId?: StringFilter<"PosCashierSession"> | string
-    status?: StringFilter<"PosCashierSession"> | string
+    status?: EnumPosSessionStatusFilter<"PosCashierSession"> | $Enums.PosSessionStatus
     startedAt?: DateTimeFilter<"PosCashierSession"> | Date | string
     endedAt?: DateTimeNullableFilter<"PosCashierSession"> | Date | string | null
     metadata?: JsonNullableFilter<"PosCashierSession">
@@ -67601,7 +67796,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"PosCashierSession"> | string
     terminalId?: StringWithAggregatesFilter<"PosCashierSession"> | string
     cashierId?: StringWithAggregatesFilter<"PosCashierSession"> | string
-    status?: StringWithAggregatesFilter<"PosCashierSession"> | string
+    status?: EnumPosSessionStatusWithAggregatesFilter<"PosCashierSession"> | $Enums.PosSessionStatus
     startedAt?: DateTimeWithAggregatesFilter<"PosCashierSession"> | Date | string
     endedAt?: DateTimeNullableWithAggregatesFilter<"PosCashierSession"> | Date | string | null
     metadata?: JsonNullableWithAggregatesFilter<"PosCashierSession">
@@ -69180,7 +69375,7 @@ export namespace Prisma {
     buyerName?: StringFilter<"SeasonPassPurchase"> | string
     quantity?: IntFilter<"SeasonPassPurchase"> | number
     totalAmount?: DecimalFilter<"SeasonPassPurchase"> | Decimal | DecimalJsLike | number | string
-    status?: StringFilter<"SeasonPassPurchase"> | string
+    status?: EnumSeasonPassPurchaseStatusFilter<"SeasonPassPurchase"> | $Enums.SeasonPassPurchaseStatus
     seatSection?: StringNullableFilter<"SeasonPassPurchase"> | string | null
     createdAt?: DateTimeFilter<"SeasonPassPurchase"> | Date | string
     seasonPass?: XOR<SeasonPassScalarRelationFilter, SeasonPassWhereInput>
@@ -69211,7 +69406,7 @@ export namespace Prisma {
     buyerName?: StringFilter<"SeasonPassPurchase"> | string
     quantity?: IntFilter<"SeasonPassPurchase"> | number
     totalAmount?: DecimalFilter<"SeasonPassPurchase"> | Decimal | DecimalJsLike | number | string
-    status?: StringFilter<"SeasonPassPurchase"> | string
+    status?: EnumSeasonPassPurchaseStatusFilter<"SeasonPassPurchase"> | $Enums.SeasonPassPurchaseStatus
     seatSection?: StringNullableFilter<"SeasonPassPurchase"> | string | null
     createdAt?: DateTimeFilter<"SeasonPassPurchase"> | Date | string
     seasonPass?: XOR<SeasonPassScalarRelationFilter, SeasonPassWhereInput>
@@ -69246,7 +69441,7 @@ export namespace Prisma {
     buyerName?: StringWithAggregatesFilter<"SeasonPassPurchase"> | string
     quantity?: IntWithAggregatesFilter<"SeasonPassPurchase"> | number
     totalAmount?: DecimalWithAggregatesFilter<"SeasonPassPurchase"> | Decimal | DecimalJsLike | number | string
-    status?: StringWithAggregatesFilter<"SeasonPassPurchase"> | string
+    status?: EnumSeasonPassPurchaseStatusWithAggregatesFilter<"SeasonPassPurchase"> | $Enums.SeasonPassPurchaseStatus
     seatSection?: StringNullableWithAggregatesFilter<"SeasonPassPurchase"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"SeasonPassPurchase"> | Date | string
   }
@@ -69595,6 +69790,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneCreateNestedManyWithoutVenueInput
   }
 
   export type VenueUncheckedCreateInput = {
@@ -69627,6 +69823,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUncheckedCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesUncheckedCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutUncheckedCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneUncheckedCreateNestedManyWithoutVenueInput
   }
 
   export type VenueUpdateInput = {
@@ -69659,6 +69856,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUpdateManyWithoutVenueNestedInput
   }
 
   export type VenueUncheckedUpdateInput = {
@@ -69691,6 +69889,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUncheckedUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUncheckedUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUncheckedUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUncheckedUpdateManyWithoutVenueNestedInput
   }
 
   export type VenueCreateManyInput = {
@@ -70395,11 +70594,11 @@ export namespace Prisma {
 
   export type AccessZoneCreateInput = {
     id?: string
-    venueId: string
     name: string
     slug: string
     capacity?: number | null
     createdAt?: Date | string
+    venue: VenueCreateNestedOneWithoutAccessZonesInput
     scans?: TicketScanCreateNestedManyWithoutZoneInput
   }
 
@@ -70415,11 +70614,11 @@ export namespace Prisma {
 
   export type AccessZoneUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    venueId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     capacity?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    venue?: VenueUpdateOneRequiredWithoutAccessZonesNestedInput
     scans?: TicketScanUpdateManyWithoutZoneNestedInput
   }
 
@@ -70444,7 +70643,6 @@ export namespace Prisma {
 
   export type AccessZoneUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    venueId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     capacity?: NullableIntFieldUpdateOperationsInput | number | null
@@ -70462,12 +70660,12 @@ export namespace Prisma {
 
   export type TicketScanCreateInput = {
     id?: string
-    ticketId: string
     scannedBy: string
     channel: $Enums.SalesChannel
     success: boolean
     reason?: string | null
     scannedAt?: Date | string
+    ticket: TicketCreateNestedOneWithoutScansInput
     zone?: AccessZoneCreateNestedOneWithoutScansInput
   }
 
@@ -70484,12 +70682,12 @@ export namespace Prisma {
 
   export type TicketScanUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    ticketId?: StringFieldUpdateOperationsInput | string
     scannedBy?: StringFieldUpdateOperationsInput | string
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     success?: BoolFieldUpdateOperationsInput | boolean
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     scannedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ticket?: TicketUpdateOneRequiredWithoutScansNestedInput
     zone?: AccessZoneUpdateOneWithoutScansNestedInput
   }
 
@@ -70517,7 +70715,6 @@ export namespace Prisma {
 
   export type TicketScanUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    ticketId?: StringFieldUpdateOperationsInput | string
     scannedBy?: StringFieldUpdateOperationsInput | string
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     success?: BoolFieldUpdateOperationsInput | boolean
@@ -71724,6 +71921,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferCreateNestedManyWithoutTicketInput
+    scans?: TicketScanCreateNestedManyWithoutTicketInput
   }
 
   export type TicketUncheckedCreateInput = {
@@ -71749,6 +71947,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagUncheckedCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferUncheckedCreateNestedManyWithoutTicketInput
+    scans?: TicketScanUncheckedCreateNestedManyWithoutTicketInput
   }
 
   export type TicketUpdateInput = {
@@ -71774,6 +71973,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateInput = {
@@ -71799,6 +71999,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUncheckedUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUncheckedUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUncheckedUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketCreateManyInput = {
@@ -72661,7 +72862,7 @@ export namespace Prisma {
     id?: string
     name: string
     locationName: string
-    status?: string
+    status?: $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: boolean
     lastSyncAt?: Date | string | null
@@ -72677,7 +72878,7 @@ export namespace Prisma {
     organizationId: string
     name: string
     locationName: string
-    status?: string
+    status?: $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: boolean
     lastSyncAt?: Date | string | null
@@ -72691,7 +72892,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     locationName?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosTerminalStatusFieldUpdateOperationsInput | $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: BoolFieldUpdateOperationsInput | boolean
     lastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -72707,7 +72908,7 @@ export namespace Prisma {
     organizationId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     locationName?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosTerminalStatusFieldUpdateOperationsInput | $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: BoolFieldUpdateOperationsInput | boolean
     lastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -72722,7 +72923,7 @@ export namespace Prisma {
     organizationId: string
     name: string
     locationName: string
-    status?: string
+    status?: $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: boolean
     lastSyncAt?: Date | string | null
@@ -72735,7 +72936,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     locationName?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosTerminalStatusFieldUpdateOperationsInput | $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: BoolFieldUpdateOperationsInput | boolean
     lastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -72749,7 +72950,7 @@ export namespace Prisma {
     organizationId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     locationName?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosTerminalStatusFieldUpdateOperationsInput | $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: BoolFieldUpdateOperationsInput | boolean
     lastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -72761,7 +72962,7 @@ export namespace Prisma {
   export type PosCashierSessionCreateInput = {
     id?: string
     cashierId: string
-    status?: string
+    status?: $Enums.PosSessionStatus
     startedAt?: Date | string
     endedAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -72772,7 +72973,7 @@ export namespace Prisma {
     id?: string
     terminalId: string
     cashierId: string
-    status?: string
+    status?: $Enums.PosSessionStatus
     startedAt?: Date | string
     endedAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -72781,7 +72982,7 @@ export namespace Prisma {
   export type PosCashierSessionUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     cashierId?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosSessionStatusFieldUpdateOperationsInput | $Enums.PosSessionStatus
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -72792,7 +72993,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     terminalId?: StringFieldUpdateOperationsInput | string
     cashierId?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosSessionStatusFieldUpdateOperationsInput | $Enums.PosSessionStatus
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -72802,7 +73003,7 @@ export namespace Prisma {
     id?: string
     terminalId: string
     cashierId: string
-    status?: string
+    status?: $Enums.PosSessionStatus
     startedAt?: Date | string
     endedAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -72811,7 +73012,7 @@ export namespace Prisma {
   export type PosCashierSessionUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     cashierId?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosSessionStatusFieldUpdateOperationsInput | $Enums.PosSessionStatus
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -72821,7 +73022,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     terminalId?: StringFieldUpdateOperationsInput | string
     cashierId?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosSessionStatusFieldUpdateOperationsInput | $Enums.PosSessionStatus
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -74570,7 +74771,7 @@ export namespace Prisma {
     buyerName: string
     quantity?: number
     totalAmount: Decimal | DecimalJsLike | number | string
-    status?: string
+    status?: $Enums.SeasonPassPurchaseStatus
     seatSection?: string | null
     createdAt?: Date | string
     seasonPass: SeasonPassCreateNestedOneWithoutPurchasesInput
@@ -74584,7 +74785,7 @@ export namespace Prisma {
     buyerName: string
     quantity?: number
     totalAmount: Decimal | DecimalJsLike | number | string
-    status?: string
+    status?: $Enums.SeasonPassPurchaseStatus
     seatSection?: string | null
     createdAt?: Date | string
   }
@@ -74596,7 +74797,7 @@ export namespace Prisma {
     buyerName?: StringFieldUpdateOperationsInput | string
     quantity?: IntFieldUpdateOperationsInput | number
     totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumSeasonPassPurchaseStatusFieldUpdateOperationsInput | $Enums.SeasonPassPurchaseStatus
     seatSection?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     seasonPass?: SeasonPassUpdateOneRequiredWithoutPurchasesNestedInput
@@ -74610,7 +74811,7 @@ export namespace Prisma {
     buyerName?: StringFieldUpdateOperationsInput | string
     quantity?: IntFieldUpdateOperationsInput | number
     totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumSeasonPassPurchaseStatusFieldUpdateOperationsInput | $Enums.SeasonPassPurchaseStatus
     seatSection?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -74623,7 +74824,7 @@ export namespace Prisma {
     buyerName: string
     quantity?: number
     totalAmount: Decimal | DecimalJsLike | number | string
-    status?: string
+    status?: $Enums.SeasonPassPurchaseStatus
     seatSection?: string | null
     createdAt?: Date | string
   }
@@ -74635,7 +74836,7 @@ export namespace Prisma {
     buyerName?: StringFieldUpdateOperationsInput | string
     quantity?: IntFieldUpdateOperationsInput | number
     totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumSeasonPassPurchaseStatusFieldUpdateOperationsInput | $Enums.SeasonPassPurchaseStatus
     seatSection?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -74648,7 +74849,7 @@ export namespace Prisma {
     buyerName?: StringFieldUpdateOperationsInput | string
     quantity?: IntFieldUpdateOperationsInput | number
     totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumSeasonPassPurchaseStatusFieldUpdateOperationsInput | $Enums.SeasonPassPurchaseStatus
     seatSection?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -75202,11 +75403,21 @@ export namespace Prisma {
     none?: VenueBlackoutWhereInput
   }
 
+  export type AccessZoneListRelationFilter = {
+    every?: AccessZoneWhereInput
+    some?: AccessZoneWhereInput
+    none?: AccessZoneWhereInput
+  }
+
   export type VenueLayoutOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type VenueBlackoutOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AccessZoneOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -75898,6 +76109,11 @@ export namespace Prisma {
     _sum?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedIntNullableFilter<$PrismaModel>
     _max?: NestedIntNullableFilter<$PrismaModel>
+  }
+
+  export type TicketScalarRelationFilter = {
+    is?: TicketWhereInput
+    isNot?: TicketWhereInput
   }
 
   export type AccessZoneNullableScalarRelationFilter = {
@@ -76824,6 +77040,11 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type TicketEventIdSeatIdCompoundUniqueInput = {
+    eventId: string
+    seatId: string
+  }
+
   export type TicketCountOrderByAggregateInput = {
     id?: SortOrder
     code?: SortOrder
@@ -77423,6 +77644,13 @@ export namespace Prisma {
     createdAt?: SortOrder
   }
 
+  export type EnumPosTerminalStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PosTerminalStatus | EnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PosTerminalStatus[] | ListEnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PosTerminalStatus[] | ListEnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPosTerminalStatusFilter<$PrismaModel> | $Enums.PosTerminalStatus
+  }
+
   export type PosCashierSessionListRelationFilter = {
     every?: PosCashierSessionWhereInput
     some?: PosCashierSessionWhereInput
@@ -77471,6 +77699,23 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type EnumPosTerminalStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PosTerminalStatus | EnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PosTerminalStatus[] | ListEnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PosTerminalStatus[] | ListEnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPosTerminalStatusWithAggregatesFilter<$PrismaModel> | $Enums.PosTerminalStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPosTerminalStatusFilter<$PrismaModel>
+    _max?: NestedEnumPosTerminalStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPosSessionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PosSessionStatus | EnumPosSessionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PosSessionStatus[] | ListEnumPosSessionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PosSessionStatus[] | ListEnumPosSessionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPosSessionStatusFilter<$PrismaModel> | $Enums.PosSessionStatus
+  }
+
   export type PosTerminalScalarRelationFilter = {
     is?: PosTerminalWhereInput
     isNot?: PosTerminalWhereInput
@@ -77504,16 +77749,21 @@ export namespace Prisma {
     endedAt?: SortOrder
   }
 
+  export type EnumPosSessionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PosSessionStatus | EnumPosSessionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PosSessionStatus[] | ListEnumPosSessionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PosSessionStatus[] | ListEnumPosSessionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPosSessionStatusWithAggregatesFilter<$PrismaModel> | $Enums.PosSessionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPosSessionStatusFilter<$PrismaModel>
+    _max?: NestedEnumPosSessionStatusFilter<$PrismaModel>
+  }
+
   export type EnumResaleStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.ResaleStatus | EnumResaleStatusFieldRefInput<$PrismaModel>
     in?: $Enums.ResaleStatus[] | ListEnumResaleStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.ResaleStatus[] | ListEnumResaleStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumResaleStatusFilter<$PrismaModel> | $Enums.ResaleStatus
-  }
-
-  export type TicketScalarRelationFilter = {
-    is?: TicketWhereInput
-    isNot?: TicketWhereInput
   }
 
   export type ResaleOfferListRelationFilter = {
@@ -78639,6 +78889,13 @@ export namespace Prisma {
     eventId?: SortOrder
   }
 
+  export type EnumSeasonPassPurchaseStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.SeasonPassPurchaseStatus | EnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SeasonPassPurchaseStatus[] | ListEnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SeasonPassPurchaseStatus[] | ListEnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSeasonPassPurchaseStatusFilter<$PrismaModel> | $Enums.SeasonPassPurchaseStatus
+  }
+
   export type SeasonPassPurchaseCountOrderByAggregateInput = {
     id?: SortOrder
     seasonPassId?: SortOrder
@@ -78686,6 +78943,16 @@ export namespace Prisma {
   export type SeasonPassPurchaseSumOrderByAggregateInput = {
     quantity?: SortOrder
     totalAmount?: SortOrder
+  }
+
+  export type EnumSeasonPassPurchaseStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SeasonPassPurchaseStatus | EnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SeasonPassPurchaseStatus[] | ListEnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SeasonPassPurchaseStatus[] | ListEnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSeasonPassPurchaseStatusWithAggregatesFilter<$PrismaModel> | $Enums.SeasonPassPurchaseStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSeasonPassPurchaseStatusFilter<$PrismaModel>
+    _max?: NestedEnumSeasonPassPurchaseStatusFilter<$PrismaModel>
   }
 
   export type VenueCreateNestedManyWithoutOrganizationInput = {
@@ -79257,6 +79524,13 @@ export namespace Prisma {
     connect?: VenueBlackoutWhereUniqueInput | VenueBlackoutWhereUniqueInput[]
   }
 
+  export type AccessZoneCreateNestedManyWithoutVenueInput = {
+    create?: XOR<AccessZoneCreateWithoutVenueInput, AccessZoneUncheckedCreateWithoutVenueInput> | AccessZoneCreateWithoutVenueInput[] | AccessZoneUncheckedCreateWithoutVenueInput[]
+    connectOrCreate?: AccessZoneCreateOrConnectWithoutVenueInput | AccessZoneCreateOrConnectWithoutVenueInput[]
+    createMany?: AccessZoneCreateManyVenueInputEnvelope
+    connect?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
+  }
+
   export type EventUncheckedCreateNestedManyWithoutVenueInput = {
     create?: XOR<EventCreateWithoutVenueInput, EventUncheckedCreateWithoutVenueInput> | EventCreateWithoutVenueInput[] | EventUncheckedCreateWithoutVenueInput[]
     connectOrCreate?: EventCreateOrConnectWithoutVenueInput | EventCreateOrConnectWithoutVenueInput[]
@@ -79290,6 +79564,13 @@ export namespace Prisma {
     connectOrCreate?: VenueBlackoutCreateOrConnectWithoutVenueInput | VenueBlackoutCreateOrConnectWithoutVenueInput[]
     createMany?: VenueBlackoutCreateManyVenueInputEnvelope
     connect?: VenueBlackoutWhereUniqueInput | VenueBlackoutWhereUniqueInput[]
+  }
+
+  export type AccessZoneUncheckedCreateNestedManyWithoutVenueInput = {
+    create?: XOR<AccessZoneCreateWithoutVenueInput, AccessZoneUncheckedCreateWithoutVenueInput> | AccessZoneCreateWithoutVenueInput[] | AccessZoneUncheckedCreateWithoutVenueInput[]
+    connectOrCreate?: AccessZoneCreateOrConnectWithoutVenueInput | AccessZoneCreateOrConnectWithoutVenueInput[]
+    createMany?: AccessZoneCreateManyVenueInputEnvelope
+    connect?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
   }
 
   export type NullableFloatFieldUpdateOperationsInput = {
@@ -79386,6 +79667,20 @@ export namespace Prisma {
     deleteMany?: VenueBlackoutScalarWhereInput | VenueBlackoutScalarWhereInput[]
   }
 
+  export type AccessZoneUpdateManyWithoutVenueNestedInput = {
+    create?: XOR<AccessZoneCreateWithoutVenueInput, AccessZoneUncheckedCreateWithoutVenueInput> | AccessZoneCreateWithoutVenueInput[] | AccessZoneUncheckedCreateWithoutVenueInput[]
+    connectOrCreate?: AccessZoneCreateOrConnectWithoutVenueInput | AccessZoneCreateOrConnectWithoutVenueInput[]
+    upsert?: AccessZoneUpsertWithWhereUniqueWithoutVenueInput | AccessZoneUpsertWithWhereUniqueWithoutVenueInput[]
+    createMany?: AccessZoneCreateManyVenueInputEnvelope
+    set?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
+    disconnect?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
+    delete?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
+    connect?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
+    update?: AccessZoneUpdateWithWhereUniqueWithoutVenueInput | AccessZoneUpdateWithWhereUniqueWithoutVenueInput[]
+    updateMany?: AccessZoneUpdateManyWithWhereWithoutVenueInput | AccessZoneUpdateManyWithWhereWithoutVenueInput[]
+    deleteMany?: AccessZoneScalarWhereInput | AccessZoneScalarWhereInput[]
+  }
+
   export type EventUncheckedUpdateManyWithoutVenueNestedInput = {
     create?: XOR<EventCreateWithoutVenueInput, EventUncheckedCreateWithoutVenueInput> | EventCreateWithoutVenueInput[] | EventUncheckedCreateWithoutVenueInput[]
     connectOrCreate?: EventCreateOrConnectWithoutVenueInput | EventCreateOrConnectWithoutVenueInput[]
@@ -79454,6 +79749,20 @@ export namespace Prisma {
     update?: VenueBlackoutUpdateWithWhereUniqueWithoutVenueInput | VenueBlackoutUpdateWithWhereUniqueWithoutVenueInput[]
     updateMany?: VenueBlackoutUpdateManyWithWhereWithoutVenueInput | VenueBlackoutUpdateManyWithWhereWithoutVenueInput[]
     deleteMany?: VenueBlackoutScalarWhereInput | VenueBlackoutScalarWhereInput[]
+  }
+
+  export type AccessZoneUncheckedUpdateManyWithoutVenueNestedInput = {
+    create?: XOR<AccessZoneCreateWithoutVenueInput, AccessZoneUncheckedCreateWithoutVenueInput> | AccessZoneCreateWithoutVenueInput[] | AccessZoneUncheckedCreateWithoutVenueInput[]
+    connectOrCreate?: AccessZoneCreateOrConnectWithoutVenueInput | AccessZoneCreateOrConnectWithoutVenueInput[]
+    upsert?: AccessZoneUpsertWithWhereUniqueWithoutVenueInput | AccessZoneUpsertWithWhereUniqueWithoutVenueInput[]
+    createMany?: AccessZoneCreateManyVenueInputEnvelope
+    set?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
+    disconnect?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
+    delete?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
+    connect?: AccessZoneWhereUniqueInput | AccessZoneWhereUniqueInput[]
+    update?: AccessZoneUpdateWithWhereUniqueWithoutVenueInput | AccessZoneUpdateWithWhereUniqueWithoutVenueInput[]
+    updateMany?: AccessZoneUpdateManyWithWhereWithoutVenueInput | AccessZoneUpdateManyWithWhereWithoutVenueInput[]
+    deleteMany?: AccessZoneScalarWhereInput | AccessZoneScalarWhereInput[]
   }
 
   export type VenueCreateNestedOneWithoutLayoutsInput = {
@@ -79902,6 +80211,12 @@ export namespace Prisma {
     update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutTenantThemeInput, OrganizationUpdateWithoutTenantThemeInput>, OrganizationUncheckedUpdateWithoutTenantThemeInput>
   }
 
+  export type VenueCreateNestedOneWithoutAccessZonesInput = {
+    create?: XOR<VenueCreateWithoutAccessZonesInput, VenueUncheckedCreateWithoutAccessZonesInput>
+    connectOrCreate?: VenueCreateOrConnectWithoutAccessZonesInput
+    connect?: VenueWhereUniqueInput
+  }
+
   export type TicketScanCreateNestedManyWithoutZoneInput = {
     create?: XOR<TicketScanCreateWithoutZoneInput, TicketScanUncheckedCreateWithoutZoneInput> | TicketScanCreateWithoutZoneInput[] | TicketScanUncheckedCreateWithoutZoneInput[]
     connectOrCreate?: TicketScanCreateOrConnectWithoutZoneInput | TicketScanCreateOrConnectWithoutZoneInput[]
@@ -79922,6 +80237,14 @@ export namespace Prisma {
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type VenueUpdateOneRequiredWithoutAccessZonesNestedInput = {
+    create?: XOR<VenueCreateWithoutAccessZonesInput, VenueUncheckedCreateWithoutAccessZonesInput>
+    connectOrCreate?: VenueCreateOrConnectWithoutAccessZonesInput
+    upsert?: VenueUpsertWithoutAccessZonesInput
+    connect?: VenueWhereUniqueInput
+    update?: XOR<XOR<VenueUpdateToOneWithWhereWithoutAccessZonesInput, VenueUpdateWithoutAccessZonesInput>, VenueUncheckedUpdateWithoutAccessZonesInput>
   }
 
   export type TicketScanUpdateManyWithoutZoneNestedInput = {
@@ -79952,10 +80275,24 @@ export namespace Prisma {
     deleteMany?: TicketScanScalarWhereInput | TicketScanScalarWhereInput[]
   }
 
+  export type TicketCreateNestedOneWithoutScansInput = {
+    create?: XOR<TicketCreateWithoutScansInput, TicketUncheckedCreateWithoutScansInput>
+    connectOrCreate?: TicketCreateOrConnectWithoutScansInput
+    connect?: TicketWhereUniqueInput
+  }
+
   export type AccessZoneCreateNestedOneWithoutScansInput = {
     create?: XOR<AccessZoneCreateWithoutScansInput, AccessZoneUncheckedCreateWithoutScansInput>
     connectOrCreate?: AccessZoneCreateOrConnectWithoutScansInput
     connect?: AccessZoneWhereUniqueInput
+  }
+
+  export type TicketUpdateOneRequiredWithoutScansNestedInput = {
+    create?: XOR<TicketCreateWithoutScansInput, TicketUncheckedCreateWithoutScansInput>
+    connectOrCreate?: TicketCreateOrConnectWithoutScansInput
+    upsert?: TicketUpsertWithoutScansInput
+    connect?: TicketWhereUniqueInput
+    update?: XOR<XOR<TicketUpdateToOneWithWhereWithoutScansInput, TicketUpdateWithoutScansInput>, TicketUncheckedUpdateWithoutScansInput>
   }
 
   export type AccessZoneUpdateOneWithoutScansNestedInput = {
@@ -80814,6 +81151,13 @@ export namespace Prisma {
     connect?: TicketTransferWhereUniqueInput | TicketTransferWhereUniqueInput[]
   }
 
+  export type TicketScanCreateNestedManyWithoutTicketInput = {
+    create?: XOR<TicketScanCreateWithoutTicketInput, TicketScanUncheckedCreateWithoutTicketInput> | TicketScanCreateWithoutTicketInput[] | TicketScanUncheckedCreateWithoutTicketInput[]
+    connectOrCreate?: TicketScanCreateOrConnectWithoutTicketInput | TicketScanCreateOrConnectWithoutTicketInput[]
+    createMany?: TicketScanCreateManyTicketInputEnvelope
+    connect?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
+  }
+
   export type ResaleListingUncheckedCreateNestedOneWithoutTicketInput = {
     create?: XOR<ResaleListingCreateWithoutTicketInput, ResaleListingUncheckedCreateWithoutTicketInput>
     connectOrCreate?: ResaleListingCreateOrConnectWithoutTicketInput
@@ -80832,6 +81176,13 @@ export namespace Prisma {
     connectOrCreate?: TicketTransferCreateOrConnectWithoutTicketInput | TicketTransferCreateOrConnectWithoutTicketInput[]
     createMany?: TicketTransferCreateManyTicketInputEnvelope
     connect?: TicketTransferWhereUniqueInput | TicketTransferWhereUniqueInput[]
+  }
+
+  export type TicketScanUncheckedCreateNestedManyWithoutTicketInput = {
+    create?: XOR<TicketScanCreateWithoutTicketInput, TicketScanUncheckedCreateWithoutTicketInput> | TicketScanCreateWithoutTicketInput[] | TicketScanUncheckedCreateWithoutTicketInput[]
+    connectOrCreate?: TicketScanCreateOrConnectWithoutTicketInput | TicketScanCreateOrConnectWithoutTicketInput[]
+    createMany?: TicketScanCreateManyTicketInputEnvelope
+    connect?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
   }
 
   export type EnumTicketStatusFieldUpdateOperationsInput = {
@@ -80912,6 +81263,20 @@ export namespace Prisma {
     deleteMany?: TicketTransferScalarWhereInput | TicketTransferScalarWhereInput[]
   }
 
+  export type TicketScanUpdateManyWithoutTicketNestedInput = {
+    create?: XOR<TicketScanCreateWithoutTicketInput, TicketScanUncheckedCreateWithoutTicketInput> | TicketScanCreateWithoutTicketInput[] | TicketScanUncheckedCreateWithoutTicketInput[]
+    connectOrCreate?: TicketScanCreateOrConnectWithoutTicketInput | TicketScanCreateOrConnectWithoutTicketInput[]
+    upsert?: TicketScanUpsertWithWhereUniqueWithoutTicketInput | TicketScanUpsertWithWhereUniqueWithoutTicketInput[]
+    createMany?: TicketScanCreateManyTicketInputEnvelope
+    set?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
+    disconnect?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
+    delete?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
+    connect?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
+    update?: TicketScanUpdateWithWhereUniqueWithoutTicketInput | TicketScanUpdateWithWhereUniqueWithoutTicketInput[]
+    updateMany?: TicketScanUpdateManyWithWhereWithoutTicketInput | TicketScanUpdateManyWithWhereWithoutTicketInput[]
+    deleteMany?: TicketScanScalarWhereInput | TicketScanScalarWhereInput[]
+  }
+
   export type ResaleListingUncheckedUpdateOneWithoutTicketNestedInput = {
     create?: XOR<ResaleListingCreateWithoutTicketInput, ResaleListingUncheckedCreateWithoutTicketInput>
     connectOrCreate?: ResaleListingCreateOrConnectWithoutTicketInput
@@ -80948,6 +81313,20 @@ export namespace Prisma {
     update?: TicketTransferUpdateWithWhereUniqueWithoutTicketInput | TicketTransferUpdateWithWhereUniqueWithoutTicketInput[]
     updateMany?: TicketTransferUpdateManyWithWhereWithoutTicketInput | TicketTransferUpdateManyWithWhereWithoutTicketInput[]
     deleteMany?: TicketTransferScalarWhereInput | TicketTransferScalarWhereInput[]
+  }
+
+  export type TicketScanUncheckedUpdateManyWithoutTicketNestedInput = {
+    create?: XOR<TicketScanCreateWithoutTicketInput, TicketScanUncheckedCreateWithoutTicketInput> | TicketScanCreateWithoutTicketInput[] | TicketScanUncheckedCreateWithoutTicketInput[]
+    connectOrCreate?: TicketScanCreateOrConnectWithoutTicketInput | TicketScanCreateOrConnectWithoutTicketInput[]
+    upsert?: TicketScanUpsertWithWhereUniqueWithoutTicketInput | TicketScanUpsertWithWhereUniqueWithoutTicketInput[]
+    createMany?: TicketScanCreateManyTicketInputEnvelope
+    set?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
+    disconnect?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
+    delete?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
+    connect?: TicketScanWhereUniqueInput | TicketScanWhereUniqueInput[]
+    update?: TicketScanUpdateWithWhereUniqueWithoutTicketInput | TicketScanUpdateWithWhereUniqueWithoutTicketInput[]
+    updateMany?: TicketScanUpdateManyWithWhereWithoutTicketInput | TicketScanUpdateManyWithWhereWithoutTicketInput[]
+    deleteMany?: TicketScanScalarWhereInput | TicketScanScalarWhereInput[]
   }
 
   export type OrganizationCreateNestedOneWithoutOrdersInput = {
@@ -81630,6 +82009,10 @@ export namespace Prisma {
     connect?: PosCashierSessionWhereUniqueInput | PosCashierSessionWhereUniqueInput[]
   }
 
+  export type EnumPosTerminalStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PosTerminalStatus
+  }
+
   export type OrganizationUpdateOneRequiredWithoutPosTerminalsNestedInput = {
     create?: XOR<OrganizationCreateWithoutPosTerminalsInput, OrganizationUncheckedCreateWithoutPosTerminalsInput>
     connectOrCreate?: OrganizationCreateOrConnectWithoutPosTerminalsInput
@@ -81670,6 +82053,10 @@ export namespace Prisma {
     create?: XOR<PosTerminalCreateWithoutSessionsInput, PosTerminalUncheckedCreateWithoutSessionsInput>
     connectOrCreate?: PosTerminalCreateOrConnectWithoutSessionsInput
     connect?: PosTerminalWhereUniqueInput
+  }
+
+  export type EnumPosSessionStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PosSessionStatus
   }
 
   export type PosTerminalUpdateOneRequiredWithoutSessionsNestedInput = {
@@ -82235,6 +82622,10 @@ export namespace Prisma {
     create?: XOR<SeasonPassCreateWithoutPurchasesInput, SeasonPassUncheckedCreateWithoutPurchasesInput>
     connectOrCreate?: SeasonPassCreateOrConnectWithoutPurchasesInput
     connect?: SeasonPassWhereUniqueInput
+  }
+
+  export type EnumSeasonPassPurchaseStatusFieldUpdateOperationsInput = {
+    set?: $Enums.SeasonPassPurchaseStatus
   }
 
   export type SeasonPassUpdateOneRequiredWithoutPurchasesNestedInput = {
@@ -82918,6 +83309,40 @@ export namespace Prisma {
     _max?: NestedEnumUserRoleFilter<$PrismaModel>
   }
 
+  export type NestedEnumPosTerminalStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PosTerminalStatus | EnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PosTerminalStatus[] | ListEnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PosTerminalStatus[] | ListEnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPosTerminalStatusFilter<$PrismaModel> | $Enums.PosTerminalStatus
+  }
+
+  export type NestedEnumPosTerminalStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PosTerminalStatus | EnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PosTerminalStatus[] | ListEnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PosTerminalStatus[] | ListEnumPosTerminalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPosTerminalStatusWithAggregatesFilter<$PrismaModel> | $Enums.PosTerminalStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPosTerminalStatusFilter<$PrismaModel>
+    _max?: NestedEnumPosTerminalStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPosSessionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PosSessionStatus | EnumPosSessionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PosSessionStatus[] | ListEnumPosSessionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PosSessionStatus[] | ListEnumPosSessionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPosSessionStatusFilter<$PrismaModel> | $Enums.PosSessionStatus
+  }
+
+  export type NestedEnumPosSessionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PosSessionStatus | EnumPosSessionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PosSessionStatus[] | ListEnumPosSessionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PosSessionStatus[] | ListEnumPosSessionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPosSessionStatusWithAggregatesFilter<$PrismaModel> | $Enums.PosSessionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPosSessionStatusFilter<$PrismaModel>
+    _max?: NestedEnumPosSessionStatusFilter<$PrismaModel>
+  }
+
   export type NestedEnumResaleStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.ResaleStatus | EnumResaleStatusFieldRefInput<$PrismaModel>
     in?: $Enums.ResaleStatus[] | ListEnumResaleStatusFieldRefInput<$PrismaModel>
@@ -83088,6 +83513,23 @@ export namespace Prisma {
     _max?: NestedEnumCfdiStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumSeasonPassPurchaseStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.SeasonPassPurchaseStatus | EnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SeasonPassPurchaseStatus[] | ListEnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SeasonPassPurchaseStatus[] | ListEnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSeasonPassPurchaseStatusFilter<$PrismaModel> | $Enums.SeasonPassPurchaseStatus
+  }
+
+  export type NestedEnumSeasonPassPurchaseStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SeasonPassPurchaseStatus | EnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SeasonPassPurchaseStatus[] | ListEnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SeasonPassPurchaseStatus[] | ListEnumSeasonPassPurchaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSeasonPassPurchaseStatusWithAggregatesFilter<$PrismaModel> | $Enums.SeasonPassPurchaseStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSeasonPassPurchaseStatusFilter<$PrismaModel>
+    _max?: NestedEnumSeasonPassPurchaseStatusFilter<$PrismaModel>
+  }
+
   export type VenueCreateWithoutOrganizationInput = {
     id?: string
     externalId?: string | null
@@ -83117,6 +83559,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneCreateNestedManyWithoutVenueInput
   }
 
   export type VenueUncheckedCreateWithoutOrganizationInput = {
@@ -83148,6 +83591,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUncheckedCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesUncheckedCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutUncheckedCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneUncheckedCreateNestedManyWithoutVenueInput
   }
 
   export type VenueCreateOrConnectWithoutOrganizationInput = {
@@ -83547,7 +83991,7 @@ export namespace Prisma {
     id?: string
     name: string
     locationName: string
-    status?: string
+    status?: $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: boolean
     lastSyncAt?: Date | string | null
@@ -83561,7 +84005,7 @@ export namespace Prisma {
     id?: string
     name: string
     locationName: string
-    status?: string
+    status?: $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: boolean
     lastSyncAt?: Date | string | null
@@ -84103,7 +84547,7 @@ export namespace Prisma {
     organizationId?: StringFilter<"PosTerminal"> | string
     name?: StringFilter<"PosTerminal"> | string
     locationName?: StringFilter<"PosTerminal"> | string
-    status?: StringFilter<"PosTerminal"> | string
+    status?: EnumPosTerminalStatusFilter<"PosTerminal"> | $Enums.PosTerminalStatus
     hardwareConfig?: JsonNullableFilter<"PosTerminal">
     offlineMode?: BoolFilter<"PosTerminal"> | boolean
     lastSyncAt?: DateTimeNullableFilter<"PosTerminal"> | Date | string | null
@@ -84664,6 +85108,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AccessZoneCreateWithoutVenueInput = {
+    id?: string
+    name: string
+    slug: string
+    capacity?: number | null
+    createdAt?: Date | string
+    scans?: TicketScanCreateNestedManyWithoutZoneInput
+  }
+
+  export type AccessZoneUncheckedCreateWithoutVenueInput = {
+    id?: string
+    name: string
+    slug: string
+    capacity?: number | null
+    createdAt?: Date | string
+    scans?: TicketScanUncheckedCreateNestedManyWithoutZoneInput
+  }
+
+  export type AccessZoneCreateOrConnectWithoutVenueInput = {
+    where: AccessZoneWhereUniqueInput
+    create: XOR<AccessZoneCreateWithoutVenueInput, AccessZoneUncheckedCreateWithoutVenueInput>
+  }
+
+  export type AccessZoneCreateManyVenueInputEnvelope = {
+    data: AccessZoneCreateManyVenueInput | AccessZoneCreateManyVenueInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutVenuesInput = {
     update: XOR<OrganizationUpdateWithoutVenuesInput, OrganizationUncheckedUpdateWithoutVenuesInput>
     create: XOR<OrganizationCreateWithoutVenuesInput, OrganizationUncheckedCreateWithoutVenuesInput>
@@ -84883,6 +85355,34 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"VenueBlackout"> | Date | string
   }
 
+  export type AccessZoneUpsertWithWhereUniqueWithoutVenueInput = {
+    where: AccessZoneWhereUniqueInput
+    update: XOR<AccessZoneUpdateWithoutVenueInput, AccessZoneUncheckedUpdateWithoutVenueInput>
+    create: XOR<AccessZoneCreateWithoutVenueInput, AccessZoneUncheckedCreateWithoutVenueInput>
+  }
+
+  export type AccessZoneUpdateWithWhereUniqueWithoutVenueInput = {
+    where: AccessZoneWhereUniqueInput
+    data: XOR<AccessZoneUpdateWithoutVenueInput, AccessZoneUncheckedUpdateWithoutVenueInput>
+  }
+
+  export type AccessZoneUpdateManyWithWhereWithoutVenueInput = {
+    where: AccessZoneScalarWhereInput
+    data: XOR<AccessZoneUpdateManyMutationInput, AccessZoneUncheckedUpdateManyWithoutVenueInput>
+  }
+
+  export type AccessZoneScalarWhereInput = {
+    AND?: AccessZoneScalarWhereInput | AccessZoneScalarWhereInput[]
+    OR?: AccessZoneScalarWhereInput[]
+    NOT?: AccessZoneScalarWhereInput | AccessZoneScalarWhereInput[]
+    id?: StringFilter<"AccessZone"> | string
+    venueId?: StringFilter<"AccessZone"> | string
+    name?: StringFilter<"AccessZone"> | string
+    slug?: StringFilter<"AccessZone"> | string
+    capacity?: IntNullableFilter<"AccessZone"> | number | null
+    createdAt?: DateTimeFilter<"AccessZone"> | Date | string
+  }
+
   export type VenueCreateWithoutLayoutsInput = {
     id?: string
     externalId?: string | null
@@ -84912,6 +85412,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneCreateNestedManyWithoutVenueInput
   }
 
   export type VenueUncheckedCreateWithoutLayoutsInput = {
@@ -84943,6 +85444,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUncheckedCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesUncheckedCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutUncheckedCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneUncheckedCreateNestedManyWithoutVenueInput
   }
 
   export type VenueCreateOrConnectWithoutLayoutsInput = {
@@ -85052,6 +85554,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUpdateManyWithoutVenueNestedInput
   }
 
   export type VenueUncheckedUpdateWithoutLayoutsInput = {
@@ -85083,6 +85586,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUncheckedUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUncheckedUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUncheckedUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUncheckedUpdateManyWithoutVenueNestedInput
   }
 
   export type SectionUpsertWithWhereUniqueWithoutLayoutInput = {
@@ -85546,6 +86050,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferCreateNestedManyWithoutTicketInput
+    scans?: TicketScanCreateNestedManyWithoutTicketInput
   }
 
   export type TicketUncheckedCreateWithoutSeatInput = {
@@ -85570,6 +86075,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagUncheckedCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferUncheckedCreateNestedManyWithoutTicketInput
+    scans?: TicketScanUncheckedCreateNestedManyWithoutTicketInput
   }
 
   export type TicketCreateOrConnectWithoutSeatInput = {
@@ -86614,14 +87120,83 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
+  export type VenueCreateWithoutAccessZonesInput = {
+    id?: string
+    externalId?: string | null
+    name: string
+    slug: string
+    description?: string | null
+    address: string
+    city: string
+    state: string
+    country: string
+    postalCode?: string | null
+    latitude?: number | null
+    longitude?: number | null
+    timezone: string
+    totalCapacity: number
+    accessibilitySeats?: number
+    premiumSeats?: number
+    generalSeats?: number
+    phone?: string | null
+    email?: string | null
+    website?: string | null
+    image?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutVenuesInput
+    events?: EventCreateNestedManyWithoutVenueInput
+    layouts?: VenueLayoutCreateNestedManyWithoutVenueInput
+    seasonPasses?: SeasonPassCreateNestedManyWithoutVenueInput
+    eventSeries?: EventSeriesCreateNestedManyWithoutVenueInput
+    blackouts?: VenueBlackoutCreateNestedManyWithoutVenueInput
+  }
+
+  export type VenueUncheckedCreateWithoutAccessZonesInput = {
+    id?: string
+    externalId?: string | null
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    address: string
+    city: string
+    state: string
+    country: string
+    postalCode?: string | null
+    latitude?: number | null
+    longitude?: number | null
+    timezone: string
+    totalCapacity: number
+    accessibilitySeats?: number
+    premiumSeats?: number
+    generalSeats?: number
+    phone?: string | null
+    email?: string | null
+    website?: string | null
+    image?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    events?: EventUncheckedCreateNestedManyWithoutVenueInput
+    layouts?: VenueLayoutUncheckedCreateNestedManyWithoutVenueInput
+    seasonPasses?: SeasonPassUncheckedCreateNestedManyWithoutVenueInput
+    eventSeries?: EventSeriesUncheckedCreateNestedManyWithoutVenueInput
+    blackouts?: VenueBlackoutUncheckedCreateNestedManyWithoutVenueInput
+  }
+
+  export type VenueCreateOrConnectWithoutAccessZonesInput = {
+    where: VenueWhereUniqueInput
+    create: XOR<VenueCreateWithoutAccessZonesInput, VenueUncheckedCreateWithoutAccessZonesInput>
+  }
+
   export type TicketScanCreateWithoutZoneInput = {
     id?: string
-    ticketId: string
     scannedBy: string
     channel: $Enums.SalesChannel
     success: boolean
     reason?: string | null
     scannedAt?: Date | string
+    ticket: TicketCreateNestedOneWithoutScansInput
   }
 
   export type TicketScanUncheckedCreateWithoutZoneInput = {
@@ -86642,6 +87217,81 @@ export namespace Prisma {
   export type TicketScanCreateManyZoneInputEnvelope = {
     data: TicketScanCreateManyZoneInput | TicketScanCreateManyZoneInput[]
     skipDuplicates?: boolean
+  }
+
+  export type VenueUpsertWithoutAccessZonesInput = {
+    update: XOR<VenueUpdateWithoutAccessZonesInput, VenueUncheckedUpdateWithoutAccessZonesInput>
+    create: XOR<VenueCreateWithoutAccessZonesInput, VenueUncheckedCreateWithoutAccessZonesInput>
+    where?: VenueWhereInput
+  }
+
+  export type VenueUpdateToOneWithWhereWithoutAccessZonesInput = {
+    where?: VenueWhereInput
+    data: XOR<VenueUpdateWithoutAccessZonesInput, VenueUncheckedUpdateWithoutAccessZonesInput>
+  }
+
+  export type VenueUpdateWithoutAccessZonesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    externalId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    city?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    country?: StringFieldUpdateOperationsInput | string
+    postalCode?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    timezone?: StringFieldUpdateOperationsInput | string
+    totalCapacity?: IntFieldUpdateOperationsInput | number
+    accessibilitySeats?: IntFieldUpdateOperationsInput | number
+    premiumSeats?: IntFieldUpdateOperationsInput | number
+    generalSeats?: IntFieldUpdateOperationsInput | number
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutVenuesNestedInput
+    events?: EventUpdateManyWithoutVenueNestedInput
+    layouts?: VenueLayoutUpdateManyWithoutVenueNestedInput
+    seasonPasses?: SeasonPassUpdateManyWithoutVenueNestedInput
+    eventSeries?: EventSeriesUpdateManyWithoutVenueNestedInput
+    blackouts?: VenueBlackoutUpdateManyWithoutVenueNestedInput
+  }
+
+  export type VenueUncheckedUpdateWithoutAccessZonesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    externalId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    city?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    country?: StringFieldUpdateOperationsInput | string
+    postalCode?: NullableStringFieldUpdateOperationsInput | string | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    timezone?: StringFieldUpdateOperationsInput | string
+    totalCapacity?: IntFieldUpdateOperationsInput | number
+    accessibilitySeats?: IntFieldUpdateOperationsInput | number
+    premiumSeats?: IntFieldUpdateOperationsInput | number
+    generalSeats?: IntFieldUpdateOperationsInput | number
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: EventUncheckedUpdateManyWithoutVenueNestedInput
+    layouts?: VenueLayoutUncheckedUpdateManyWithoutVenueNestedInput
+    seasonPasses?: SeasonPassUncheckedUpdateManyWithoutVenueNestedInput
+    eventSeries?: EventSeriesUncheckedUpdateManyWithoutVenueNestedInput
+    blackouts?: VenueBlackoutUncheckedUpdateManyWithoutVenueNestedInput
   }
 
   export type TicketScanUpsertWithWhereUniqueWithoutZoneInput = {
@@ -86674,13 +87324,68 @@ export namespace Prisma {
     scannedAt?: DateTimeFilter<"TicketScan"> | Date | string
   }
 
+  export type TicketCreateWithoutScansInput = {
+    id?: string
+    code: string
+    status?: $Enums.TicketStatus
+    buyerName?: string | null
+    buyerEmail?: string | null
+    seatNumber?: string | null
+    row?: string | null
+    section?: string | null
+    isResale?: boolean
+    originalPrice?: Decimal | DecimalJsLike | number | string | null
+    resalePrice?: Decimal | DecimalJsLike | number | string | null
+    checkedInAt?: Date | string | null
+    usedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    event: EventCreateNestedOneWithoutTicketsInput
+    offer: OfferCreateNestedOneWithoutTicketsInput
+    orderItem?: OrderItemCreateNestedOneWithoutTicketsInput
+    seat?: SeatCreateNestedOneWithoutTicketsInput
+    resaleListing?: ResaleListingCreateNestedOneWithoutTicketInput
+    fraudFlags?: FraudFlagCreateNestedManyWithoutTicketInput
+    transfers?: TicketTransferCreateNestedManyWithoutTicketInput
+  }
+
+  export type TicketUncheckedCreateWithoutScansInput = {
+    id?: string
+    code: string
+    eventId: string
+    offerId: string
+    status?: $Enums.TicketStatus
+    orderItemId?: string | null
+    buyerName?: string | null
+    buyerEmail?: string | null
+    seatId?: string | null
+    seatNumber?: string | null
+    row?: string | null
+    section?: string | null
+    isResale?: boolean
+    originalPrice?: Decimal | DecimalJsLike | number | string | null
+    resalePrice?: Decimal | DecimalJsLike | number | string | null
+    checkedInAt?: Date | string | null
+    usedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    resaleListing?: ResaleListingUncheckedCreateNestedOneWithoutTicketInput
+    fraudFlags?: FraudFlagUncheckedCreateNestedManyWithoutTicketInput
+    transfers?: TicketTransferUncheckedCreateNestedManyWithoutTicketInput
+  }
+
+  export type TicketCreateOrConnectWithoutScansInput = {
+    where: TicketWhereUniqueInput
+    create: XOR<TicketCreateWithoutScansInput, TicketUncheckedCreateWithoutScansInput>
+  }
+
   export type AccessZoneCreateWithoutScansInput = {
     id?: string
-    venueId: string
     name: string
     slug: string
     capacity?: number | null
     createdAt?: Date | string
+    venue: VenueCreateNestedOneWithoutAccessZonesInput
   }
 
   export type AccessZoneUncheckedCreateWithoutScansInput = {
@@ -86697,6 +87402,67 @@ export namespace Prisma {
     create: XOR<AccessZoneCreateWithoutScansInput, AccessZoneUncheckedCreateWithoutScansInput>
   }
 
+  export type TicketUpsertWithoutScansInput = {
+    update: XOR<TicketUpdateWithoutScansInput, TicketUncheckedUpdateWithoutScansInput>
+    create: XOR<TicketCreateWithoutScansInput, TicketUncheckedCreateWithoutScansInput>
+    where?: TicketWhereInput
+  }
+
+  export type TicketUpdateToOneWithWhereWithoutScansInput = {
+    where?: TicketWhereInput
+    data: XOR<TicketUpdateWithoutScansInput, TicketUncheckedUpdateWithoutScansInput>
+  }
+
+  export type TicketUpdateWithoutScansInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    status?: EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
+    buyerName?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    seatNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    row?: NullableStringFieldUpdateOperationsInput | string | null
+    section?: NullableStringFieldUpdateOperationsInput | string | null
+    isResale?: BoolFieldUpdateOperationsInput | boolean
+    originalPrice?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    resalePrice?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    checkedInAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    event?: EventUpdateOneRequiredWithoutTicketsNestedInput
+    offer?: OfferUpdateOneRequiredWithoutTicketsNestedInput
+    orderItem?: OrderItemUpdateOneWithoutTicketsNestedInput
+    seat?: SeatUpdateOneWithoutTicketsNestedInput
+    resaleListing?: ResaleListingUpdateOneWithoutTicketNestedInput
+    fraudFlags?: FraudFlagUpdateManyWithoutTicketNestedInput
+    transfers?: TicketTransferUpdateManyWithoutTicketNestedInput
+  }
+
+  export type TicketUncheckedUpdateWithoutScansInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    eventId?: StringFieldUpdateOperationsInput | string
+    offerId?: StringFieldUpdateOperationsInput | string
+    status?: EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
+    orderItemId?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerName?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    seatId?: NullableStringFieldUpdateOperationsInput | string | null
+    seatNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    row?: NullableStringFieldUpdateOperationsInput | string | null
+    section?: NullableStringFieldUpdateOperationsInput | string | null
+    isResale?: BoolFieldUpdateOperationsInput | boolean
+    originalPrice?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    resalePrice?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    checkedInAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resaleListing?: ResaleListingUncheckedUpdateOneWithoutTicketNestedInput
+    fraudFlags?: FraudFlagUncheckedUpdateManyWithoutTicketNestedInput
+    transfers?: TicketTransferUncheckedUpdateManyWithoutTicketNestedInput
+  }
+
   export type AccessZoneUpsertWithoutScansInput = {
     update: XOR<AccessZoneUpdateWithoutScansInput, AccessZoneUncheckedUpdateWithoutScansInput>
     create: XOR<AccessZoneCreateWithoutScansInput, AccessZoneUncheckedCreateWithoutScansInput>
@@ -86710,11 +87476,11 @@ export namespace Prisma {
 
   export type AccessZoneUpdateWithoutScansInput = {
     id?: StringFieldUpdateOperationsInput | string
-    venueId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     capacity?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    venue?: VenueUpdateOneRequiredWithoutAccessZonesNestedInput
   }
 
   export type AccessZoneUncheckedUpdateWithoutScansInput = {
@@ -86858,6 +87624,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneCreateNestedManyWithoutVenueInput
   }
 
   export type VenueUncheckedCreateWithoutEventsInput = {
@@ -86889,6 +87656,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUncheckedCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesUncheckedCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutUncheckedCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneUncheckedCreateNestedManyWithoutVenueInput
   }
 
   export type VenueCreateOrConnectWithoutEventsInput = {
@@ -87019,6 +87787,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferCreateNestedManyWithoutTicketInput
+    scans?: TicketScanCreateNestedManyWithoutTicketInput
   }
 
   export type TicketUncheckedCreateWithoutEventInput = {
@@ -87043,6 +87812,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagUncheckedCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferUncheckedCreateNestedManyWithoutTicketInput
+    scans?: TicketScanUncheckedCreateNestedManyWithoutTicketInput
   }
 
   export type TicketCreateOrConnectWithoutEventInput = {
@@ -87565,6 +88335,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUpdateManyWithoutVenueNestedInput
   }
 
   export type VenueUncheckedUpdateWithoutEventsInput = {
@@ -87596,6 +88367,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUncheckedUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUncheckedUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUncheckedUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUncheckedUpdateManyWithoutVenueNestedInput
   }
 
   export type EventSeriesUpsertWithoutEventsInput = {
@@ -88094,6 +88866,7 @@ export namespace Prisma {
     layouts?: VenueLayoutCreateNestedManyWithoutVenueInput
     seasonPasses?: SeasonPassCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneCreateNestedManyWithoutVenueInput
   }
 
   export type VenueUncheckedCreateWithoutEventSeriesInput = {
@@ -88125,6 +88898,7 @@ export namespace Prisma {
     layouts?: VenueLayoutUncheckedCreateNestedManyWithoutVenueInput
     seasonPasses?: SeasonPassUncheckedCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutUncheckedCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneUncheckedCreateNestedManyWithoutVenueInput
   }
 
   export type VenueCreateOrConnectWithoutEventSeriesInput = {
@@ -88405,6 +89179,7 @@ export namespace Prisma {
     layouts?: VenueLayoutUpdateManyWithoutVenueNestedInput
     seasonPasses?: SeasonPassUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUpdateManyWithoutVenueNestedInput
   }
 
   export type VenueUncheckedUpdateWithoutEventSeriesInput = {
@@ -88436,6 +89211,7 @@ export namespace Prisma {
     layouts?: VenueLayoutUncheckedUpdateManyWithoutVenueNestedInput
     seasonPasses?: SeasonPassUncheckedUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUncheckedUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUncheckedUpdateManyWithoutVenueNestedInput
   }
 
   export type EventUpsertWithWhereUniqueWithoutSeriesInput = {
@@ -88727,6 +89503,7 @@ export namespace Prisma {
     layouts?: VenueLayoutCreateNestedManyWithoutVenueInput
     seasonPasses?: SeasonPassCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneCreateNestedManyWithoutVenueInput
   }
 
   export type VenueUncheckedCreateWithoutBlackoutsInput = {
@@ -88758,6 +89535,7 @@ export namespace Prisma {
     layouts?: VenueLayoutUncheckedCreateNestedManyWithoutVenueInput
     seasonPasses?: SeasonPassUncheckedCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesUncheckedCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneUncheckedCreateNestedManyWithoutVenueInput
   }
 
   export type VenueCreateOrConnectWithoutBlackoutsInput = {
@@ -88805,6 +89583,7 @@ export namespace Prisma {
     layouts?: VenueLayoutUpdateManyWithoutVenueNestedInput
     seasonPasses?: SeasonPassUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUpdateManyWithoutVenueNestedInput
   }
 
   export type VenueUncheckedUpdateWithoutBlackoutsInput = {
@@ -88836,6 +89615,7 @@ export namespace Prisma {
     layouts?: VenueLayoutUncheckedUpdateManyWithoutVenueNestedInput
     seasonPasses?: SeasonPassUncheckedUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUncheckedUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUncheckedUpdateManyWithoutVenueNestedInput
   }
 
   export type EventCreateWithoutOffersInput = {
@@ -88979,6 +89759,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferCreateNestedManyWithoutTicketInput
+    scans?: TicketScanCreateNestedManyWithoutTicketInput
   }
 
   export type TicketUncheckedCreateWithoutOfferInput = {
@@ -89003,6 +89784,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagUncheckedCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferUncheckedCreateNestedManyWithoutTicketInput
+    scans?: TicketScanUncheckedCreateNestedManyWithoutTicketInput
   }
 
   export type TicketCreateOrConnectWithoutOfferInput = {
@@ -89638,6 +90420,36 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type TicketScanCreateWithoutTicketInput = {
+    id?: string
+    scannedBy: string
+    channel: $Enums.SalesChannel
+    success: boolean
+    reason?: string | null
+    scannedAt?: Date | string
+    zone?: AccessZoneCreateNestedOneWithoutScansInput
+  }
+
+  export type TicketScanUncheckedCreateWithoutTicketInput = {
+    id?: string
+    zoneId?: string | null
+    scannedBy: string
+    channel: $Enums.SalesChannel
+    success: boolean
+    reason?: string | null
+    scannedAt?: Date | string
+  }
+
+  export type TicketScanCreateOrConnectWithoutTicketInput = {
+    where: TicketScanWhereUniqueInput
+    create: XOR<TicketScanCreateWithoutTicketInput, TicketScanUncheckedCreateWithoutTicketInput>
+  }
+
+  export type TicketScanCreateManyTicketInputEnvelope = {
+    data: TicketScanCreateManyTicketInput | TicketScanCreateManyTicketInput[]
+    skipDuplicates?: boolean
+  }
+
   export type EventUpsertWithoutTicketsInput = {
     update: XOR<EventUpdateWithoutTicketsInput, EventUncheckedUpdateWithoutTicketsInput>
     create: XOR<EventCreateWithoutTicketsInput, EventUncheckedCreateWithoutTicketsInput>
@@ -89996,6 +90808,22 @@ export namespace Prisma {
     acceptedAt?: DateTimeNullableFilter<"TicketTransfer"> | Date | string | null
     expiresAt?: DateTimeFilter<"TicketTransfer"> | Date | string
     createdAt?: DateTimeFilter<"TicketTransfer"> | Date | string
+  }
+
+  export type TicketScanUpsertWithWhereUniqueWithoutTicketInput = {
+    where: TicketScanWhereUniqueInput
+    update: XOR<TicketScanUpdateWithoutTicketInput, TicketScanUncheckedUpdateWithoutTicketInput>
+    create: XOR<TicketScanCreateWithoutTicketInput, TicketScanUncheckedCreateWithoutTicketInput>
+  }
+
+  export type TicketScanUpdateWithWhereUniqueWithoutTicketInput = {
+    where: TicketScanWhereUniqueInput
+    data: XOR<TicketScanUpdateWithoutTicketInput, TicketScanUncheckedUpdateWithoutTicketInput>
+  }
+
+  export type TicketScanUpdateManyWithWhereWithoutTicketInput = {
+    where: TicketScanScalarWhereInput
+    data: XOR<TicketScanUpdateManyMutationInput, TicketScanUncheckedUpdateManyWithoutTicketInput>
   }
 
   export type OrganizationCreateWithoutOrdersInput = {
@@ -91173,6 +92001,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferCreateNestedManyWithoutTicketInput
+    scans?: TicketScanCreateNestedManyWithoutTicketInput
   }
 
   export type TicketUncheckedCreateWithoutOrderItemInput = {
@@ -91197,6 +92026,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagUncheckedCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferUncheckedCreateNestedManyWithoutTicketInput
+    scans?: TicketScanUncheckedCreateNestedManyWithoutTicketInput
   }
 
   export type TicketCreateOrConnectWithoutOrderItemInput = {
@@ -92412,7 +93242,7 @@ export namespace Prisma {
   export type PosCashierSessionCreateWithoutTerminalInput = {
     id?: string
     cashierId: string
-    status?: string
+    status?: $Enums.PosSessionStatus
     startedAt?: Date | string
     endedAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -92421,7 +93251,7 @@ export namespace Prisma {
   export type PosCashierSessionUncheckedCreateWithoutTerminalInput = {
     id?: string
     cashierId: string
-    status?: string
+    status?: $Enums.PosSessionStatus
     startedAt?: Date | string
     endedAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -92569,7 +93399,7 @@ export namespace Prisma {
     id?: StringFilter<"PosCashierSession"> | string
     terminalId?: StringFilter<"PosCashierSession"> | string
     cashierId?: StringFilter<"PosCashierSession"> | string
-    status?: StringFilter<"PosCashierSession"> | string
+    status?: EnumPosSessionStatusFilter<"PosCashierSession"> | $Enums.PosSessionStatus
     startedAt?: DateTimeFilter<"PosCashierSession"> | Date | string
     endedAt?: DateTimeNullableFilter<"PosCashierSession"> | Date | string | null
     metadata?: JsonNullableFilter<"PosCashierSession">
@@ -92579,7 +93409,7 @@ export namespace Prisma {
     id?: string
     name: string
     locationName: string
-    status?: string
+    status?: $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: boolean
     lastSyncAt?: Date | string | null
@@ -92594,7 +93424,7 @@ export namespace Prisma {
     organizationId: string
     name: string
     locationName: string
-    status?: string
+    status?: $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: boolean
     lastSyncAt?: Date | string | null
@@ -92623,7 +93453,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     locationName?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosTerminalStatusFieldUpdateOperationsInput | $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: BoolFieldUpdateOperationsInput | boolean
     lastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92638,7 +93468,7 @@ export namespace Prisma {
     organizationId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     locationName?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosTerminalStatusFieldUpdateOperationsInput | $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: BoolFieldUpdateOperationsInput | boolean
     lastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92669,6 +93499,7 @@ export namespace Prisma {
     seat?: SeatCreateNestedOneWithoutTicketsInput
     fraudFlags?: FraudFlagCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferCreateNestedManyWithoutTicketInput
+    scans?: TicketScanCreateNestedManyWithoutTicketInput
   }
 
   export type TicketUncheckedCreateWithoutResaleListingInput = {
@@ -92693,6 +93524,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     fraudFlags?: FraudFlagUncheckedCreateNestedManyWithoutTicketInput
     transfers?: TicketTransferUncheckedCreateNestedManyWithoutTicketInput
+    scans?: TicketScanUncheckedCreateNestedManyWithoutTicketInput
   }
 
   export type TicketCreateOrConnectWithoutResaleListingInput = {
@@ -92765,6 +93597,7 @@ export namespace Prisma {
     seat?: SeatUpdateOneWithoutTicketsNestedInput
     fraudFlags?: FraudFlagUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateWithoutResaleListingInput = {
@@ -92789,6 +93622,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fraudFlags?: FraudFlagUncheckedUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUncheckedUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUncheckedUpdateManyWithoutTicketNestedInput
   }
 
   export type ResaleOfferUpsertWithWhereUniqueWithoutListingInput = {
@@ -93574,6 +94408,7 @@ export namespace Prisma {
     seat?: SeatCreateNestedOneWithoutTicketsInput
     resaleListing?: ResaleListingCreateNestedOneWithoutTicketInput
     transfers?: TicketTransferCreateNestedManyWithoutTicketInput
+    scans?: TicketScanCreateNestedManyWithoutTicketInput
   }
 
   export type TicketUncheckedCreateWithoutFraudFlagsInput = {
@@ -93598,6 +94433,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     resaleListing?: ResaleListingUncheckedCreateNestedOneWithoutTicketInput
     transfers?: TicketTransferUncheckedCreateNestedManyWithoutTicketInput
+    scans?: TicketScanUncheckedCreateNestedManyWithoutTicketInput
   }
 
   export type TicketCreateOrConnectWithoutFraudFlagsInput = {
@@ -93905,6 +94741,7 @@ export namespace Prisma {
     seat?: SeatUpdateOneWithoutTicketsNestedInput
     resaleListing?: ResaleListingUpdateOneWithoutTicketNestedInput
     transfers?: TicketTransferUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateWithoutFraudFlagsInput = {
@@ -93929,6 +94766,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resaleListing?: ResaleListingUncheckedUpdateOneWithoutTicketNestedInput
     transfers?: TicketTransferUncheckedUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUncheckedUpdateManyWithoutTicketNestedInput
   }
 
   export type UserUpsertWithoutFraudFlagsInput = {
@@ -95118,6 +95956,7 @@ export namespace Prisma {
     seat?: SeatCreateNestedOneWithoutTicketsInput
     resaleListing?: ResaleListingCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagCreateNestedManyWithoutTicketInput
+    scans?: TicketScanCreateNestedManyWithoutTicketInput
   }
 
   export type TicketUncheckedCreateWithoutTransfersInput = {
@@ -95142,6 +95981,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     resaleListing?: ResaleListingUncheckedCreateNestedOneWithoutTicketInput
     fraudFlags?: FraudFlagUncheckedCreateNestedManyWithoutTicketInput
+    scans?: TicketScanUncheckedCreateNestedManyWithoutTicketInput
   }
 
   export type TicketCreateOrConnectWithoutTransfersInput = {
@@ -95182,6 +96022,7 @@ export namespace Prisma {
     seat?: SeatUpdateOneWithoutTicketsNestedInput
     resaleListing?: ResaleListingUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateWithoutTransfersInput = {
@@ -95206,6 +96047,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resaleListing?: ResaleListingUncheckedUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUncheckedUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUncheckedUpdateManyWithoutTicketNestedInput
   }
 
   export type OrganizationCreateWithoutApiKeysInput = {
@@ -96128,6 +96970,7 @@ export namespace Prisma {
     layouts?: VenueLayoutCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneCreateNestedManyWithoutVenueInput
   }
 
   export type VenueUncheckedCreateWithoutSeasonPassesInput = {
@@ -96159,6 +97002,7 @@ export namespace Prisma {
     layouts?: VenueLayoutUncheckedCreateNestedManyWithoutVenueInput
     eventSeries?: EventSeriesUncheckedCreateNestedManyWithoutVenueInput
     blackouts?: VenueBlackoutUncheckedCreateNestedManyWithoutVenueInput
+    accessZones?: AccessZoneUncheckedCreateNestedManyWithoutVenueInput
   }
 
   export type VenueCreateOrConnectWithoutSeasonPassesInput = {
@@ -96193,7 +97037,7 @@ export namespace Prisma {
     buyerName: string
     quantity?: number
     totalAmount: Decimal | DecimalJsLike | number | string
-    status?: string
+    status?: $Enums.SeasonPassPurchaseStatus
     seatSection?: string | null
     createdAt?: Date | string
   }
@@ -96205,7 +97049,7 @@ export namespace Prisma {
     buyerName: string
     quantity?: number
     totalAmount: Decimal | DecimalJsLike | number | string
-    status?: string
+    status?: $Enums.SeasonPassPurchaseStatus
     seatSection?: string | null
     createdAt?: Date | string
   }
@@ -96369,6 +97213,7 @@ export namespace Prisma {
     layouts?: VenueLayoutUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUpdateManyWithoutVenueNestedInput
   }
 
   export type VenueUncheckedUpdateWithoutSeasonPassesInput = {
@@ -96400,6 +97245,7 @@ export namespace Prisma {
     layouts?: VenueLayoutUncheckedUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUncheckedUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUncheckedUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUncheckedUpdateManyWithoutVenueNestedInput
   }
 
   export type SeasonPassEventUpsertWithWhereUniqueWithoutSeasonPassInput = {
@@ -96445,7 +97291,7 @@ export namespace Prisma {
     buyerName?: StringFilter<"SeasonPassPurchase"> | string
     quantity?: IntFilter<"SeasonPassPurchase"> | number
     totalAmount?: DecimalFilter<"SeasonPassPurchase"> | Decimal | DecimalJsLike | number | string
-    status?: StringFilter<"SeasonPassPurchase"> | string
+    status?: EnumSeasonPassPurchaseStatusFilter<"SeasonPassPurchase"> | $Enums.SeasonPassPurchaseStatus
     seatSection?: StringNullableFilter<"SeasonPassPurchase"> | string | null
     createdAt?: DateTimeFilter<"SeasonPassPurchase"> | Date | string
   }
@@ -97054,7 +97900,7 @@ export namespace Prisma {
     id?: string
     name: string
     locationName: string
-    status?: string
+    status?: $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: boolean
     lastSyncAt?: Date | string | null
@@ -97150,6 +97996,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUpdateManyWithoutVenueNestedInput
   }
 
   export type VenueUncheckedUpdateWithoutOrganizationInput = {
@@ -97181,6 +98028,7 @@ export namespace Prisma {
     seasonPasses?: SeasonPassUncheckedUpdateManyWithoutVenueNestedInput
     eventSeries?: EventSeriesUncheckedUpdateManyWithoutVenueNestedInput
     blackouts?: VenueBlackoutUncheckedUpdateManyWithoutVenueNestedInput
+    accessZones?: AccessZoneUncheckedUpdateManyWithoutVenueNestedInput
   }
 
   export type VenueUncheckedUpdateManyWithoutOrganizationInput = {
@@ -97647,7 +98495,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     locationName?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosTerminalStatusFieldUpdateOperationsInput | $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: BoolFieldUpdateOperationsInput | boolean
     lastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -97661,7 +98509,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     locationName?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosTerminalStatusFieldUpdateOperationsInput | $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: BoolFieldUpdateOperationsInput | boolean
     lastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -97675,7 +98523,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     locationName?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosTerminalStatusFieldUpdateOperationsInput | $Enums.PosTerminalStatus
     hardwareConfig?: NullableJsonNullValueInput | InputJsonValue
     offlineMode?: BoolFieldUpdateOperationsInput | boolean
     lastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -97963,6 +98811,14 @@ export namespace Prisma {
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type AccessZoneCreateManyVenueInput = {
+    id?: string
+    name: string
+    slug: string
+    capacity?: number | null
+    createdAt?: Date | string
   }
 
   export type EventUpdateWithoutVenueInput = {
@@ -98306,6 +99162,32 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type AccessZoneUpdateWithoutVenueInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    capacity?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scans?: TicketScanUpdateManyWithoutZoneNestedInput
+  }
+
+  export type AccessZoneUncheckedUpdateWithoutVenueInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    capacity?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scans?: TicketScanUncheckedUpdateManyWithoutZoneNestedInput
+  }
+
+  export type AccessZoneUncheckedUpdateManyWithoutVenueInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    capacity?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type SectionCreateManyLayoutInput = {
     id?: string
     name: string
@@ -98602,6 +99484,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateWithoutSeatInput = {
@@ -98626,6 +99509,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUncheckedUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUncheckedUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUncheckedUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateManyWithoutSeatInput = {
@@ -98706,12 +99590,12 @@ export namespace Prisma {
 
   export type TicketScanUpdateWithoutZoneInput = {
     id?: StringFieldUpdateOperationsInput | string
-    ticketId?: StringFieldUpdateOperationsInput | string
     scannedBy?: StringFieldUpdateOperationsInput | string
     channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
     success?: BoolFieldUpdateOperationsInput | boolean
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     scannedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ticket?: TicketUpdateOneRequiredWithoutScansNestedInput
   }
 
   export type TicketScanUncheckedUpdateWithoutZoneInput = {
@@ -99001,6 +99885,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateWithoutEventInput = {
@@ -99025,6 +99910,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUncheckedUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUncheckedUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUncheckedUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateManyWithoutEventInput = {
@@ -99706,6 +100592,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateWithoutOfferInput = {
@@ -99730,6 +100617,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUncheckedUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUncheckedUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUncheckedUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateManyWithoutOfferInput = {
@@ -99857,6 +100745,16 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type TicketScanCreateManyTicketInput = {
+    id?: string
+    zoneId?: string | null
+    scannedBy: string
+    channel: $Enums.SalesChannel
+    success: boolean
+    reason?: string | null
+    scannedAt?: Date | string
+  }
+
   export type FraudFlagUpdateWithoutTicketInput = {
     id?: StringFieldUpdateOperationsInput | string
     type?: EnumFraudTypeFieldUpdateOperationsInput | $Enums.FraudType
@@ -99954,6 +100852,36 @@ export namespace Prisma {
     acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TicketScanUpdateWithoutTicketInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scannedBy?: StringFieldUpdateOperationsInput | string
+    channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    scannedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    zone?: AccessZoneUpdateOneWithoutScansNestedInput
+  }
+
+  export type TicketScanUncheckedUpdateWithoutTicketInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    zoneId?: NullableStringFieldUpdateOperationsInput | string | null
+    scannedBy?: StringFieldUpdateOperationsInput | string
+    channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    scannedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TicketScanUncheckedUpdateManyWithoutTicketInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    zoneId?: NullableStringFieldUpdateOperationsInput | string | null
+    scannedBy?: StringFieldUpdateOperationsInput | string
+    channel?: EnumSalesChannelFieldUpdateOperationsInput | $Enums.SalesChannel
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    scannedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type OrderItemCreateManyOrderInput = {
@@ -100273,6 +101201,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateWithoutOrderItemInput = {
@@ -100297,6 +101226,7 @@ export namespace Prisma {
     resaleListing?: ResaleListingUncheckedUpdateOneWithoutTicketNestedInput
     fraudFlags?: FraudFlagUncheckedUpdateManyWithoutTicketNestedInput
     transfers?: TicketTransferUncheckedUpdateManyWithoutTicketNestedInput
+    scans?: TicketScanUncheckedUpdateManyWithoutTicketNestedInput
   }
 
   export type TicketUncheckedUpdateManyWithoutOrderItemInput = {
@@ -100755,7 +101685,7 @@ export namespace Prisma {
   export type PosCashierSessionCreateManyTerminalInput = {
     id?: string
     cashierId: string
-    status?: string
+    status?: $Enums.PosSessionStatus
     startedAt?: Date | string
     endedAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -100764,7 +101694,7 @@ export namespace Prisma {
   export type PosCashierSessionUpdateWithoutTerminalInput = {
     id?: StringFieldUpdateOperationsInput | string
     cashierId?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosSessionStatusFieldUpdateOperationsInput | $Enums.PosSessionStatus
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -100773,7 +101703,7 @@ export namespace Prisma {
   export type PosCashierSessionUncheckedUpdateWithoutTerminalInput = {
     id?: StringFieldUpdateOperationsInput | string
     cashierId?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosSessionStatusFieldUpdateOperationsInput | $Enums.PosSessionStatus
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -100782,7 +101712,7 @@ export namespace Prisma {
   export type PosCashierSessionUncheckedUpdateManyWithoutTerminalInput = {
     id?: StringFieldUpdateOperationsInput | string
     cashierId?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumPosSessionStatusFieldUpdateOperationsInput | $Enums.PosSessionStatus
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -100972,7 +101902,7 @@ export namespace Prisma {
     buyerName: string
     quantity?: number
     totalAmount: Decimal | DecimalJsLike | number | string
-    status?: string
+    status?: $Enums.SeasonPassPurchaseStatus
     seatSection?: string | null
     createdAt?: Date | string
   }
@@ -100999,7 +101929,7 @@ export namespace Prisma {
     buyerName?: StringFieldUpdateOperationsInput | string
     quantity?: IntFieldUpdateOperationsInput | number
     totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumSeasonPassPurchaseStatusFieldUpdateOperationsInput | $Enums.SeasonPassPurchaseStatus
     seatSection?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -101011,7 +101941,7 @@ export namespace Prisma {
     buyerName?: StringFieldUpdateOperationsInput | string
     quantity?: IntFieldUpdateOperationsInput | number
     totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumSeasonPassPurchaseStatusFieldUpdateOperationsInput | $Enums.SeasonPassPurchaseStatus
     seatSection?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -101023,7 +101953,7 @@ export namespace Prisma {
     buyerName?: StringFieldUpdateOperationsInput | string
     quantity?: IntFieldUpdateOperationsInput | number
     totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumSeasonPassPurchaseStatusFieldUpdateOperationsInput | $Enums.SeasonPassPurchaseStatus
     seatSection?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

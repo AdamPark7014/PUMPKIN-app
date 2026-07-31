@@ -1,4 +1,6 @@
 import type { CSSProperties } from 'react';
+import Image from 'next/image';
+import { calendarParts } from '@/lib/format';
 import styles from './EventPosterArt.module.scss';
 
 export type PosterEvent = {
@@ -75,7 +77,7 @@ export function EventPosterArt({
 }) {
   const colors = palette(event.category, event.slug || event.id);
   const src = event.bannerImage || event.image;
-  const d = event.startsAt ? new Date(event.startsAt) : null;
+  const parts = showDate ? calendarParts(event.startsAt) : null;
   const aspect = event.posterAspect || defaultAspect(event.category);
   const style = {
     ['--pa']: colors.a,
@@ -84,6 +86,15 @@ export function EventPosterArt({
     ['--glow']: colors.glow,
     ['--poster-aspect']: aspect,
   } as CSSProperties;
+  const sizes =
+    size === 'hero'
+      ? '100vw'
+      : size === 'lg'
+        ? '200px'
+        : size === 'sm'
+          ? '96px'
+          : '140px';
+  const remote = Boolean(src && /^https?:\/\//i.test(src));
 
   return (
     <div
@@ -93,8 +104,20 @@ export function EventPosterArt({
       aria-hidden
     >
       {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" className={styles.photo} />
+        remote ? (
+          <Image
+            src={src}
+            alt=""
+            fill
+            sizes={sizes}
+            className={styles.photo}
+            priority={size === 'hero'}
+          />
+        ) : (
+          // Rutas locales / data-URI: next/image exige config; caemos a img.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt="" className={styles.photo} />
+        )
       ) : (
         <div className={styles.art}>
           <svg className={styles.rings} viewBox="0 0 200 260" preserveAspectRatio="xMidYMid slice">
@@ -126,10 +149,10 @@ export function EventPosterArt({
           <span className={styles.brand}>BOLETERA</span>
         </div>
       )}
-      {showDate && d && (
+      {parts && (
         <div className={styles.date}>
-          <strong>{d.toLocaleDateString('es-MX', { day: '2-digit' })}</strong>
-          <span>{d.toLocaleDateString('es-MX', { month: 'short' }).replace('.', '')}</span>
+          <strong>{parts.day}</strong>
+          <span>{parts.month}</span>
         </div>
       )}
     </div>

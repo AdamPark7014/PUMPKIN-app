@@ -11,6 +11,11 @@ import { OrgAccessGuard } from './org-access.guard';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
 import { requireJwtSecret } from './jwt-secret';
+import { LoginProtectionService } from './login-protection.service';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { TenantContextInterceptor } from '../../common/tenant-context.interceptor';
+import { TenantContextService } from '../../common/tenant-context.service';
+import { AntiAbuseInterceptor } from '../../common/anti-abuse.interceptor';
 
 @Module({
   imports: [
@@ -19,12 +24,33 @@ import { requireJwtSecret } from './jwt-secret';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: requireJwtSecret(),
-      signOptions: { expiresIn: '24h' },
+      signOptions: { expiresIn: '15m' },
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, OptionalJwtAuthGuard, OrgAccessGuard, JwtAuthGuard, RolesGuard],
-  exports: [AuthService, JwtModule, OptionalJwtAuthGuard, OrgAccessGuard, JwtAuthGuard, RolesGuard],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    OptionalJwtAuthGuard,
+    OrgAccessGuard,
+    JwtAuthGuard,
+    RolesGuard,
+    LoginProtectionService,
+    TenantContextService,
+    TenantContextInterceptor,
+    AntiAbuseInterceptor,
+    { provide: APP_INTERCEPTOR, useExisting: TenantContextInterceptor },
+    { provide: APP_INTERCEPTOR, useExisting: AntiAbuseInterceptor },
+  ],
+  exports: [
+    AuthService,
+    JwtModule,
+    OptionalJwtAuthGuard,
+    OrgAccessGuard,
+    JwtAuthGuard,
+    RolesGuard,
+    TenantContextService,
+  ],
 })
 export class AuthModule {}
 

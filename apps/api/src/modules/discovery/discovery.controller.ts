@@ -1,5 +1,11 @@
-import { Controller, Get, Headers, Param, Query } from '@nestjs/common';
+import { Controller, Get, Headers, NotFoundException, Param, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import {
+  DiscoveryEventsQueryDto,
+  DiscoverySlugParamDto,
+  DiscoverySuggestQueryDto,
+  DiscoveryVenuesQueryDto,
+} from './discovery.dto';
 import { DiscoveryService } from './discovery.service';
 import { TenantService } from '../tenant/tenant.service';
 
@@ -14,78 +20,72 @@ export class DiscoveryController {
   @Get('suggest')
   async suggest(
     @Headers('host') host: string,
-    @Query('q') q?: string,
-    @Query('limit') limit?: string,
+    @Query() query: DiscoverySuggestQueryDto,
   ) {
-    const org = await this.tenant.resolveByHost(host || 'localhost');
-    if (!org || !q?.trim()) return [];
+    if (!query.q?.trim()) return [];
+    const orgIds = await this.tenant.discoveryOrgIds(host || 'localhost');
     return this.discovery.suggest({
-      orgId: org.id,
-      q,
-      limit: limit ? parseInt(limit, 10) : 8,
+      orgId: orgIds,
+      q: query.q,
+      limit: query.limit ?? 8,
     });
   }
 
   @Get('facets')
   async facets(@Headers('host') host: string) {
-    const org = await this.tenant.resolveByHost(host || 'localhost');
-    if (!org) return { cities: [], categories: [] };
-    return this.discovery.facets(org.id);
+    const orgIds = await this.tenant.discoveryOrgIds(host || 'localhost');
+    return this.discovery.facets(orgIds);
   }
 
   @Get('venues')
   async venues(
     @Headers('host') host: string,
-    @Query('limit') limit?: string,
-    @Query('city') city?: string,
+    @Query() query: DiscoveryVenuesQueryDto,
   ) {
-    const org = await this.tenant.resolveByHost(host || 'localhost');
-    if (!org) return [];
+    const orgIds = await this.tenant.discoveryOrgIds(host || 'localhost');
     return this.discovery.listVenues({
-      orgId: org.id,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      city: city && city !== 'ALL' ? city : undefined,
+      orgId: orgIds,
+      limit: query.limit,
+      city: query.city && query.city !== 'ALL' ? query.city : undefined,
     });
   }
 
   @Get('venues/:slug')
-  async venueBySlug(@Headers('host') host: string, @Param('slug') slug: string) {
-    const org = await this.tenant.resolveByHost(host || 'localhost');
-    if (!org) return null;
-    return this.discovery.getVenueBySlug(slug, org.id);
+  async venueBySlug(
+    @Headers('host') host: string,
+    @Param() params: DiscoverySlugParamDto,
+  ) {
+    const orgIds = await this.tenant.discoveryOrgIds(host || 'localhost');
+    return this.discovery.getVenueBySlug(params.slug, orgIds);
   }
 
   @Get('events')
   async events(
     @Headers('host') host: string,
-    @Query('q') q?: string,
-    @Query('city') city?: string,
-    @Query('category') category?: string,
-    @Query('venueSlug') venueSlug?: string,
-    @Query('when') when?: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-    @Query('limit') limit?: string,
-    @Query('cursor') cursor?: string,
+    @Query() query: DiscoveryEventsQueryDto,
   ) {
-    const org = await this.tenant.resolveByHost(host || 'localhost');
-    if (!org) return [];
+    const orgIds = await this.tenant.discoveryOrgIds(host || 'localhost');
     return this.discovery.listEvents({
-      orgId: org.id,
-      q,
-      city: city && city !== 'ALL' ? city : undefined,
-      category: category && category !== 'ALL' ? category : undefined,
-      venueSlug,
-      when,
-      from,
-      to,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      cursor,
+      orgId: orgIds,
+      q: query.q,
+      city: query.city && query.city !== 'ALL' ? query.city : undefined,
+      category: query.category && query.category !== 'ALL' ? query.category : undefined,
+      venueSlug: query.venueSlug,
+      when: query.when,
+      from: query.from,
+      to: query.to,
+      limit: query.limit,
+      cursor: query.cursor,
     });
   }
 
   @Get('events/:slug')
-  getEvent(@Param('slug') slug: string) {
-    return this.discovery.getBySlug(slug);
+  async getEvent(
+    @Headers('host') host: string,
+    @Param() params: DiscoverySlugParamDto,
+  ) {
+    const orgIds = await this.tenant.discoveryOrgIds(host || 'localhost');
+    if (!orgIds.length) throw new NotFoundException('Tenant not found');
+    return this.discovery.getBySlug(params.slug, orgIds);
   }
 }

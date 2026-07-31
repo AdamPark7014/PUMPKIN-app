@@ -5,7 +5,6 @@ import {
   Body,
   Param,
   Headers,
-  Logger,
   Query,
   UseGuards,
   UnauthorizedException,
@@ -14,18 +13,26 @@ import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { Permissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/auth.types';
 import { BanorteReconciliationService } from './banorte-reconciliation.service';
+import {
+  CompleteManualRefundDto,
+  ConfirmPaymentDto,
+  CreatePaymentIntentDto,
+  CreateRefundDto,
+  OrderIdParamDto,
+  RefundIdParamDto,
+} from './payment.dto';
 import { PaymentService } from './payment.service';
 
 @ApiTags('Payments')
 @Controller('payments')
 export class PaymentController {
-  private logger = new Logger(PaymentController.name);
-
   constructor(
-    private paymentService: PaymentService,
-    private reconciliation: BanorteReconciliationService,
+    private readonly paymentService: PaymentService,
+    private readonly reconciliation: BanorteReconciliationService,
   ) {}
 
   @Get('config')
@@ -37,6 +44,7 @@ export class PaymentController {
   @Get('config/validate')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER')
+  @Permissions('payment:read')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Validate Banorte production credentials' })
   validateConfig() {
@@ -46,47 +54,37 @@ export class PaymentController {
   @Post('intents')
   @ApiOperation({ summary: 'Create Banorte payment (Payworks / SPEI / OXXO)' })
   async createIntent(
-    @Body()
-    dto: {
-      orderId: string;
-      amount: number;
-      currency: string;
-      buyerEmail: string;
-      buyerName: string;
-      paymentMethod?: string;
-      publicId?: string;
-    },
+    @Body() dto: CreatePaymentIntentDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return await this.paymentService.createPaymentIntent(dto);
+    return this.paymentService.createPaymentIntent({
+      ...dto,
+      idempotencyKey: dto.idempotencyKey ?? idempotencyKey,
+    });
   }
 
   @Post('confirm')
   @ApiOperation({ summary: 'Confirm Banorte payment (demo / return URL)' })
-  async confirmPayment(
-    @Body()
-    dto: {
-      orderId: string;
-      intentId?: string;
-      externalId?: string;
-    },
-  ) {
-    return await this.paymentService.confirmBanortePayment(dto);
+  async confirmPayment(@Body() dto: ConfirmPaymentDto) {
+    return this.paymentService.confirmBanortePayment(dto);
   }
 
   @Post(':orderId/refunds')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Request refund via Banorte (audited)' })
+  @ApiOperation({ summary: 'Request refund via Banorte (audited, tenant-scoped)' })
   async createRefund(
-    @Param('orderId') orderId: string,
-    @Body() dto: { reason: string; amount?: number; notes?: string },
-    @CurrentUser() user: { email?: string; sub?: string; id?: string },
+    @Param() params: OrderIdParamDto,
+    @Body() dto: CreateRefundDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return await this.paymentService.createRefund({
-      orderId,
+    return this.paymentService.createRefund({
+      orderId: params.orderId,
       ...dto,
       requestedBy: user?.email || user?.sub || 'staff',
+      idempotencyKey: dto.idempotencyKey ?? idempotencyKey,
     });
   }
 
@@ -98,12 +96,12 @@ export class PaymentController {
     summary: 'Mark pending Banorte-portal refund as completed and release inventory',
   })
   async completeManualRefund(
-    @Param('refundId') refundId: string,
-    @Body() dto: { banorteReference?: string },
-    @CurrentUser() user: { email?: string; sub?: string },
+    @Param() params: RefundIdParamDto,
+    @Body() dto: CompleteManualRefundDto,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return await this.paymentService.completeManualRefund(
-      refundId,
+    return this.paymentService.completeManualRefund(
+      params.refundId,
       user?.email || user?.sub || 'admin',
       dto.banorteReference,
     );
@@ -113,10 +111,10 @@ export class PaymentController {
   @ApiOperation({ summary: 'Banorte IPN / Payworks webhook' })
   async handleBanorteWebhook(
     @Body() body: Record<string, unknown>,
-    @Headers('x-banorte-signature') sig: string,
-    @Headers('x-signature') sigAlt: string,
+    @Headers('x-banorte-signature') sig?: string,
+    @Headers('x-signature') sigAlt?: string,
   ) {
-    return await this.paymentService.handleBanorteWebhook(body, sig || sigAlt);
+    return this.paymentService.handleBanorteWebhook(body, sig || sigAlt);
   }
 
   @Post('reconcile/spei')
@@ -131,13 +129,16 @@ export class PaymentController {
 
   @Get('webhooks/banorte/return')
   @ApiOperation({ summary: 'Return URL after Payworks (redirect handler)' })
-  async payworksReturn(@Query('orderId') orderId: string, @Query('result') result: string) {
+  async payworksReturn(
+    @Query('orderId') orderId?: string,
+    @Query('result') result?: string,
+  ) {
     if (result === 'ok' && orderId) {
       const cfg = await import('@boletera/payments').then((m) => m.getBanorteConfig());
       if (cfg.isDemo) {
         await this.paymentService.completeOrder(orderId, `banorte_return_${Date.now()}`);
       }
     }
-    return { ok: result === 'ok', orderId };
+    return { ok: result === 'ok', orderId: orderId ?? null };
   }
 }

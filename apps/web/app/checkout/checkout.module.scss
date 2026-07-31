@@ -12,36 +12,8 @@
   padding: 1.5rem clamp(1rem, 3vw, 2rem) 3rem;
 }
 
-.steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem 1rem;
-  margin-bottom: 1.15rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.stepDone {
-  color: #16a34a;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.stepActive {
-  color: #e11d48;
-}
-
-.stepTodo {
-  color: #a3a3a3;
-}
-
 .hero {
-  margin-bottom: 1rem;
+  margin: 1rem 0 1rem;
 
   h1 {
     margin: 0 0 0.3rem;
@@ -76,21 +48,8 @@
   padding: 1.2rem 1.25rem 1.35rem;
 }
 
-.trust {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+.formCol :global(ul[aria-label='Garantías de compra']) {
   margin-bottom: 0.9rem;
-
-  span {
-    font-size: 0.64rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 0.3rem 0.5rem;
-    border: 1px solid #e5e5e5;
-    color: #525252;
-  }
 }
 
 .banorteNote {
@@ -150,11 +109,15 @@
 .promoLabel {
   display: block;
   margin-bottom: 1rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #737373;
+
+  > label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #737373;
+  }
 
   input {
     display: block;
@@ -174,6 +137,11 @@
       outline: 2px solid rgba(225, 29, 72, 0.35);
       outline-offset: -1px;
       border-color: #e11d48;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 }
@@ -232,6 +200,13 @@
   background: #fff1f2;
 }
 
+.methodHint {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  color: #737373;
+  line-height: 1.4;
+}
+
 .promoRow {
   display: flex;
   gap: 0.5rem;
@@ -275,10 +250,52 @@
   color: #b91c1c;
   font-size: 0.875rem;
   margin: 0 0 1rem;
+  line-height: 1.45;
 
   a {
     color: inherit;
     font-weight: 700;
+  }
+}
+
+.errorBox {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+
+  p {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+}
+
+.errorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 0.9rem;
+  margin-top: 0.65rem;
+  align-items: center;
+
+  button,
+  a {
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #991b1b;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
@@ -396,27 +413,33 @@
 }
 
 .summary {
-  padding: 1rem 1.1rem;
-  background: #0a0a0a;
-  color: #fafafa;
-  border: 1px solid #171717;
-
-  div {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.875rem;
-    padding: 0.3rem 0;
-    color: rgba(250, 250, 250, 0.75);
-  }
+  padding: 0;
+  background: transparent;
+  border: none;
 }
 
-.total {
-  margin-top: 0.5rem;
-  padding-top: 0.55rem !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  font-weight: 700;
-  color: #fff !important;
-  font-size: 1rem !important;
+.summaryStatus {
+  margin: 0 0 0.65rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  font-size: 0.82rem;
+  color: #737373;
+  line-height: 1.4;
+}
+
+.nextSteps {
+  margin: 0;
+  padding: 0.85rem 1rem 0.85rem 1.8rem;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  font-size: 0.8rem;
+  color: #525252;
+  line-height: 1.45;
+
+  li + li {
+    margin-top: 0.25rem;
+  }
 }
 
 .backCart {
@@ -427,5 +450,14 @@
 
   &:hover {
     color: #e11d48;
+  }
+}
+
+@media (max-width: 860px) {
+  .pay {
+    position: sticky;
+    bottom: 0.75rem;
+    z-index: 2;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
   }
 }

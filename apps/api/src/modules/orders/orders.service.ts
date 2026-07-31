@@ -1,22 +1,25 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
+  HoldStatus,
   OrderStatus,
   PaymentGateway,
   PaymentMethod,
   PaymentStatus,
+  Prisma,
   SalesChannel,
   TicketStatus,
-  HoldStatus,
 } from '@prisma/client';
 import { buildQrPayload, generateTicketCode } from '@boletera/crypto';
 import { initDefaultProviders, getProvider, BanorteProvider } from '@boletera/payments';
 import QRCode from 'qrcode';
 import { AuditService } from '../../common/audit.service';
+import { TenantContextService } from '../../common/tenant-context.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { requireJwtSecret } from '../auth/jwt-secret';
 import { PricingService } from '../pricing/pricing.service';
@@ -26,153 +29,97 @@ import { CampaignExecutionService } from '../campaign-execution/campaign-executi
 import { ChannelQuotaService } from '../channel-management/channel-quota.service';
 import { TicketPdfService } from '../notification/ticket-pdf.service';
 import { BillingService } from '../billing/billing.service';
+import { InventoryService } from '../inventory/inventory.service';
+import type {
+  CreateOrderInput,
+  HoldLookup,
+  OrderLineGroup,
+  PricedLine,
+} from './orders.types';
 
 initDefaultProviders();
+
+const ORDER_TTL_MS = 30 * 60 * 1000;
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 100;
+
+type TxClient = Prisma.TransactionClient;
 
 @Injectable()
 export class OrdersService {
   constructor(
-    private prisma: PrismaService,
-    private pricing: PricingService,
-    private fraud: FraudService,
-    private notifications: NotificationService,
-    private audit: AuditService,
-    private campaigns: CampaignExecutionService,
-    private quotas: ChannelQuotaService,
-    private ticketPdf: TicketPdfService,
-    private billing: BillingService,
+    private readonly prisma: PrismaService,
+    private readonly pricing: PricingService,
+    private readonly fraud: FraudService,
+    private readonly notifications: NotificationService,
+    private readonly audit: AuditService,
+    private readonly campaigns: CampaignExecutionService,
+    private readonly quotas: ChannelQuotaService,
+    private readonly ticketPdf: TicketPdfService,
+    private readonly billing: BillingService,
+    private readonly tenant: TenantContextService,
+    private readonly inventory: InventoryService,
   ) {}
 
-  async createOrder(dto: {
-    eventId: string;
-    offerId?: string;
-    holdIds?: string[];
-    items?: { offerId: string; holdIds: string[] }[];
-    buyerName: string;
-    buyerEmail: string;
-    buyerPhone?: string;
-    userId?: string;
-    paymentMethod?: string;
-    promotionCode?: string;
-    channel?: SalesChannel;
-    cashierId?: string;
-    idempotencyKey?: string;
-    ipAddress?: string;
-    deviceFingerprint?: string;
-    isComp?: boolean;
-    compReason?: string;
-    posOps?: Record<string, unknown>;
-  }) {
+  private assertTenantIfPresent(organizationId: string): void {
+    const ctx = this.tenant.current();
+    if (!ctx.organizationId && !ctx.privileged) return;
+    this.tenant.assertOrganization(organizationId);
+  }
+
+  async createOrder(dto: CreateOrderInput) {
     if (dto.idempotencyKey) {
-      const existing = await this.prisma.paymentIntent.findUnique({
-        where: { idempotencyKey: dto.idempotencyKey },
-      });
-      if (existing?.orderId) {
-        const order = await this.prisma.order.findUnique({
-          where: { id: existing.orderId },
-          include: { items: { include: { tickets: true } }, payment: true },
-        });
-        if (order) return order;
-      }
+      const existing = await this.findByIdempotencyKey(dto.idempotencyKey);
+      if (existing) return existing;
     }
+
+    await this.inventory.expireStaleHolds(dto.eventId);
 
     const lineGroups = await this.resolveOrderLines(dto);
     const holdIds = lineGroups.flatMap((g) => g.holdIds);
     const holds = lineGroups.flatMap((g) => g.holds);
     if (!holds.length) throw new BadRequestException('Invalid or expired holds');
 
-    const event = await this.prisma.event.findUnique({
+    const event = await this.prisma.event.findFirst({
       where: { id: dto.eventId },
-      include: { offers: { where: { isAvailable: true } } },
+      select: {
+        id: true,
+        organizationId: true,
+        currency: true,
+        title: true,
+        offers: {
+          where: { isAvailable: true },
+          select: {
+            id: true,
+            name: true,
+            basePrice: true,
+            fees: true,
+            isAvailable: true,
+          },
+        },
+      },
     });
     if (!event) throw new NotFoundException('Event not found');
+    this.assertTenantIfPresent(event.organizationId);
 
-    let userId = dto.userId;
-    if (userId) {
-      const linked = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (!linked) userId = undefined;
-    }
-    if (!userId) {
-      let user = await this.prisma.user.findUnique({ where: { email: dto.buyerEmail } });
-      if (!user) {
-        user = await this.prisma.user.create({
-          data: {
-            email: dto.buyerEmail,
-            firstName: dto.buyerName.split(' ')[0] ?? 'Guest',
-            lastName: dto.buyerName.split(' ').slice(1).join(' ') || 'Buyer',
-          },
-        });
-      }
-      userId = user.id;
-    }
+    const userId = await this.resolveBuyerUserId(dto);
+    const pricedLines = await this.priceLines(dto, event, lineGroups);
 
-    const pricedLines: {
-      offerId: string;
-      holdIds: string[];
-      holds: (typeof holds)[number][];
-      quantity: number;
-      unitPrice: number;
-      unitFees: number;
-      subtotal: number;
-      fees: number;
-      taxes: number;
-      total: number;
-      discount: number;
-      appliedRules: unknown;
-    }[] = [];
-
-    let subtotal = 0;
-    let fees = 0;
-    let taxAmount = 0;
-    let totalAmount = 0;
-    let discountAmount = 0;
-    const appliedRules: unknown[] = [];
-
-    for (const group of lineGroups) {
-      const offer =
-        event.offers.find((o) => o.id === group.offerId) ??
-        (await this.prisma.offer.findFirst({
-          where: { id: group.offerId, eventId: event.id, isAvailable: true },
-        }));
-      if (!offer) throw new BadRequestException(`Offer ${group.offerId} not available`);
-
-      const pricingResult = await this.pricing.calculatePrice({
-        eventId: dto.eventId,
-        offerId: offer.id,
-        quantity: group.holds.length,
-        promotionCode: dto.promotionCode,
-      });
-      const lineSubtotal = Number(pricingResult.subtotal);
-      const lineFees = Number(pricingResult.fees);
-      const lineTaxes = Number(pricingResult.taxes);
-      const lineTotal = Number(pricingResult.total);
-      const lineDiscount = Number(pricingResult.discount);
-      const qty = group.holds.length;
-      pricedLines.push({
-        offerId: offer.id,
-        holdIds: group.holdIds,
-        holds: group.holds,
-        quantity: qty,
-        unitPrice: qty ? lineSubtotal / qty : 0,
-        unitFees: qty ? lineFees / qty : 0,
-        subtotal: lineSubtotal,
-        fees: lineFees,
-        taxes: lineTaxes,
-        total: lineTotal,
-        discount: lineDiscount,
-        appliedRules: pricingResult.breakdown.appliedRules,
-      });
-      subtotal += lineSubtotal;
-      fees += lineFees;
-      taxAmount += lineTaxes;
-      totalAmount += lineTotal;
-      discountAmount += lineDiscount;
-      appliedRules.push(...(pricingResult.breakdown.appliedRules ?? []));
-    }
+    let subtotal = pricedLines.reduce((s, l) => s + l.subtotal, 0);
+    let fees = pricedLines.reduce((s, l) => s + l.fees, 0);
+    let taxAmount = pricedLines.reduce((s, l) => s + l.taxes, 0);
+    let totalAmount = pricedLines.reduce((s, l) => s + l.total, 0);
+    let discountAmount = pricedLines.reduce((s, l) => s + l.discount, 0);
+    const appliedRules = pricedLines.flatMap((l) =>
+      Array.isArray(l.appliedRules) ? l.appliedRules : [],
+    );
 
     let promotionId: string | undefined;
     if (dto.promotionCode) {
-      const promo = await this.prisma.promotion.findUnique({ where: { code: dto.promotionCode } });
+      const promo = await this.prisma.promotion.findFirst({
+        where: { code: dto.promotionCode },
+        select: { id: true },
+      });
       if (promo) promotionId = promo.id;
     }
 
@@ -186,7 +133,6 @@ export class OrdersService {
     }
 
     const publicId = `ORD-${Date.now().toString(36).toUpperCase()}`;
-
     const fraudResult = await this.fraud.analyzeFraud({
       userId,
       eventId: dto.eventId,
@@ -229,15 +175,7 @@ export class OrdersService {
     const providerId = method === 'CASH' ? 'cash' : 'banorte';
     const provider = getProvider(providerId);
     const banorte = provider as BanorteProvider;
-
-    const payMethodEnum =
-      method === 'SPEI'
-        ? PaymentMethod.SPEI
-        : method === 'OXXO'
-          ? PaymentMethod.OXXO
-          : method === 'CASH'
-            ? PaymentMethod.CASH
-            : PaymentMethod.CARD;
+    const payMethodEnum = this.toPaymentMethod(method);
 
     const posOps = {
       ...(dto.posOps ?? {}),
@@ -256,142 +194,219 @@ export class OrdersService {
         paymentMethod: method as 'CARD' | 'SPEI' | 'OXXO',
       });
 
-    const order = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
-        data: {
-          publicId,
-          organizationId: event.organizationId,
-          eventId: event.id,
-          userId,
-          status: OrderStatus.PENDING,
-          buyerEmail: dto.buyerEmail,
-          buyerName: dto.buyerName,
-          buyerPhone: dto.buyerPhone,
-          subtotal,
-          fees,
-          taxAmount,
-          totalAmount,
-          discountAmount,
-          promotionId,
-          commissionAmount: isComp ? 0 : subtotal * 0.15,
-          currency: event.currency,
-          channel,
-          cashierId: dto.cashierId,
-          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-          paymentMethod: payMethodEnum,
-          ...(Object.keys(posOps).length
-            ? ({ posOps } as Record<string, unknown>)
-            : {}),
-          items: {
-            create: pricedLines.map((line) => ({
-              offerId: line.offerId,
-              quantity: line.quantity,
-              unitPrice: line.unitPrice,
-              unitFees: line.unitFees,
-              subtotal: line.subtotal,
-            })),
-          },
-        } as Parameters<typeof tx.order.create>[0]['data'],
-        include: { items: true },
-      });
-
-      if (asyncBanorte) {
-        return created;
-      }
-
-      const intent = await provider.createIntent({
-        amount: totalAmount,
-        currency: event.currency,
-        orderId: created.id,
-        channel: channel as 'WEB' | 'TAQUILLA' | 'API' | 'ADMIN',
-        buyerEmail: dto.buyerEmail,
-        buyerName: dto.buyerName,
-        paymentMethod: method as 'CARD' | 'SPEI' | 'OXXO' | 'CASH',
-        metadata: { publicId: created.publicId },
-        idempotencyKey: dto.idempotencyKey,
-      });
-
-      const capture = await provider.capture(intent.intentId, intent.externalId);
-      if (!capture.success) {
-        throw new BadRequestException(capture.error ?? 'Payment capture failed');
-      }
-
-      const payment = await tx.payment.create({
-        data: {
-          gateway:
-            providerId === 'banorte' ? PaymentGateway.BANORTE : PaymentGateway.CASH,
-          externalId: capture.externalId,
-          status: PaymentStatus.COMPLETED,
-          amount: totalAmount,
-          currency: event.currency,
-          method: payMethodEnum,
-          processedAt: new Date(),
-          metadata: { pricingRules: appliedRules as object[] },
-        },
-      });
-
-      await tx.order.update({
-        where: { id: created.id },
-        data: {
-          status: OrderStatus.COMPLETED,
-          paymentId: payment.id,
-          completedAt: new Date(),
-        },
-      });
-
-      const itemByOffer = new Map(created.items.map((i) => [i.offerId, i]));
-      for (const line of pricedLines) {
-        const orderItem = itemByOffer.get(line.offerId);
-        if (!orderItem) continue;
-        for (const hold of line.holds) {
-          await tx.seatHold.update({
-            where: { id: hold.id },
-            data: { status: HoldStatus.CONVERTED },
-          });
-          if (hold.seatId) {
-            await tx.ticket.updateMany({
-              where: { eventId: dto.eventId, seatId: hold.seatId },
-              data: {
-                status: TicketStatus.SOLD,
-                buyerEmail: dto.buyerEmail,
-                buyerName: dto.buyerName,
-                code: generateTicketCode(),
-                orderItemId: orderItem.id,
-              },
-            });
-          } else {
-            const available = await tx.ticket.findFirst({
-              where: {
-                eventId: dto.eventId,
-                offerId: line.offerId,
-                status: TicketStatus.HELD,
-              },
-            });
-            if (available) {
-              await tx.ticket.update({
-                where: { id: available.id },
-                data: {
-                  status: TicketStatus.SOLD,
-                  buyerEmail: dto.buyerEmail,
-                  buyerName: dto.buyerName,
-                  code: generateTicketCode(),
-                  orderItemId: orderItem.id,
-                },
-              });
-            }
-          }
-        }
-        await tx.offer.update({
-          where: { id: line.offerId },
+    // Claim idempotency key before mutating holds so concurrent retries share one order.
+    if (dto.idempotencyKey) {
+      try {
+        await this.prisma.paymentIntent.create({
           data: {
-            soldQuantity: { increment: line.quantity },
-            remainingQuantity: { decrement: line.quantity },
+            provider: providerId === 'banorte' ? PaymentGateway.BANORTE : PaymentGateway.CASH,
+            externalId: `pending_${dto.idempotencyKey}`,
+            amount: totalAmount,
+            currency: event.currency,
+            status: PaymentStatus.PENDING,
+            channel,
+            idempotencyKey: dto.idempotencyKey,
+            expiresAt: new Date(Date.now() + ORDER_TTL_MS),
+            metadata: {
+              holdIds,
+              items: pricedLines.map((l) => ({
+                offerId: l.offerId,
+                holdIds: l.holdIds,
+              })),
+              placeholder: true,
+            },
           },
         });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          const existing = await this.waitForIdempotentOrder(dto.idempotencyKey);
+          if (existing) return existing;
+          throw new ConflictException('Order is already being processed');
+        }
+        throw error;
       }
+    }
 
-      return created;
-    });
+    let order;
+    try {
+      order = await this.prisma.$transaction(
+        async (tx) => {
+          // Convert holds atomically — prevents double-sell across concurrent checkouts.
+          for (const hold of holds) {
+            const converted = await tx.seatHold.updateMany({
+              where: {
+                id: hold.id,
+                eventId: event.id,
+                status: HoldStatus.ACTIVE,
+                expiresAt: { gt: new Date() },
+              },
+              data: {
+                status: asyncBanorte ? HoldStatus.ACTIVE : HoldStatus.CONVERTED,
+                ...(asyncBanorte
+                  ? { expiresAt: new Date(Date.now() + ORDER_TTL_MS) }
+                  : {}),
+              },
+            });
+            if (converted.count === 0) {
+              throw new ConflictException('Hold expired or already converted');
+            }
+          }
+
+          const created = await tx.order.create({
+            data: {
+              publicId,
+              organizationId: event.organizationId,
+              eventId: event.id,
+              userId,
+              status: OrderStatus.PENDING,
+              buyerEmail: dto.buyerEmail.toLowerCase().trim(),
+              buyerName: dto.buyerName.trim(),
+              buyerPhone: dto.buyerPhone,
+              subtotal,
+              fees,
+              taxAmount,
+              totalAmount,
+              discountAmount,
+              promotionId,
+              commissionAmount: isComp ? 0 : subtotal * 0.15,
+              currency: event.currency,
+              channel,
+              cashierId: dto.cashierId,
+              expiresAt: new Date(Date.now() + ORDER_TTL_MS),
+              paymentMethod: payMethodEnum,
+              ...(Object.keys(posOps).length
+                ? { posOps: posOps as Prisma.InputJsonValue }
+                : {}),
+              items: {
+                create: pricedLines.map((line) => ({
+                  offerId: line.offerId,
+                  quantity: line.quantity,
+                  unitPrice: line.unitPrice,
+                  unitFees: line.unitFees,
+                  subtotal: line.subtotal,
+                })),
+              },
+            },
+            include: { items: true },
+          });
+
+          if (dto.idempotencyKey) {
+            await tx.paymentIntent.updateMany({
+              where: { idempotencyKey: dto.idempotencyKey },
+              data: {
+                orderId: created.id,
+                externalId: `pending_${created.id}`,
+                metadata: {
+                  holdIds,
+                  items: pricedLines.map((l) => ({
+                    offerId: l.offerId,
+                    holdIds: l.holdIds,
+                  })),
+                  placeholder: true,
+                },
+              },
+            });
+          }
+
+          if (asyncBanorte) {
+            return created;
+          }
+
+          const intent = await provider.createIntent({
+            amount: totalAmount,
+            currency: event.currency,
+            orderId: created.id,
+            channel: channel as 'WEB' | 'TAQUILLA' | 'API' | 'ADMIN',
+            buyerEmail: dto.buyerEmail,
+            buyerName: dto.buyerName,
+            paymentMethod: method as 'CARD' | 'SPEI' | 'OXXO' | 'CASH',
+            metadata: { publicId: created.publicId },
+            idempotencyKey: dto.idempotencyKey,
+          });
+
+          const capture = await provider.capture(intent.intentId, intent.externalId);
+          if (!capture.success) {
+            throw new BadRequestException(capture.error ?? 'Payment capture failed');
+          }
+
+          const payment = await tx.payment.create({
+            data: {
+              gateway:
+                providerId === 'banorte' ? PaymentGateway.BANORTE : PaymentGateway.CASH,
+              externalId: capture.externalId,
+              status: PaymentStatus.COMPLETED,
+              amount: totalAmount,
+              currency: event.currency,
+              method: payMethodEnum,
+              processedAt: new Date(),
+              metadata: { pricingRules: appliedRules as object[] },
+            },
+          });
+
+          await tx.order.update({
+            where: { id: created.id, organizationId: event.organizationId },
+            data: {
+              status: OrderStatus.COMPLETED,
+              paymentId: payment.id,
+              completedAt: new Date(),
+            },
+          });
+
+          if (dto.idempotencyKey) {
+            await tx.paymentIntent.updateMany({
+              where: { orderId: created.id, idempotencyKey: dto.idempotencyKey },
+              data: {
+                status: PaymentStatus.COMPLETED,
+                externalId: capture.externalId,
+                metadata: {
+                  holdIds,
+                  items: pricedLines.map((l) => ({
+                    offerId: l.offerId,
+                    holdIds: l.holdIds,
+                  })),
+                  intentId: intent.intentId,
+                },
+              },
+            });
+          }
+
+          await this.fulfillInventory(tx, {
+            eventId: event.id,
+            buyerEmail: dto.buyerEmail,
+            buyerName: dto.buyerName,
+            pricedLines,
+            orderItems: created.items,
+          });
+
+          return created;
+        },
+        { timeout: 30_000 },
+      );
+    } catch (error) {
+      if (dto.idempotencyKey) {
+        await this.prisma.paymentIntent
+          .deleteMany({
+            where: {
+              idempotencyKey: dto.idempotencyKey,
+              orderId: null,
+              status: PaymentStatus.PENDING,
+            },
+          })
+          .catch(() => undefined);
+      }
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002' &&
+        dto.idempotencyKey
+      ) {
+        const existing = await this.waitForIdempotentOrder(dto.idempotencyKey);
+        if (existing) return existing;
+      }
+      throw error;
+    }
 
     await this.quotas.consume(dto.eventId, channel, holds.length);
 
@@ -408,27 +423,46 @@ export class OrdersService {
         idempotencyKey: dto.idempotencyKey,
       });
 
-      await this.prisma.paymentIntent.create({
-        data: {
-          orderId: order.id,
-          provider: PaymentGateway.BANORTE,
-          externalId: intent.externalId ?? intent.intentId,
-          amount: totalAmount,
-          currency: event.currency,
-          status: PaymentStatus.PENDING,
-          channel,
-          idempotencyKey: dto.idempotencyKey,
-          metadata: {
-            intentId: intent.intentId,
-            holdIds,
-            items: pricedLines.map((l) => ({ offerId: l.offerId, holdIds: l.holdIds })),
-            ...(intent.metadata as object),
+      if (dto.idempotencyKey) {
+        await this.prisma.paymentIntent.updateMany({
+          where: {
+            orderId: order.id,
+            idempotencyKey: dto.idempotencyKey,
           },
-        },
-      });
+          data: {
+            provider: PaymentGateway.BANORTE,
+            externalId: intent.externalId ?? intent.intentId,
+            status: PaymentStatus.PENDING,
+            metadata: {
+              intentId: intent.intentId,
+              holdIds,
+              items: pricedLines.map((l) => ({ offerId: l.offerId, holdIds: l.holdIds })),
+              ...(intent.metadata as object),
+            },
+          },
+        });
+      } else {
+        await this.prisma.paymentIntent.create({
+          data: {
+            orderId: order.id,
+            provider: PaymentGateway.BANORTE,
+            externalId: intent.externalId ?? intent.intentId,
+            amount: totalAmount,
+            currency: event.currency,
+            status: PaymentStatus.PENDING,
+            channel,
+            metadata: {
+              intentId: intent.intentId,
+              holdIds,
+              items: pricedLines.map((l) => ({ offerId: l.offerId, holdIds: l.holdIds })),
+              ...(intent.metadata as object),
+            },
+          },
+        });
+      }
 
-      const full = await this.prisma.order.findUnique({
-        where: { id: order.id },
+      const full = await this.prisma.order.findFirst({
+        where: { id: order.id, organizationId: event.organizationId },
         include: { items: true, event: true },
       });
 
@@ -465,10 +499,192 @@ export class OrdersService {
       await this.campaigns.recordPromotionUse(dto.eventId, dto.promotionCode);
     }
 
-    return this.prisma.order.findUnique({
-      where: { id: order.id },
+    return this.prisma.order.findFirst({
+      where: { id: order.id, organizationId: event.organizationId },
       include: { items: { include: { tickets: true } }, payment: true, event: true },
     });
+  }
+
+  private async findByIdempotencyKey(idempotencyKey: string) {
+    const existing = await this.prisma.paymentIntent.findUnique({
+      where: { idempotencyKey },
+      select: { orderId: true },
+    });
+    if (!existing?.orderId) return null;
+    return this.prisma.order.findFirst({
+      where: { id: existing.orderId },
+      include: { items: { include: { tickets: true } }, payment: true, event: true },
+    });
+  }
+
+  private async waitForIdempotentOrder(idempotencyKey: string) {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const existing = await this.findByIdempotencyKey(idempotencyKey);
+      if (existing) return existing;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    return null;
+  }
+
+  private async resolveBuyerUserId(dto: CreateOrderInput): Promise<string> {
+    if (dto.userId) {
+      const linked = await this.prisma.user.findFirst({
+        where: { id: dto.userId },
+        select: { id: true },
+      });
+      if (linked) return linked.id;
+    }
+    const email = dto.buyerEmail.toLowerCase().trim();
+    const existing = await this.prisma.user.findFirst({
+      where: { email },
+      select: { id: true },
+    });
+    if (existing) return existing.id;
+    const created = await this.prisma.user.create({
+      data: {
+        email,
+        firstName: dto.buyerName.split(' ')[0] ?? 'Guest',
+        lastName: dto.buyerName.split(' ').slice(1).join(' ') || 'Buyer',
+      },
+      select: { id: true },
+    });
+    return created.id;
+  }
+
+  private async priceLines(
+    dto: CreateOrderInput,
+    event: {
+      id: string;
+      offers: Array<{ id: string; isAvailable: boolean }>;
+    },
+    lineGroups: OrderLineGroup[],
+  ): Promise<PricedLine[]> {
+    const pricedLines: PricedLine[] = [];
+    for (const group of lineGroups) {
+      const offer =
+        event.offers.find((o) => o.id === group.offerId) ??
+        (await this.prisma.offer.findFirst({
+          where: { id: group.offerId, eventId: event.id, isAvailable: true },
+          select: { id: true, isAvailable: true },
+        }));
+      if (!offer) throw new BadRequestException(`Offer ${group.offerId} not available`);
+
+      const pricingResult = await this.pricing.calculatePrice({
+        eventId: dto.eventId,
+        offerId: offer.id,
+        quantity: group.holds.length,
+        promotionCode: dto.promotionCode,
+      });
+      const lineSubtotal = Number(pricingResult.subtotal);
+      const lineFees = Number(pricingResult.fees);
+      const lineTaxes = Number(pricingResult.taxes);
+      const lineTotal = Number(pricingResult.total);
+      const lineDiscount = Number(pricingResult.discount);
+      const qty = group.holds.length;
+      pricedLines.push({
+        offerId: offer.id,
+        holdIds: group.holdIds,
+        holds: group.holds,
+        quantity: qty,
+        unitPrice: qty ? lineSubtotal / qty : 0,
+        unitFees: qty ? lineFees / qty : 0,
+        subtotal: lineSubtotal,
+        fees: lineFees,
+        taxes: lineTaxes,
+        total: lineTotal,
+        discount: lineDiscount,
+        appliedRules: pricingResult.breakdown.appliedRules,
+      });
+    }
+    return pricedLines;
+  }
+
+  private async fulfillInventory(
+    tx: TxClient,
+    opts: {
+      eventId: string;
+      buyerEmail: string;
+      buyerName: string;
+      pricedLines: PricedLine[];
+      orderItems: Array<{ id: string; offerId: string }>;
+    },
+  ): Promise<void> {
+    const itemByOffer = new Map(opts.orderItems.map((i) => [i.offerId, i]));
+    for (const line of opts.pricedLines) {
+      const orderItem = itemByOffer.get(line.offerId);
+      if (!orderItem) continue;
+
+      for (const hold of line.holds) {
+        if (hold.status !== HoldStatus.CONVERTED) {
+          await tx.seatHold.updateMany({
+            where: { id: hold.id, status: HoldStatus.ACTIVE },
+            data: { status: HoldStatus.CONVERTED },
+          });
+        }
+
+        if (hold.seatId) {
+          const sold = await tx.ticket.updateMany({
+            where: {
+              eventId: opts.eventId,
+              seatId: hold.seatId,
+              status: TicketStatus.HELD,
+            },
+            data: {
+              status: TicketStatus.SOLD,
+              buyerEmail: opts.buyerEmail,
+              buyerName: opts.buyerName,
+              code: generateTicketCode(),
+              orderItemId: orderItem.id,
+            },
+          });
+          if (sold.count === 0) {
+            throw new ConflictException(`Seat ${hold.seatId} could not be sold`);
+          }
+        } else {
+          const available = await tx.ticket.findFirst({
+            where: {
+              eventId: opts.eventId,
+              offerId: line.offerId,
+              status: TicketStatus.HELD,
+              seatId: null,
+            },
+            select: { id: true },
+            orderBy: { updatedAt: 'asc' },
+          });
+          if (!available) {
+            throw new ConflictException('Held GA ticket missing');
+          }
+          const sold = await tx.ticket.updateMany({
+            where: { id: available.id, status: TicketStatus.HELD },
+            data: {
+              status: TicketStatus.SOLD,
+              buyerEmail: opts.buyerEmail,
+              buyerName: opts.buyerName,
+              code: generateTicketCode(),
+              orderItemId: orderItem.id,
+            },
+          });
+          if (sold.count === 0) {
+            throw new ConflictException('GA ticket conflict');
+          }
+        }
+      }
+
+      await tx.offer.update({
+        where: { id: line.offerId },
+        data: {
+          soldQuantity: { increment: line.quantity },
+          remainingQuantity: { decrement: line.quantity },
+        },
+      });
+    }
+  }
+
+  private toPaymentMethod(method: string): PaymentMethod {
+    if (method === 'SPEI') return PaymentMethod.SPEI;
+    if (method === 'OXXO') return PaymentMethod.OXXO;
+    if (method === 'CASH') return PaymentMethod.CASH;
+    return PaymentMethod.CARD;
   }
 
   /** Group holds into offer lines (explicit items[] or legacy offerId + holdIds). */
@@ -477,55 +693,44 @@ export class OrdersService {
     offerId?: string;
     holdIds?: string[];
     items?: { offerId: string; holdIds: string[] }[];
-  }) {
-    const groups: {
-      offerId: string;
-      holdIds: string[];
-      holds: Awaited<ReturnType<PrismaService['seatHold']['findMany']>>;
-    }[] = [];
+  }): Promise<OrderLineGroup[]> {
+    const groups: OrderLineGroup[] = [];
+    const now = new Date();
 
     if (dto.items?.length) {
+      const allHoldIds = dto.items.flatMap((i) => i.holdIds);
+      const holds = await this.loadActiveHolds(dto.eventId, allHoldIds, now);
+      const byId = new Map(holds.map((h) => [h.id, h]));
+      const seatOfferMap = await this.buildSeatOfferMap(dto.eventId, holds);
+
       for (const item of dto.items) {
         if (!item.offerId || !item.holdIds?.length) continue;
-        const holds = await this.prisma.seatHold.findMany({
-          where: {
-            id: { in: item.holdIds },
-            eventId: dto.eventId,
-            status: HoldStatus.ACTIVE,
-            expiresAt: { gt: new Date() },
-          },
-        });
-        if (holds.length !== item.holdIds.length) {
-          throw new BadRequestException('Invalid or expired holds');
-        }
-        for (const hold of holds) {
-          const offerId = await this.offerIdForHold(hold, item.offerId);
+        const itemHolds: typeof holds = [];
+        for (const hid of item.holdIds) {
+          const hold = byId.get(hid);
+          if (!hold) throw new BadRequestException('Invalid or expired holds');
+          const offerId = await this.offerIdForHold(hold, item.offerId, seatOfferMap);
           if (offerId !== item.offerId) {
             throw new BadRequestException('Hold/offer mismatch');
           }
+          itemHolds.push(hold);
         }
-        groups.push({ offerId: item.offerId, holdIds: item.holdIds, holds });
+        groups.push({ offerId: item.offerId, holdIds: item.holdIds, holds: itemHolds });
       }
       return groups;
     }
 
     const flatIds = dto.holdIds ?? [];
     if (!flatIds.length) throw new BadRequestException('holdIds or items required');
-    const holds = await this.prisma.seatHold.findMany({
-      where: {
-        id: { in: flatIds },
-        eventId: dto.eventId,
-        status: HoldStatus.ACTIVE,
-        expiresAt: { gt: new Date() },
-      },
-    });
+    const holds = await this.loadActiveHolds(dto.eventId, flatIds, now);
     if (holds.length !== flatIds.length) {
       throw new BadRequestException('Invalid or expired holds');
     }
 
+    const seatOfferMap = await this.buildSeatOfferMap(dto.eventId, holds);
     const byOffer = new Map<string, typeof holds>();
     for (const hold of holds) {
-      const offerId = await this.offerIdForHold(hold, dto.offerId);
+      const offerId = await this.offerIdForHold(hold, dto.offerId, seatOfferMap);
       if (!offerId) throw new BadRequestException('Could not resolve offer for hold');
       const list = byOffer.get(offerId) ?? [];
       list.push(hold);
@@ -537,14 +742,29 @@ export class OrdersService {
     return groups;
   }
 
+  private async loadActiveHolds(eventId: string, holdIds: string[], now: Date) {
+    const unique = [...new Set(holdIds)];
+    return this.prisma.seatHold.findMany({
+      where: {
+        id: { in: unique },
+        eventId,
+        status: HoldStatus.ACTIVE,
+        expiresAt: { gt: now },
+      },
+    });
+  }
+
   private async offerIdForHold(
-    hold: { seatId: string | null; offerId: string | null },
+    hold: HoldLookup,
     fallback?: string,
-  ) {
+    seatOfferMap?: Map<string, string>,
+  ): Promise<string | undefined> {
     if (hold.offerId) return hold.offerId;
     if (hold.seatId) {
+      const fromMap = seatOfferMap?.get(hold.seatId);
+      if (fromMap) return fromMap;
       const ticket = await this.prisma.ticket.findFirst({
-        where: { seatId: hold.seatId },
+        where: { eventId: hold.eventId, seatId: hold.seatId },
         select: { offerId: true },
       });
       if (ticket?.offerId) return ticket.offerId;
@@ -552,28 +772,77 @@ export class OrdersService {
     return fallback;
   }
 
+  private async buildSeatOfferMap(eventId: string, holds: HoldLookup[]) {
+    const seatIds = [
+      ...new Set(holds.filter((h) => !h.offerId && h.seatId).map((h) => h.seatId!)),
+    ];
+    if (!seatIds.length) return new Map<string, string>();
+    const tickets = await this.prisma.ticket.findMany({
+      where: { eventId, seatId: { in: seatIds } },
+      select: { seatId: true, offerId: true },
+    });
+    const map = new Map<string, string>();
+    for (const t of tickets) {
+      if (t.seatId) map.set(t.seatId, t.offerId);
+    }
+    return map;
+  }
+
   async getByPublicId(publicId: string) {
-    const order = await this.prisma.order.findUnique({
+    const order = await this.prisma.order.findFirst({
       where: { publicId },
       include: {
         items: {
           include: {
-            tickets: true,
+            tickets: {
+              select: {
+                id: true,
+                code: true,
+                status: true,
+                section: true,
+                row: true,
+                seatNumber: true,
+                seatId: true,
+              },
+            },
             offer: { select: { id: true, name: true, zone: true, basePrice: true } },
           },
         },
         event: {
-          include: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            startsAt: true,
+            endsAt: true,
+            organizationId: true,
             venue: { select: { name: true, city: true, address: true } },
           },
         },
-        payment: true,
+        payment: {
+          select: {
+            id: true,
+            status: true,
+            method: true,
+            gateway: true,
+            amount: true,
+            currency: true,
+            processedAt: true,
+          },
+        },
       },
     });
     if (!order) throw new NotFoundException('Order not found');
+    this.assertTenantIfPresent(order.organizationId);
+
     const pendingIntent = await this.prisma.paymentIntent.findFirst({
       where: { orderId: order.id },
       orderBy: { createdAt: 'desc' },
+      select: {
+        externalId: true,
+        status: true,
+        metadata: true,
+      },
     });
     return {
       ...order,
@@ -588,7 +857,7 @@ export class OrdersService {
   }
 
   async getStatus(publicId: string) {
-    const order = await this.prisma.order.findUnique({
+    const order = await this.prisma.order.findFirst({
       where: { publicId },
       select: {
         publicId: true,
@@ -597,21 +866,41 @@ export class OrdersService {
         paymentMethod: true,
         completedAt: true,
         createdAt: true,
+        organizationId: true,
       },
     });
     if (!order) throw new NotFoundException('Order not found');
-    return order;
+    this.assertTenantIfPresent(order.organizationId);
+    const { organizationId: _org, ...publicFields } = order;
+    return publicFields;
   }
 
-  async listForUser(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  async listForUser(userId: string, limit = DEFAULT_PAGE_SIZE, offset = 0) {
+    const take = Math.min(Math.max(limit, 1), MAX_PAGE_SIZE);
+    const skip = Math.max(offset, 0);
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+    const where: Prisma.OrderWhereInput = user
+      ? { OR: [{ userId }, { buyerEmail: user.email }] }
+      : { userId };
+
+    // Keep array contract for GET /orders/mine (web cuenta).
     return this.prisma.order.findMany({
-      where: user
-        ? { OR: [{ userId }, { buyerEmail: user.email }] }
-        : { userId },
+      where,
       orderBy: { createdAt: 'desc' },
-      take: 50,
-      include: {
+      take,
+      skip,
+      select: {
+        id: true,
+        publicId: true,
+        status: true,
+        totalAmount: true,
+        currency: true,
+        createdAt: true,
+        completedAt: true,
+        paymentMethod: true,
         event: {
           select: {
             id: true,
@@ -689,7 +978,10 @@ export class OrdersService {
     userId: string,
     data: { receptorRfc: string; receptorNombre: string; receptorUsoCfdi?: string },
   ) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
     if (!user) throw new BadRequestException('User required');
     const order = await this.getByPublicId(publicId);
     if (order.status !== OrderStatus.COMPLETED) {
@@ -698,7 +990,7 @@ export class OrdersService {
     const owns =
       order.userId === userId ||
       order.buyerEmail.toLowerCase() === user.email.toLowerCase();
-    if (!owns) throw new BadRequestException('Not your order');
+    if (!owns) throw new ForbiddenException('Not your order');
 
     return this.billing.stampOrderInvoice(order.organizationId, {
       orderId: order.id,
@@ -708,5 +1000,3 @@ export class OrdersService {
     });
   }
 }
-
-

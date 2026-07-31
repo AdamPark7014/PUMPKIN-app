@@ -5,10 +5,62 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+  NODE_ENV: test
+  TURBO_TELEMETRY_DISABLED: "1"
+  # Optional Turbo remote cache (no-op when secrets/vars unset).
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/boletera?schema=public
+  REDIS_URL: redis://localhost:6379
+  API_PORT: "4000"
+  API_HOST: 0.0.0.0
+  API_PUBLIC_URL: http://127.0.0.1:4000
+  API_INTERNAL_URL: http://127.0.0.1:4000/api/v1
+  NEXT_PUBLIC_API_URL: http://127.0.0.1:4000/api/v1
+  NEXT_PUBLIC_ADMIN_API_URL: http://127.0.0.1:4000/api/v1
+  WEB_URL: http://127.0.0.1:3010
+  API_URL: http://127.0.0.1:4000/api/v1
+  CORS_ORIGIN: http://127.0.0.1:3010,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002
+  LOG_LEVEL: warn
 
 jobs:
-  build:
+  quality:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: Typecheck
+            command: pnpm check-types
+            cache-key: check-types
+            needs_db: "false"
+          - name: Lint
+            command: pnpm lint
+            cache-key: lint
+            needs_db: "false"
+          - name: Unit tests
+            command: pnpm test
+            cache-key: test
+            needs_db: "true"
+          - name: Build
+            command: pnpm build
+            cache-key: build
+            needs_db: "false"
+
     services:
       postgres:
         image: postgres:16
@@ -27,37 +79,170 @@ jobs:
         image: redis:7
         ports:
           - 6379:6379
-
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/boletera?schema=public
-      REDIS_URL: redis://localhost:6379
-      JWT_SECRET: ci-test-secret
-      INTERNAL_API_SECRET: ci-internal-secret
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          version: 10.30.3
+          turbo-cache-key: ${{ matrix.cache-key }}
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
+      - name: CI runtime secrets
+        # Generated (not committed) so gitleaks does not flag workflow placeholders.
+        # Length/pattern rules match apps/api requireJwtSecret().
+        run: |
+          echo "JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')" >> "$GITHUB_ENV"
+          echo "INTERNAL_API_SECRET=$(openssl rand -base64 32 | tr -d '\n')" >> "$GITHUB_ENV"
 
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm db:generate
+      - name: Generate Prisma client
+        run: pnpm db:generate
 
       - name: Apply schema
+        if: matrix.needs_db == 'true'
         run: pnpm --filter @boletera/database exec prisma db push --skip-generate
 
-      - name: Typecheck API
-        run: pnpm --filter @boletera/api run check-types
+      - name: Run ${{ matrix.name }}
+        run: ${{ matrix.command }}
 
-      - name: Build payments package
-        run: pnpm --filter @boletera/payments run build
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Parallel with quality; does not wait on typecheck/lint/build.
 
-      - name: API unit tests
-        run: pnpm --filter @boletera/api test -- --passWithNoTests
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: boletera
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          turbo-cache-key: e2e
+
+      - name: CI runtime secrets
+        run: |
+          echo "JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')" >> "$GITHUB_ENV"
+          echo "INTERNAL_API_SECRET=$(openssl rand -base64 32 | tr -d '\n')" >> "$GITHUB_ENV"
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Apply schema
+        # Same approach as the previous monolithic CI (compat).
+        run: pnpm --filter @boletera/database exec prisma db push --skip-generate
+
+      - name: Write .env for seed script
+        # packages/database "prisma:seed" uses `tsx --env-file=.env`.
+        run: |
+          cat > .env <<EOF
+          DATABASE_URL=${DATABASE_URL}
+          REDIS_URL=${REDIS_URL}
+          JWT_SECRET=${JWT_SECRET}
+          INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+          NODE_ENV=development
+          EOF
+
+      - name: Seed demo data
+        run: pnpm db:seed
+        continue-on-error: true
+
+      - name: Build API + Web
+        # e2e/playwright.config.ts sets webServer=undefined when CI=true.
+        run: pnpm exec turbo run build --filter=@boletera/api --filter=@boletera/web
+        env:
+          NODE_ENV: production
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start API and Web
+        run: |
+          set -euo pipefail
+          pnpm --filter @boletera/api start > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+          pnpm --filter @boletera/web exec next start --port 3010 --hostname 127.0.0.1 > /tmp/web.log 2>&1 &
+          echo $! > /tmp/web.pid
+
+          for i in $(seq 1 90); do
+            if curl -sf "${API_URL}/health" >/dev/null && curl -sf "${WEB_URL}" >/dev/null; then
+              echo "API and Web are ready"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "=== API log ==="
+          cat /tmp/api.log || true
+          echo "=== Web log ==="
+          cat /tmp/web.log || true
+          exit 1
+        env:
+          NODE_ENV: production
+
+      - name: Run E2E
+        # Root script: "test:e2e": "playwright test -c e2e/playwright.config.ts"
+        run: pnpm test:e2e
+        env:
+          CI: true
+          NODE_ENV: production
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop servers
+        if: always()
+        run: |
+          if [ -f /tmp/api.pid ]; then kill "$(cat /tmp/api.pid)" || true; fi
+          if [ -f /tmp/web.pid ]; then kill "$(cat /tmp/web.pid)" || true; fi
+
+  ci-ok:
+    name: CI gate
+    runs-on: ubuntu-latest
+    needs: [quality, e2e]
+    if: always()
+    steps:
+      - name: Aggregate
+        run: |
+          echo "quality=${{ needs.quality.result }}"
+          echo "e2e=${{ needs.e2e.result }}"
+          test "${{ needs.quality.result }}" = "success"
+          test "${{ needs.e2e.result }}" = "success"

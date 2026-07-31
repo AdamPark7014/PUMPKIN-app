@@ -1,8 +1,16 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
-import { ApiKeyGuard, RequireApiScopes } from './api-key.guard';
 import { PartnerOrgId } from './api-key.decorator';
+import { ApiKeyGuard, RequireApiScopes } from './api-key.guard';
+import { PaginationQueryDto } from './partners.dto';
 
 /**
  * Public partner API — authenticated via X-Api-Key (blk_…).
@@ -12,12 +20,17 @@ import { PartnerOrgId } from './api-key.decorator';
 @Controller('partner/v1')
 @UseGuards(ApiKeyGuard)
 export class PartnerApiController {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   @Get('events')
   @RequireApiScopes('read:events')
   @ApiOperation({ summary: 'List published events for the API key organization' })
-  async listEvents(@PartnerOrgId() orgId: string) {
+  async listEvents(
+    @PartnerOrgId() orgId: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    const limit = Math.min(100, Math.max(1, query.limit ?? 100));
+    const page = Math.max(1, query.page ?? 1);
     return this.prisma.event.findMany({
       where: {
         organizationId: orgId,
@@ -34,7 +47,8 @@ export class PartnerApiController {
         venue: { select: { id: true, name: true, city: true } },
       },
       orderBy: { startsAt: 'asc' },
-      take: 100,
+      skip: (page - 1) * limit,
+      take: limit,
     });
   }
 
@@ -46,7 +60,7 @@ export class PartnerApiController {
       where: { id: eventId, organizationId: orgId },
       select: { id: true, title: true, totalCapacity: true },
     });
-    if (!event) return { error: 'Event not found' };
+    if (!event) throw new NotFoundException('Evento no encontrado');
 
     const [available, held, sold] = await Promise.all([
       this.prisma.ticket.count({ where: { eventId, status: 'AVAILABLE' } }),

@@ -1,0 +1,129 @@
+groups:
+  - name: boletera-ticketing-slo
+    interval: 30s
+    rules:
+      # --- Recording rules (SLI) ---
+      - record: boletera:checkout_latency_p95_seconds
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, service_name) (
+              rate(http_server_request_duration_seconds_bucket{
+                http_route=~"/api/v1/(orders|checkout|cart).*|/api/v1/payments/intents|/api/v1/payments/confirm"
+              }[5m])
+            )
+          )
+
+      - record: boletera:checkout_request_rate
+        expr: |
+          sum(
+            rate(http_server_request_duration_seconds_count{
+              http_route=~"/api/v1/(orders|checkout|cart).*|/api/v1/payments/intents|/api/v1/payments/confirm"
+            }[5m])
+          )
+
+      - record: boletera:payment_error_ratio
+        expr: |
+          (
+            sum(
+              rate(http_server_request_duration_seconds_count{
+                http_route=~"/api/v1/payments/(intents|confirm|.*refunds.*)",
+                http_response_status_code=~"5.."
+              }[5m])
+            )
+            /
+            clamp_min(
+              sum(
+                rate(http_server_request_duration_seconds_count{
+                  http_route=~"/api/v1/payments/(intents|confirm|.*refunds.*)"
+                }[5m]
+                )
+              ),
+              1e-9
+            )
+          )
+
+      - record: boletera:db_saturation_ratio
+        expr: |
+          clamp_max(
+            (
+              max(db_client_connections_usage{pool_name=~".*"} )
+              /
+              clamp_min(max(db_client_connections_max{pool_name=~".*"}), 1)
+            )
+            or
+            (
+              max(db_client_connections_pending_requests)
+              /
+              clamp_min(max(db_client_connections_max), 1)
+            )
+            or vector(0),
+            1
+          )
+
+      # --- Alerting rules (SLO burn) ---
+      - alert: CheckoutLatencySLOBurn
+        expr: boletera:checkout_latency_p95_seconds > 1.5
+        for: 5m
+        labels:
+          severity: warning
+          sli: checkout_latency
+          slo: "p95<=1.5s"
+        annotations:
+          summary: "Checkout path latency SLO burn"
+          description: "p95 checkout/payment path latency is {{ $value | humanizeDuration }} (SLO p95 <= 1.5s)."
+          runbook: "Check Tempo traces for /api/v1/orders* and /api/v1/payments/*; inspect DB saturation and payment provider latency."
+
+      - alert: PaymentErrorRateHigh
+        expr: boletera:payment_error_ratio > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          sli: payment_errors
+          slo: "error_ratio<=1%"
+        annotations:
+          summary: "Payment error ratio exceeds SLO"
+          description: "5xx ratio on payment routes is {{ $value | humanizePercentage }} (SLO <= 1%)."
+          runbook: "Inspect Loki for payment confirm/intent failures; verify Banorte/webhook paths; check fraud/throttling."
+
+      - alert: DatabaseSaturationHigh
+        expr: boletera:db_saturation_ratio > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          sli: db_saturation
+          slo: "usage<=85%"
+        annotations:
+          summary: "Database connection pool saturation"
+          description: "DB pool saturation is {{ $value | humanizePercentage }} (SLO <= 85%)."
+          runbook: "Inspect Prisma/pg pool metrics, slow queries in Tempo, and long transactions."
+
+      - alert: ObservabilityCollectorDown
+        expr: up{job="otel-collector"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: otel-collector
+        annotations:
+          summary: "OpenTelemetry Collector is down"
+          description: "Prometheus cannot scrape otel-collector:9464."
+
+      - alert: ObservabilityLokiDown
+        expr: up{job="loki"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: loki
+        annotations:
+          summary: "Loki is down"
+          description: "Prometheus cannot scrape Loki metrics endpoint."
+
+      - alert: ObservabilityTempoDown
+        expr: up{job="tempo"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: tempo
+        annotations:
+          summary: "Tempo is down"
+          description: "Prometheus cannot scrape Tempo metrics endpoint."

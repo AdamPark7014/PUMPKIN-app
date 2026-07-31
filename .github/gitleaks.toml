@@ -1,0 +1,13 @@
+# CI allowlist for placeholder / documentation secrets (not live credentials).
+title = "Boletera gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Docs and example env placeholders (cannot be edited from CI-only scope)"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)API_REFERENCE\.md$''',
+  '''(^|/)WEBHOOKS_EVENTS\.md$''',
+]

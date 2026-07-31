@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
-import { SiteFooter } from '@/components/SiteFooter';
 import styles from './resale.module.scss';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -147,7 +146,6 @@ export default async function ResalePage() {
           )}
         </section>
       </main>
-      <SiteFooter />
     </div>
   );
 }

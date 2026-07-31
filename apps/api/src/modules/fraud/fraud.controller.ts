@@ -1,137 +1,116 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { FraudService } from './fraud.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
+import { Permissions } from '../auth/permissions.decorator';
 import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import type { AuthenticatedUser } from '../auth/auth.types';
+import { FraudService } from './fraud.service';
+import {
+  AmlCheckDto,
+  AnalyzeFraudDto,
+  CreateFlagDto,
+  FlagIdParamDto,
+  FlagResolutionStatus,
+  KycCheckDto,
+  ListFlagsQueryDto,
+  OrganizationIdParamDto,
+  ResolveFlagDto,
+  UserIdParamDto,
+} from './fraud.dto';
 
 @ApiTags('Fraud')
 @Controller('fraud')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class FraudController {
-  constructor(private fraudService: FraudService) {}
-
-  // ==================== ANALYZE FRAUD ====================
+  constructor(private readonly fraudService: FraudService) {}
 
   @Post('analyze')
-  @ApiOperation({ summary: 'Analyze transaction for fraud' })
-  async analyzeFraud(
-    @Body()
-    dto: {
-      orderId?: string;
-      userId?: string;
-      eventId?: string;
-      ipAddress?: string;
-      deviceFingerprint?: string;
-      buyerEmail?: string;
-      amount?: number;
-      currency?: string;
-      channel?: string;
-      paymentMethod?: string;
-    },
-  ) {
-    return await this.fraudService.analyzeFraud(dto);
+  @Roles('TAQUILLA', 'ADMIN', 'SUPER_ADMIN')
+  @Permissions('order:write')
+  @ApiOperation({ summary: 'Analyze a transaction for fraud' })
+  analyzeFraud(@Body() dto: AnalyzeFraudDto) {
+    return this.fraudService.analyzeFraud(dto);
   }
-
-  // ==================== CREATE FLAG ====================
 
   @Post('flags')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create fraud flag' })
-  async createFlag(
-    @Body()
-    dto: {
-      type: string;
-      severity: string;
-      reason: string;
-      orderId?: string;
-      userId?: string;
-      eventId?: string;
-      ipAddress?: string;
-      deviceFingerprint?: string;
-      metadata?: Record<string, any>;
-    },
-  ) {
-    return await this.fraudService.createFlag({
-      ...dto,
-      type: dto.type as any,
-      severity: dto.severity as any,
-      score: 0,
+  @Permissions('audit:read')
+  @ApiOperation({ summary: 'Create a fraud flag' })
+  createFlag(@Body() dto: CreateFlagDto) {
+    return this.fraudService.createFlag({
+      type: dto.type,
+      severity: dto.severity,
+      score: dto.score ?? 0,
+      reason: dto.reason,
+      orderId: dto.orderId,
+      userId: dto.userId,
+      eventId: dto.eventId,
+      ticketId: dto.ticketId,
+      ipAddress: dto.ipAddress,
+      deviceFingerprint: dto.deviceFingerprint,
+      metadata: dto.metadata,
     });
   }
-
-  // ==================== LIST FLAGS ====================
 
   @Get('flags')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'List fraud flags' })
-  async listFlags(
-    @Query('severity') severity?: string,
-    @Query('status') status?: string,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
-  ) {
-    return await this.fraudService.listFlags({
-      severity: severity as any,
-      status: status as any,
-      limit,
-      offset,
+  @Permissions('audit:read')
+  @ApiOperation({ summary: 'List fraud flags for the authenticated tenant' })
+  listFlags(@Query() query: ListFlagsQueryDto) {
+    return this.fraudService.listFlags({
+      severity: query.severity,
+      status: query.status,
+      type: query.type,
+      eventId: query.eventId,
+      from: query.from,
+      to: query.to,
+      cursor: query.cursor,
+      limit: query.limit,
+      offset: query.offset,
     });
   }
 
-  // ==================== RESOLVE FLAG ====================
-
   @Post('flags/:flagId/resolve')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Resolve fraud flag' })
-  async resolveFlag(
-    @Param('flagId') flagId: string,
-    @Body() body: { resolution: string },
+  @Permissions('audit:read')
+  @ApiOperation({ summary: 'Resolve a fraud flag' })
+  resolveFlag(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: FlagIdParamDto,
+    @Body() body: ResolveFlagDto,
   ) {
-    return await this.fraudService.resolveFlag(flagId, body.resolution, 'admin-user');
+    return this.fraudService.resolveFlag(
+      params.flagId,
+      body.resolution,
+      user.sub,
+      body.status ?? FlagResolutionStatus.RESOLVED,
+    );
   }
-
-  // ==================== KYC CHECK ====================
 
   @Post('kyc/:userId')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Perform KYC check' })
-  async performKYC(
-    @Param('userId') userId: string,
-    @Body()
-    dto: {
-      fullName: string;
-      dateOfBirth: string;
-      address: string;
-      city: string;
-      country: string;
-      documentNumber: string;
-      documentType: string;
-    },
-  ) {
-    return await this.fraudService.performKYCCheck(userId, dto);
+  @Permissions('tenant:manage')
+  @ApiOperation({ summary: 'Run a KYC consistency check for a user' })
+  performKYC(@Param() params: UserIdParamDto, @Body() dto: KycCheckDto) {
+    return this.fraudService.performKYCCheck(params.userId, dto);
   }
-
-  // ==================== AML CHECK ====================
 
   @Post('aml/:organizationId')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Perform AML check' })
-  async performAML(
-    @Param('organizationId') organizationId: string,
-    @Body() dto: { name: string; country: string },
-  ) {
-    return await this.fraudService.performAMLCheck(organizationId, dto);
+  @Permissions('tenant:manage')
+  @ApiOperation({ summary: 'Run an AML denylist check for an organization' })
+  performAML(@Param() params: OrganizationIdParamDto, @Body() dto: AmlCheckDto) {
+    return this.fraudService.performAMLCheck(params.organizationId, dto);
   }
 }
-
-

@@ -1,0 +1,4 @@
+.env
+*.local
+
+scripts/_yaml_check.py

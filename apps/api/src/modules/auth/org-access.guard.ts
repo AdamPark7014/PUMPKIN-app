@@ -16,7 +16,7 @@ export class OrgAccessGuard implements CanActivate {
     const user = req.user;
     if (!user) throw new ForbiddenException('Authentication required');
 
-    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+    if (user.role === 'SUPER_ADMIN') {
       return true;
     }
 

@@ -1,22 +1,69 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import type {
+  EventDashboardMetrics,
+  MetricsDateRange,
+  PromoterDashboardMetrics,
+} from '@boletera/shared';
+import { PrismaService } from '../prisma/prisma.service';
+
+type SettlementEventBreakdown = {
+  eventId: string;
+  eventTitle: string;
+  orders: number;
+  ticketsSold: number;
+  revenue: number;
+};
 
 @Injectable()
 export class AnalyticsService {
-  private logger = new Logger(AnalyticsService.name);
+  private readonly logger = new Logger(AnalyticsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
+
+  assertOrgAccess(
+    userOrgId: string | null | undefined,
+    requestedOrgId: string,
+    role?: string,
+  ): void {
+    if (role === 'SUPER_ADMIN' || role === 'ADMIN') return;
+    if (!userOrgId || userOrgId !== requestedOrgId) {
+      throw new ForbiddenException('Organization access denied');
+    }
+  }
 
   // ==================== EVENT DASHBOARD ====================
+  // Complexity: O(1) parallel counts + 1 aggregate — no N+1
 
-  async getEventDashboard(eventId: string) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      include: { organization: true, offers: true, venue: true },
+  async getEventDashboard(
+    eventId: string,
+    organizationId: string,
+  ): Promise<EventDashboardMetrics> {
+    const event = await this.prisma.event.findFirst({
+      where: { id: eventId, organizationId },
+      include: {
+        organization: { select: { commissionRate: true, currency: true } },
+        offers: {
+          select: {
+            id: true,
+            name: true,
+            basePrice: true,
+            totalQuantity: true,
+            remainingQuantity: true,
+          },
+        },
+        venue: { select: { name: true } },
+      },
     });
 
-    if (!event) throw new BadRequestException('Event not found');
+    if (!event) throw new NotFoundException('Evento no encontrado');
 
     const [
       completedOrders,
@@ -25,42 +72,45 @@ export class AnalyticsService {
       soldTickets,
       refundedTickets,
       fraudFlags,
+      revenueAgg,
     ] = await Promise.all([
       this.prisma.order.count({
-        where: { eventId, status: 'COMPLETED' },
+        where: { eventId, organizationId, status: 'COMPLETED' },
       }),
       this.prisma.order.count({
-        where: { eventId, status: 'FAILED' },
+        where: { eventId, organizationId, status: 'FAILED' },
       }),
+      this.prisma.ticket.count({ where: { eventId } }),
       this.prisma.ticket.count({
-        where: { eventId },
+        where: { eventId, status: { in: ['SOLD', 'USED', 'TRANSFERRED'] } },
       }),
-      this.prisma.ticket.count({
-        where: { eventId, status: 'SOLD' },
-      }),
-      this.prisma.ticket.count({
-        where: { eventId, status: 'REFUNDED' },
-      }),
+      this.prisma.ticket.count({ where: { eventId, status: 'REFUNDED' } }),
       this.prisma.fraudFlag.count({
         where: { eventId, status: 'FLAGGED' },
       }),
+      this.prisma.order.aggregate({
+        where: { eventId, organizationId, status: 'COMPLETED' },
+        _sum: { totalAmount: true },
+      }),
     ]);
 
-    const totalRevenue = await this.getEventRevenue(eventId);
+    const totalRevenue = Number(revenueAgg._sum.totalAmount ?? 0);
     const commission = totalRevenue * event.organization.commissionRate;
+    const soldPercent = totalTickets > 0 ? (soldTickets / totalTickets) * 100 : 0;
 
     return {
       eventId: event.id,
+      organizationId,
       title: event.title,
       status: event.status,
-      startsAt: event.startsAt,
-      venue: event.venue || { name: 'N/A' },
+      startsAt: event.startsAt.toISOString(),
+      venue: { name: event.venue?.name ?? 'N/A' },
       metrics: {
         completedOrders,
         failedOrders,
         totalTickets,
         soldTickets,
-        soldPercent: ((soldTickets / totalTickets) * 100).toFixed(2),
+        soldPercent: Number(soldPercent.toFixed(2)),
         refundedTickets,
         fraudFlags,
       },
@@ -73,117 +123,179 @@ export class AnalyticsService {
       offers: event.offers.map((o) => ({
         id: o.id,
         name: o.name,
-        basePrice: o.basePrice,
+        basePrice: Number(o.basePrice),
         totalQuantity: o.totalQuantity,
         remainingQuantity: o.remainingQuantity,
       })),
+      generatedAt: new Date().toISOString(),
     };
   }
 
   // ==================== PROMOTER DASHBOARD ====================
+  // Complexity: O(1) aggregates + 1 raw top-events query
 
-  async getPromoterDashboard(organizationId: string, period?: 'DAY' | 'WEEK' | 'MONTH') {
+  async getPromoterDashboard(
+    organizationId: string,
+    period?: 'DAY' | 'WEEK' | 'MONTH',
+  ): Promise<PromoterDashboardMetrics> {
     const org = await this.prisma.organization.findUnique({
       where: { id: organizationId },
-      include: { events: true },
+      select: { id: true, name: true, commissionRate: true, currency: true },
     });
-
-    if (!org) throw new BadRequestException('Organization not found');
+    if (!org) throw new NotFoundException('Organización no encontrada');
 
     const now = new Date();
     const startDate = this.getPeriodStartDate(now, period);
 
-    const orders = await this.prisma.order.findMany({
-      where: {
-        organizationId,
-        createdAt: { gte: startDate },
-        status: 'COMPLETED',
-      },
-      include: { items: true },
-    });
+    const [orderAgg, ticketRows, topEvents] = await Promise.all([
+      this.prisma.order.aggregate({
+        where: {
+          organizationId,
+          createdAt: { gte: startDate },
+          status: 'COMPLETED',
+        },
+        _sum: { totalAmount: true },
+        _count: true,
+      }),
+      this.prisma.$queryRaw<Array<{ qty: bigint | number }>>`
+        SELECT COALESCE(SUM(oi.quantity), 0) AS qty
+        FROM "OrderItem" oi
+        INNER JOIN "Order" o ON o.id = oi."orderId"
+        WHERE o."organizationId" = ${organizationId}
+          AND o.status = 'COMPLETED'
+          AND o."createdAt" >= ${startDate}
+      `,
+      this.getTopEvents(organizationId, startDate),
+    ]);
 
-    const totalRevenue = orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+    const totalRevenue = Number(orderAgg._sum.totalAmount ?? 0);
     const commission = totalRevenue * org.commissionRate;
-    const netRevenue = totalRevenue - commission;
-
-    const topEvents = await this.getTopEvents(organizationId, startDate);
+    const dateRange: MetricsDateRange = {
+      from: startDate.toISOString(),
+      to: now.toISOString(),
+    };
 
     return {
       organizationId: org.id,
       name: org.name,
       period: period || 'MONTH',
-      dateRange: { startDate, endDate: now },
+      dateRange,
       metrics: {
-        totalOrders: orders.length,
-        totalTicketsSold: orders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0),
+        totalOrders: orderAgg._count,
+        totalTicketsSold: Number(ticketRows[0]?.qty ?? 0),
         totalRevenue,
         commission,
-        netRevenue,
+        netRevenue: totalRevenue - commission,
         currency: org.currency,
       },
       topEvents,
+      generatedAt: new Date().toISOString(),
     };
   }
 
   // ==================== SETTLEMENT REPORT ====================
+  // Complexity: O(1) aggregates + 1 groupBy event + 1 event title lookup
 
   async generateSettlementReport(organizationId: string, month: number, year: number) {
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+      throw new BadRequestException('month debe ser 1-12');
+    }
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      throw new BadRequestException('year inválido');
+    }
+
     const org = await this.prisma.organization.findUnique({
       where: { id: organizationId },
+      select: {
+        id: true,
+        name: true,
+        commissionRate: true,
+        currency: true,
+        paypalEmail: true,
+        bankAccountNumber: true,
+      },
     });
-
-    if (!org) throw new BadRequestException('Organization not found');
+    if (!org) throw new NotFoundException('Organización no encontrada');
 
     const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const orders = await this.prisma.order.findMany({
-      where: {
-        organizationId,
-        status: 'COMPLETED',
-        completedAt: { gte: startDate, lte: endDate },
-      },
-      include: { event: true, items: true },
-    });
+    const [orderAgg, ticketByEvent, refundAgg, disputedRefunds] = await Promise.all([
+      this.prisma.order.aggregate({
+        where: {
+          organizationId,
+          status: 'COMPLETED',
+          completedAt: { gte: startDate, lte: endDate },
+        },
+        _sum: { totalAmount: true },
+        _count: true,
+      }),
+      this.prisma.order.groupBy({
+        by: ['eventId'],
+        where: {
+          organizationId,
+          status: 'COMPLETED',
+          completedAt: { gte: startDate, lte: endDate },
+        },
+        _sum: { totalAmount: true },
+        _count: true,
+      }),
+      this.prisma.refund.aggregate({
+        where: {
+          status: 'COMPLETED',
+          processedAt: { gte: startDate, lte: endDate },
+          order: { organizationId },
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.refund.count({
+        where: {
+          status: 'DISPUTED',
+          requestedAt: { gte: startDate, lte: endDate },
+          order: { organizationId },
+        },
+      }),
+    ]);
 
-    const refunds = await this.prisma.refund.findMany({
-      where: {
-        status: 'COMPLETED',
-        processedAt: { gte: startDate, lte: endDate },
-        order: { organizationId },
-      },
-    });
+    const eventIds = ticketByEvent.map((e) => e.eventId);
+    const events =
+      eventIds.length === 0
+        ? []
+        : await this.prisma.event.findMany({
+            where: { id: { in: eventIds }, organizationId },
+            select: { id: true, title: true },
+          });
+    const titleMap = new Map(events.map((e) => [e.id, e.title]));
 
-    const grossRevenue = orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
-    const refundAmount = refunds.reduce((sum, r) => sum + Number(r.amount), 0);
-    const chargebacks = await this.prisma.refund.count({
-      where: {
-        order: { organizationId },
-        status: 'COMPLETED',
-        requestedAt: { gte: startDate, lte: endDate },
-      },
-    });
+    const ticketQty =
+      eventIds.length === 0
+        ? []
+        : await this.prisma.$queryRaw<
+            Array<{ eventId: string; qty: bigint | number }>
+          >`
+            SELECT o."eventId", COALESCE(SUM(oi.quantity), 0) AS qty
+            FROM "OrderItem" oi
+            INNER JOIN "Order" o ON o.id = oi."orderId"
+            WHERE o."organizationId" = ${organizationId}
+              AND o.status = 'COMPLETED'
+              AND o."completedAt" >= ${startDate}
+              AND o."completedAt" <= ${endDate}
+            GROUP BY o."eventId"
+          `;
+    const qtyMap = new Map(ticketQty.map((t) => [t.eventId, Number(t.qty)]));
 
+    const eventBreakdown: SettlementEventBreakdown[] = ticketByEvent.map((row) => ({
+      eventId: row.eventId,
+      eventTitle: titleMap.get(row.eventId) ?? row.eventId,
+      orders: row._count,
+      ticketsSold: qtyMap.get(row.eventId) ?? 0,
+      revenue: Number(row._sum.totalAmount ?? 0),
+    }));
+
+    const grossRevenue = Number(orderAgg._sum.totalAmount ?? 0);
+    const refundAmount = Number(refundAgg._sum.amount ?? 0);
     const commissionAmount = (grossRevenue - refundAmount) * org.commissionRate;
     const netAmount = grossRevenue - refundAmount - commissionAmount;
-
-    // Group by event
-    const eventBreakdown = orders.reduce((acc, order) => {
-      const eventKey = order.event.id;
-      if (!acc[eventKey]) {
-        acc[eventKey] = {
-          eventId: order.event.id,
-          eventTitle: order.event.title,
-          orders: 0,
-          ticketsSold: 0,
-          revenue: 0,
-        };
-      }
-      acc[eventKey].orders += 1;
-      acc[eventKey].ticketsSold += order.items.reduce((s, i) => s + i.quantity, 0);
-      acc[eventKey].revenue += Number(order.totalAmount);
-      return acc;
-    }, {} as Record<string, any>);
 
     const payout = await this.prisma.promoterPayout.create({
       data: {
@@ -207,114 +319,118 @@ export class AnalyticsService {
       summary: {
         grossRevenue,
         refunds: refundAmount,
-        chargebacks,
+        chargebacks: disputedRefunds,
         commission: commissionAmount,
         netAmount,
         currency: org.currency,
       },
-      eventBreakdown: Object.values(eventBreakdown),
+      eventBreakdown,
       paymentDetails: {
         method: org.paypalEmail ? 'PayPal' : 'Bank Transfer',
-        bankAccount: org.bankAccountNumber ? `****${org.bankAccountNumber.slice(-4)}` : undefined,
+        bankAccount: org.bankAccountNumber
+          ? `****${org.bankAccountNumber.slice(-4)}`
+          : undefined,
       },
     };
   }
 
   // ==================== CUSTOMER ANALYTICS ====================
+  // Complexity: O(C) customers via groupBy + limited top list — no full order hydrate
 
   async getCustomerAnalytics(organizationId: string) {
     const org = await this.prisma.organization.findUnique({
       where: { id: organizationId },
+      select: { id: true },
     });
-
-    if (!org) throw new BadRequestException('Organization not found');
+    if (!org) throw new NotFoundException('Organización no encontrada');
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const customerGroups = await this.prisma.order.groupBy({
-      by: ['userId'],
-      where: { organizationId, status: 'COMPLETED' },
-    });
+    const [customerGroups, newCustomers, spendRows] = await Promise.all([
+      this.prisma.order.groupBy({
+        by: ['userId'],
+        where: { organizationId, status: 'COMPLETED' },
+        _count: true,
+        _sum: { totalAmount: true },
+      }),
+      this.prisma.user.count({
+        where: {
+          createdAt: { gte: thirtyDaysAgo },
+          orders: { some: { organizationId, status: 'COMPLETED' } },
+        },
+      }),
+      this.prisma.$queryRaw<
+        Array<{
+          userId: string;
+          email: string;
+          orderCount: bigint | number;
+          totalSpend: Prisma.Decimal | number;
+        }>
+      >`
+        SELECT u.id AS "userId", u.email,
+               COUNT(o.id)::bigint AS "orderCount",
+               COALESCE(SUM(o."totalAmount"), 0) AS "totalSpend"
+        FROM "User" u
+        INNER JOIN "Order" o ON o."userId" = u.id
+        WHERE o."organizationId" = ${organizationId}
+          AND o.status = 'COMPLETED'
+        GROUP BY u.id, u.email
+        ORDER BY "totalSpend" DESC
+        LIMIT 10
+      `,
+    ]);
+
     const totalCustomers = customerGroups.length;
-
-    const newCustomers = await this.prisma.user.count({
-      where: {
-        createdAt: { gte: thirtyDaysAgo },
-        orders: {
-          some: {
-            organizationId,
-            status: 'COMPLETED',
-          },
-        },
-      },
-    });
-
-    const repeatCustomers = await this.prisma.user.findMany({
-      where: {
-        orders: {
-          some: {
-            organizationId,
-            status: 'COMPLETED',
-          },
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-        orders: {
-          where: {
-            organizationId,
-            status: 'COMPLETED',
-          },
-          select: { totalAmount: true },
-        },
-      },
-    });
-
-    const ltv = repeatCustomers.reduce((sum, customer) => {
-      return sum + customer.orders.reduce((s, o) => s + Number(o.totalAmount), 0);
-    }, 0) / Math.max(repeatCustomers.length, 1);
+    const repeatCustomers = customerGroups.filter((c) => c._count > 1).length;
+    const totalLtv = customerGroups.reduce(
+      (s, c) => s + Number(c._sum.totalAmount ?? 0),
+      0,
+    );
+    const avgCustomerLTV = totalCustomers > 0 ? totalLtv / totalCustomers : 0;
 
     return {
       totalCustomers,
       newCustomers30Days: newCustomers,
-      repeatCustomers: repeatCustomers.length,
-      avgCustomerLTV: ltv,
-      topCustomers: repeatCustomers.sort((a, b) => {
-        const aTotal = a.orders.reduce((s, o) => s + Number(o.totalAmount), 0);
-        const bTotal = b.orders.reduce((s, o) => s + Number(o.totalAmount), 0);
-        return bTotal - aTotal;
-      }).slice(0, 10),
+      repeatCustomers,
+      avgCustomerLTV,
+      topCustomers: spendRows.map((r) => ({
+        id: r.userId,
+        email: r.email,
+        orderCount: Number(r.orderCount),
+        totalSpend: Number(r.totalSpend),
+      })),
     };
   }
 
   // ==================== FRAUD ANALYTICS ====================
+  // Complexity: O(1) counts + groupBy scoped via relation filters
 
   async getFraudAnalytics(organizationId: string) {
-    const events = await this.prisma.event.findMany({
-      where: { organizationId },
-      select: { id: true },
-    });
+    const orgScope = {
+      OR: [{ order: { organizationId } }, { event: { organizationId } }],
+    };
 
-    const eventIds = events.map((e) => e.id);
+    const [totalFlags, criticalFlags, blockedOrders, flagsByType, falsePositives] =
+      await Promise.all([
+        this.prisma.fraudFlag.count({ where: orgScope }),
+        this.prisma.fraudFlag.count({
+          where: { ...orgScope, severity: 'CRITICAL' },
+        }),
+        this.prisma.order.count({
+          where: { organizationId, status: 'FAILED' },
+        }),
+        this.prisma.fraudFlag.groupBy({
+          by: ['type'],
+          where: orgScope,
+          _count: true,
+        }),
+        this.prisma.fraudFlag.count({
+          where: { ...orgScope, status: 'FALSE_POSITIVE' },
+        }),
+      ]);
 
-    const [totalFlags, criticalFlags, blockedOrders] = await Promise.all([
-      this.prisma.fraudFlag.count({
-        where: { eventId: { in: eventIds } },
-      }),
-      this.prisma.fraudFlag.count({
-        where: { eventId: { in: eventIds }, severity: 'CRITICAL' },
-      }),
-      this.prisma.order.count({
-        where: { eventId: { in: eventIds }, status: 'FAILED' },
-      }),
-    ]);
-
-    const flagsByType = await this.prisma.fraudFlag.groupBy({
-      by: ['type'],
-      where: { eventId: { in: eventIds } },
-      _count: true,
-    });
+    const falsePositiveRate =
+      totalFlags > 0 ? Number(((falsePositives / totalFlags) * 100).toFixed(1)) : 0;
 
     return {
       organizationId,
@@ -322,7 +438,7 @@ export class AnalyticsService {
         totalFlags,
         criticalFlags,
         blockedOrders,
-        falsePositiveRate: '2.3%',
+        falsePositiveRate,
       },
       flagsByType: flagsByType.map((item) => ({
         type: item.type,
@@ -331,44 +447,36 @@ export class AnalyticsService {
     };
   }
 
-  // ==================== HELPER METHODS ====================
-
-  private async getEventRevenue(eventId: string): Promise<number> {
-    const orders = await this.prisma.order.findMany({
-      where: { eventId, status: 'COMPLETED' },
-    });
-
-    return orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
-  }
+  // ==================== HELPERS ====================
 
   private async getTopEvents(organizationId: string, startDate: Date) {
-    const orders = await this.prisma.order.findMany({
-      where: {
-        organizationId,
-        createdAt: { gte: startDate },
-        status: 'COMPLETED',
-      },
-      include: { event: true },
-    });
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        eventId: string;
+        eventTitle: string;
+        orders: bigint | number;
+        revenue: Prisma.Decimal | number;
+      }>
+    >`
+      SELECT e.id AS "eventId", e.title AS "eventTitle",
+             COUNT(o.id)::bigint AS orders,
+             COALESCE(SUM(o."totalAmount"), 0) AS revenue
+      FROM "Order" o
+      INNER JOIN "Event" e ON e.id = o."eventId"
+      WHERE o."organizationId" = ${organizationId}
+        AND o.status = 'COMPLETED'
+        AND o."createdAt" >= ${startDate}
+      GROUP BY e.id, e.title
+      ORDER BY revenue DESC
+      LIMIT 5
+    `;
 
-    const grouped = orders.reduce((acc, order) => {
-      const key = order.event.id;
-      if (!acc[key]) {
-        acc[key] = {
-          eventId: order.event.id,
-          eventTitle: order.event.title,
-          orders: 0,
-          revenue: 0,
-        };
-      }
-      acc[key].orders += 1;
-      acc[key].revenue += Number(order.totalAmount);
-      return acc;
-    }, {} as Record<string, { eventId: string; eventTitle: string; orders: number; revenue: number }>);
-
-    return Object.values(grouped)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
+    return rows.map((r) => ({
+      eventId: r.eventId,
+      eventTitle: r.eventTitle,
+      orders: Number(r.orders),
+      revenue: Number(r.revenue),
+    }));
   }
 
   private getPeriodStartDate(now: Date, period?: string): Date {
@@ -389,5 +497,3 @@ export class AnalyticsService {
     }
   }
 }
-
-

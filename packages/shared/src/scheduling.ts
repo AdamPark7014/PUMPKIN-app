@@ -140,30 +140,91 @@ export function getTimezoneOffsetMinutes(date: Date, timeZone: string): number {
   return Math.round((asIfUtc - whole) / 60_000);
 }
 
+function partsMatch(
+  actual: Required<DateParts>,
+  expected: DateParts,
+  second: number,
+): boolean {
+  return (
+    actual.year === expected.year &&
+    actual.month === expected.month &&
+    actual.day === expected.day &&
+    actual.hour === expected.hour &&
+    actual.minute === expected.minute &&
+    actual.second === second
+  );
+}
+
 /**
  * Convert a wall-clock time in `timeZone` to the absolute instant.
  *
- * DST is resolved by fixed-point iteration on the zone offset. Wall-clock times
- * that do not exist (spring-forward gap) resolve to the instant right after the
- * jump; ambiguous times (fall-back) resolve to the first (pre-transition) pass.
+ * DST is resolved by fixed-point iteration on the zone offset, then verified by
+ * projecting the candidate back to local parts. Wall-clock times that do not
+ * exist (spring-forward gap) resolve using the post-transition offset (the first
+ * valid instant after the jump). Ambiguous times (fall-back) prefer the earlier
+ * (pre-transition / "daylight") occurrence — the usual convention for shows.
+ *
+ * Mexico City abolished DST in Oct 2022 (permanent UTC-6). The algorithm still
+ * handles zones that observe DST so the same code works for venues abroad and
+ * for historical Mexico City dates that still carry ICU transition data.
  */
 export function zonedTimeToUtc(parts: DateParts, timeZone: string): Date {
+  const second = parts.second ?? 0;
   const naive = Date.UTC(
     parts.year,
     parts.month - 1,
     parts.day,
     parts.hour,
     parts.minute,
-    parts.second ?? 0,
+    second,
   );
+
   let offset = getTimezoneOffsetMinutes(new Date(naive), timeZone);
   let instant = naive - offset * 60_000;
-  const settled = getTimezoneOffsetMinutes(new Date(instant), timeZone);
-  if (settled !== offset) {
+  for (let i = 0; i < 3; i += 1) {
+    const settled = getTimezoneOffsetMinutes(new Date(instant), timeZone);
+    if (settled === offset) break;
     offset = settled;
     instant = naive - offset * 60_000;
   }
-  return new Date(instant);
+
+  const projected = getZonedParts(new Date(instant), timeZone);
+  if (partsMatch(projected, parts, second)) {
+    // Ambiguity: the hour one hour earlier may also project to the same wall clock.
+    const earlier = new Date(instant - 3_600_000);
+    if (partsMatch(getZonedParts(earlier, timeZone), parts, second)) {
+      return earlier;
+    }
+    return new Date(instant);
+  }
+
+  // Gap: requested wall clock does not exist. Recompute with the offset observed
+  // two hours later, which sits safely after a one-hour spring-forward jump.
+  const postOffset = getTimezoneOffsetMinutes(new Date(naive + 2 * 3_600_000), timeZone);
+  return new Date(naive - postOffset * 60_000);
+}
+
+/**
+ * True when `America/Mexico_City` (or any IANA zone) observes a DST transition
+ * on the civil day of `date`. Useful for operator warnings about ambiguous
+ * show times around historical Mexico DST changes.
+ */
+export function zoneObservesDstOnDate(date: Date, timeZone: string): boolean {
+  const local = getZonedParts(date, timeZone);
+  const noon = zonedTimeToUtc(
+    {
+      year: local.year,
+      month: local.month,
+      day: local.day,
+      hour: 12,
+      minute: 0,
+      second: 0,
+    },
+    timeZone,
+  );
+  const before = new Date(noon.getTime() - 12 * 3_600_000);
+  const after = new Date(noon.getTime() + 12 * 3_600_000);
+  return getTimezoneOffsetMinutes(before, timeZone) !== getTimezoneOffsetMinutes(after, timeZone);
 }
 
 export function parseLocalDateTime(value: string): DateParts {
@@ -390,8 +451,11 @@ export function describeRecurrence(rule: RecurrenceRule): string {
       interval === 1
         ? `El día ${start.day} de cada mes`
         : `El día ${start.day} cada ${interval} meses`;
-    } else {
-    const weekday = WEEKDAY_LABELS[rule.nthWeekday ?? (civilDate(start.year, start.month, start.day).getUTCDay() as Weekday)];
+  } else {
+    const weekday =
+      WEEKDAY_LABELS[
+        rule.nthWeekday ?? (civilDate(start.year, start.month, start.day).getUTCDay() as Weekday)
+      ];
     const ordinal = ORDINAL_LABELS[String(rule.nth ?? 1)] ?? 'primer';
     base =
       interval === 1

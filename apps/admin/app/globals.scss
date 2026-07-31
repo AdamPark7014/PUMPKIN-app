@@ -1,21 +1,25 @@
 :root {
   --sidebar: #18181b;
-  --bg: #f4f4f5;
-  --surface: #ffffff;
-  --border: #e4e4e7;
-  --text: #18181b;
-  --muted: #71717a;
-  --accent: #18181b;
-  --ink-900: #18181b;
+  --bg: var(--bl-surface, #f4f4f5);
+  --surface: var(--bl-elevated, #ffffff);
+  --border: var(--bl-border, #e4e4e7);
+  --text: var(--bl-text-primary, #18181b);
+  --muted: var(--bl-text-secondary, #71717a);
+  --accent: var(--bl-accent, #18181b);
+  --ink-900: var(--bl-text-primary, #18181b);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: light dark;
+}
+
 body {
   margin: 0;
-  font-family: var(--font-body), 'Space Grotesk', system-ui, sans-serif;
+  font-family: var(--font-body), var(--bl-font-sans, 'Space Grotesk'), system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -27,4 +31,15 @@ a {
 
 button {
   font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--bl-focus-ring, #3b82f6);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
 }

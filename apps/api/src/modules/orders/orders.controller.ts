@@ -6,39 +6,38 @@ import {
   Header,
   Param,
   Post,
+  Query,
   Request,
   Res,
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SalesChannel } from '@prisma/client';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Permissions } from '../auth/permissions.decorator';
+import {
+  CreateOrderDto,
+  ListMineQueryDto,
+  PublicIdParamDto,
+  RequestCfdiDto,
+} from './orders.dto';
 import { OrdersService } from './orders.service';
 
 @ApiTags('Orders')
 @Controller('orders')
 export class OrdersController {
-  constructor(private orders: OrdersService) {}
+  constructor(private readonly orders: OrdersService) {}
 
   @Post()
   @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Create order from active holds (idempotent)' })
   create(
-    @Body()
-    body: {
-      eventId: string;
-      offerId?: string;
-      holdIds?: string[];
-      items?: { offerId: string; holdIds: string[] }[];
-      buyerName: string;
-      buyerEmail: string;
-      buyerPhone?: string;
-      paymentMethod?: string;
-      promotionCode?: string;
-      userId?: string;
-    },
+    @Body() body: CreateOrderDto,
     @Request() req: { user?: { sub: string } },
     @Headers('x-channel') channelHeader?: string,
     @Headers('x-cashier-id') cashierId?: string,
@@ -58,46 +57,61 @@ export class OrdersController {
   }
 
   @Get('mine')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CUSTOMER', 'TAQUILLA', 'PROMOTER', 'ADMIN', 'SUPER_ADMIN')
+  @Permissions('order:read')
   @ApiBearerAuth()
-  myOrders(@Request() req: { user: { sub: string } }) {
-    return this.orders.listForUser(req.user.sub);
+  @ApiOperation({ summary: 'List orders for the authenticated buyer' })
+  myOrders(
+    @Request() req: { user: { sub: string } },
+    @Query() query: ListMineQueryDto,
+  ) {
+    return this.orders.listForUser(req.user.sub, query.limit, query.offset);
   }
 
   @Get(':publicId/status')
-  status(@Param('publicId') publicId: string) {
-    return this.orders.getStatus(publicId);
+  @ApiOperation({ summary: 'Public order status (no PII)' })
+  status(@Param() params: PublicIdParamDto) {
+    return this.orders.getStatus(params.publicId);
   }
 
   @Get(':publicId/qrcodes')
-  qrcodes(@Param('publicId') publicId: string) {
-    return this.orders.getQrCodesForOrder(publicId);
+  @ApiOperation({ summary: 'QR payloads for completed order tickets' })
+  qrcodes(@Param() params: PublicIdParamDto) {
+    return this.orders.getQrCodesForOrder(params.publicId);
   }
 
   @Get(':publicId/tickets.pdf')
   @Header('Content-Type', 'application/pdf')
-  async ticketsPdf(@Param('publicId') publicId: string, @Res({ passthrough: true }) res: Response) {
-    const buf = await this.orders.buildTicketsPdf(publicId);
+  @ApiOperation({ summary: 'Download ticket PDF' })
+  async ticketsPdf(
+    @Param() params: PublicIdParamDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const buf = await this.orders.buildTicketsPdf(params.publicId);
     res.set({
-      'Content-Disposition': `attachment; filename="boletera-${publicId}.pdf"`,
+      'Content-Disposition': `attachment; filename="boletera-${params.publicId}.pdf"`,
     });
     return new StreamableFile(buf);
   }
 
   @Post(':publicId/cfdi')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CUSTOMER', 'ADMIN', 'SUPER_ADMIN')
+  @Permissions('order:write')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Request CFDI for own completed order' })
   requestCfdi(
-    @Param('publicId') publicId: string,
+    @Param() params: PublicIdParamDto,
     @Request() req: { user: { sub: string } },
-    @Body()
-    body: { receptorRfc: string; receptorNombre: string; receptorUsoCfdi?: string },
+    @Body() body: RequestCfdiDto,
   ) {
-    return this.orders.requestCfdiForBuyer(publicId, req.user.sub, body);
+    return this.orders.requestCfdiForBuyer(params.publicId, req.user.sub, body);
   }
 
   @Get(':publicId')
-  get(@Param('publicId') publicId: string) {
-    return this.orders.getByPublicId(publicId);
+  @ApiOperation({ summary: 'Order detail by public id' })
+  get(@Param() params: PublicIdParamDto) {
+    return this.orders.getByPublicId(params.publicId);
   }
 }

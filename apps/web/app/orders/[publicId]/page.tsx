@@ -1,62 +1,38 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import { api } from '@/lib/api';
+import { api, API_BASE } from '@/lib/api';
+import {
+  longDateTime,
+  moneyExact,
+  orderStatusLabel,
+  paymentMethodLabel,
+} from '@/lib/format';
+import { SITE_NAME } from '@/lib/seo';
+import type { OrderDetail, OrderTicket } from '@/lib/storefront-types';
 import { SiteHeader } from '@/components/SiteHeader';
-import { SiteFooter } from '@/components/SiteFooter';
 import { OrderQrCards } from '@/components/OrderQrCards';
 import { SimulateDemoPaymentButton } from '@/components/SimulateDemoPaymentButton';
+import { Breadcrumbs } from '@/components/storefront/Breadcrumbs';
+import { PurchaseSteps } from '@/components/storefront/PurchaseSteps';
+import {
+  TrustRow,
+  TRUST_OFFICIAL,
+  TRUST_QR,
+  trustPayment,
+  trustTransfer,
+} from '@/components/storefront/TrustRow';
 import styles from './order.module.scss';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-
-type OrderTicket = {
-  code: string;
-  section?: string | null;
-  row?: string | null;
-  seatNumber?: string | null;
-};
-
-type OrderDetail = {
-  id: string;
-  publicId: string;
-  status: string;
-  totalAmount: string;
-  currency: string;
-  buyerName?: string;
-  buyerEmail?: string;
-  paymentMethod?: string | null;
-  event?: {
-    title: string;
-    slug: string;
-    startsAt: string;
-    endsAt?: string | null;
-    venue?: { name: string; city: string; address?: string | null } | null;
-  } | null;
-  items: {
-    quantity?: number;
-    unitPrice?: string;
-    offer?: { name?: string | null; zone?: string } | null;
-    tickets: OrderTicket[];
-  }[];
-  pendingPayment?: {
-    reference?: string | null;
-    metadata?: {
-      clabe?: string;
-      concept?: string;
-      type?: string;
-      reference?: string;
-      demo?: boolean;
-    } | null;
-  } | null;
-};
-
-function seatLabel(t: OrderTicket) {
-  const parts = [t.section, t.row ? `Fila ${t.row}` : null, t.seatNumber ? `Asiento ${t.seatNumber}` : null].filter(
-    Boolean,
-  );
+function seatLabel(ticket: OrderTicket): string | null {
+  const parts = [
+    ticket.section,
+    ticket.row ? `Fila ${ticket.row}` : null,
+    ticket.seatNumber ? `Asiento ${ticket.seatNumber}` : null,
+  ].filter(Boolean);
   return parts.length ? parts.join(' · ') : null;
 }
 
-function googleCalendarUrl(order: OrderDetail) {
+function googleCalendarUrl(order: OrderDetail): string | null {
   const ev = order.event;
   if (!ev?.startsAt) return null;
   const start = new Date(ev.startsAt);
@@ -70,10 +46,55 @@ function googleCalendarUrl(order: OrderDetail) {
     action: 'TEMPLATE',
     text: ev.title,
     dates: `${fmt(start)}/${fmt(end)}`,
-    details: `Orden ${order.publicId} · Boletos BOLETERA`,
+    details: `Orden ${order.publicId} · Boletos ${SITE_NAME}`,
     location: [ev.venue?.name, ev.venue?.address, ev.venue?.city].filter(Boolean).join(', '),
   });
   return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+function isFailedStatus(status: string): boolean {
+  return (
+    status === 'FAILED' ||
+    status === 'EXPIRED' ||
+    status === 'CANCELLED' ||
+    status === 'CANCELED' ||
+    status === 'REFUNDED'
+  );
+}
+
+function nextStepCopy(order: OrderDetail, completed: boolean, isDemoFlow: boolean): string {
+  if (completed) {
+    return 'Guarda tus QR o el PDF. Preséntalos en el acceso el día del evento.';
+  }
+  if (isFailedStatus(order.status)) {
+    return 'Esta orden ya no se puede pagar. Elige asientos de nuevo en el evento.';
+  }
+  if (order.paymentMethod === 'SPEI') {
+    return isDemoFlow
+      ? 'Modo demo: simula el acreditamiento Banorte para liberar tus boletos.'
+      : 'Transfiere el monto exacto con la referencia indicada. Actualizamos el estado al acreditar.';
+  }
+  if (order.paymentMethod === 'OXXO') {
+    return isDemoFlow
+      ? 'Modo demo: simula el pago OXXO para liberar tus boletos.'
+      : 'Paga en OXXO con la referencia exacta. Te avisamos cuando se confirme.';
+  }
+  return isDemoFlow
+    ? 'Si el pago demo no se confirmó, reintenta desde la pantalla de pago.'
+    : 'Si saliste de Banorte, reintenta el pago. No se cobra dos veces por la misma orden.';
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ publicId: string }>;
+}): Promise<Metadata> {
+  const { publicId } = await params;
+  return {
+    title: `Orden ${publicId}`,
+    description: `Detalle privado de tu orden ${publicId} en ${SITE_NAME}.`,
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function OrderPage({ params }: { params: Promise<{ publicId: string }> }) {
@@ -97,12 +118,19 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
       <div className={styles.shell}>
         <SiteHeader />
         <main className={styles.page}>
+          <PurchaseSteps current="tickets" />
           <div className={styles.empty}>
             <h1>Orden no encontrada</h1>
-            <p>Revisa el enlace o inicia sesión para ver tus boletos.</p>
+            <p>
+              Revisa el enlace, espera unos segundos si acabas de pagar, o inicia sesión para ver
+              tus boletos.
+            </p>
             <div className={styles.actions}>
               <Link href="/cuenta" className={styles.link}>
                 Ir a mi cuenta
+              </Link>
+              <Link href="/ayuda" className={styles.ghost}>
+                Centro de ayuda
               </Link>
               <Link href="/events" className={styles.secondary}>
                 Ver eventos
@@ -110,57 +138,116 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
             </div>
           </div>
         </main>
-        <SiteFooter />
       </div>
     );
   }
 
-  const tickets = order.items.flatMap((i) => i.tickets);
-  const when = order.event?.startsAt ? new Date(order.event.startsAt) : null;
+  const tickets = order.items.flatMap((item) => item.tickets);
   const cal = googleCalendarUrl(order);
   const pendingMeta = order.pendingPayment?.metadata;
   const completed = order.status === 'COMPLETED';
+  const pending = order.status === 'PENDING';
+  const failed = isFailedStatus(order.status);
   const isDemoFlow = gatewayDemo || pendingMeta?.demo === true;
+  const recoverEventHref = order.event?.slug ? `/events/${order.event.slug}` : '/events';
+  const paymentHref = `/orders/${publicId}/pago${
+    order.paymentMethod ? `?method=${order.paymentMethod}` : ''
+  }`;
+  const pdfHref = `${API_BASE}/orders/${publicId}/tickets.pdf`;
+  const speiReference =
+    pendingMeta?.concept || pendingMeta?.reference || order.pendingPayment?.reference || publicId;
+  const oxxoReference =
+    pendingMeta?.reference || order.pendingPayment?.reference || publicId;
+
+  const timeline = [
+    { id: 'order', label: 'Orden creada', done: true, current: false },
+    {
+      id: 'pay',
+      label: completed
+        ? 'Pago confirmado'
+        : pending
+          ? 'Esperando pago'
+          : orderStatusLabel(order.status),
+      done: completed,
+      current: pending,
+    },
+    {
+      id: 'tickets',
+      label: completed ? 'Boletos listos' : 'Entrega de QR',
+      done: completed && tickets.length > 0,
+      current: completed && tickets.length === 0,
+    },
+  ];
+
+  const trustItems = [
+    TRUST_OFFICIAL,
+    TRUST_QR,
+    trustPayment(isDemoFlow),
+    trustTransfer(true),
+  ];
 
   return (
     <div className={styles.shell}>
       <SiteHeader />
       <main className={styles.page}>
-        <div className={styles.steps} aria-label="Progreso">
-          <span className={styles.stepDone}>1 Carrito</span>
-          <span className={styles.stepDone}>2 Pago</span>
-          <span className={styles.stepActive}>3 Boletos</span>
-        </div>
+        <PurchaseSteps current={completed ? 'tickets' : 'checkout'} />
+
+        <Breadcrumbs
+          trail={[
+            { name: 'Inicio', path: '/' },
+            { name: 'Mi cuenta', path: '/cuenta' },
+            { name: `Orden ${order.publicId}` },
+          ]}
+        />
 
         <header className={styles.hero}>
           {completed ? (
             <p className={styles.ok}>Compra confirmada</p>
+          ) : pending ? (
+            <p className={styles.pending}>
+              Pago pendiente
+              {order.paymentMethod ? ` · ${paymentMethodLabel(order.paymentMethod)}` : ''}
+            </p>
           ) : (
-            <p className={styles.pending}>Pago pendiente — Banorte</p>
+            <p className={styles.failed}>{orderStatusLabel(order.status)}</p>
           )}
-          <h1>{completed ? 'Tus boletos están listos' : 'Completa tu pago'}</h1>
+          <h1>
+            {completed
+              ? 'Tus boletos están listos'
+              : pending
+                ? 'Completa tu pago'
+                : 'Revisa el estado de tu orden'}
+          </h1>
           <p className={styles.sub}>
             Orden <code>{order.publicId}</code>
             {order.buyerEmail ? ` · ${order.buyerEmail}` : ''}
           </p>
         </header>
 
+        <section className={styles.timeline} aria-label="Estado de la compra">
+          <ol>
+            {timeline.map((step) => (
+              <li
+                key={step.id}
+                className={
+                  step.done ? styles.tlDone : step.current ? styles.tlCurrent : styles.tlTodo
+                }
+              >
+                <span>{step.label}</span>
+              </li>
+            ))}
+          </ol>
+          <p className={styles.nextStep} role="status">
+            <strong>Siguiente paso:</strong> {nextStepCopy(order, completed, isDemoFlow)}
+          </p>
+        </section>
+
         {order.event && (
           <section className={styles.eventCard} aria-label="Evento">
             <div>
               <p className={styles.kicker}>Evento</p>
               <h2>{order.event.title}</h2>
-              {when && (
-                <p>
-                  {when.toLocaleDateString('es-MX', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}{' '}
-                  · {when.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              )}
+              <p>{longDateTime(order.event.startsAt)}</p>
               {order.event.venue && (
                 <p>
                   {order.event.venue.name}
@@ -170,8 +257,13 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
             </div>
             <div className={styles.eventSide}>
               <strong>
-                ${order.totalAmount} <span>{order.currency}</span>
+                {moneyExact(order.totalAmount, order.currency)}
               </strong>
+              {order.paymentMethod && (
+                <span className={styles.methodChip}>
+                  {paymentMethodLabel(order.paymentMethod)}
+                </span>
+              )}
               {order.event.slug && (
                 <Link href={`/events/${order.event.slug}`} className={styles.textLink}>
                   Ver evento
@@ -181,47 +273,100 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
           </section>
         )}
 
-        {order.status === 'PENDING' && (order.paymentMethod === 'SPEI' || order.paymentMethod === 'OXXO') && (
+        {pending && (order.paymentMethod === 'SPEI' || order.paymentMethod === 'OXXO') && (
           <section className={styles.section}>
             <h2>Instrucciones de pago</h2>
             {order.paymentMethod === 'SPEI' && (
               <div className={styles.instructions}>
-                <p>Transfiere por SPEI a la CLABE Banorte del promotor:</p>
+                <p>
+                  {isDemoFlow
+                    ? 'Datos SPEI de prueba (no uses en banca real):'
+                    : 'Transfiere por SPEI a la CLABE Banorte del promotor:'}
+                </p>
                 {pendingMeta?.clabe && (
                   <p>
                     <strong>CLABE:</strong> <code>{pendingMeta.clabe}</code>
                   </p>
                 )}
                 <p>
-                  <strong>Referencia / concepto:</strong>{' '}
-                  <code>
-                    {pendingMeta?.concept ||
-                      pendingMeta?.reference ||
-                      order.pendingPayment?.reference ||
-                      publicId}
-                  </code>
+                  <strong>Referencia / concepto:</strong> <code>{speiReference}</code>
+                </p>
+                <p>
+                  Monto exacto:{' '}
+                  <strong>{moneyExact(order.totalAmount, order.currency)}</strong>
                 </p>
               </div>
             )}
             {order.paymentMethod === 'OXXO' && (
               <div className={styles.instructions}>
-                <p>Paga en cualquier OXXO con esta referencia:</p>
                 <p>
-                  <code>{pendingMeta?.reference || order.pendingPayment?.reference || publicId}</code>
+                  {isDemoFlow
+                    ? 'Referencia OXXO de prueba:'
+                    : 'Paga en cualquier OXXO con esta referencia:'}
+                </p>
+                <p>
+                  <code>{oxxoReference}</code>
+                </p>
+                <p>
+                  Monto exacto:{' '}
+                  <strong>{moneyExact(order.totalAmount, order.currency)}</strong>
                 </p>
               </div>
             )}
             {isDemoFlow && (
-              <>
-                <p className={styles.pending} role="status">
-                  Modo demo — no transfieras dinero real.
-                </p>
-                <SimulateDemoPaymentButton orderId={order.id} publicId={order.publicId} />
-              </>
+              <SimulateDemoPaymentButton orderId={order.id} publicId={order.publicId} />
             )}
-            <Link href={`/orders/${publicId}/pago?method=${order.paymentMethod}`} className={styles.textLink}>
+            <Link href={paymentHref} className={styles.textLink}>
               Ver instrucciones completas →
             </Link>
+          </section>
+        )}
+
+        {pending && order.paymentMethod === 'CARD' && (
+          <section className={styles.section}>
+            <h2>Recuperar pago con tarjeta</h2>
+            <p className={styles.mutedBlock}>
+              {isDemoFlow
+                ? 'El pago demo no terminó de confirmarse. Puedes reintentar sin crear una orden nueva.'
+                : 'Si cerraste Banorte o hubo un error de red, reintenta el pago. La orden ya existe y el banco evita cargos duplicados.'}
+            </p>
+            <Link href={paymentHref} className={styles.link}>
+              Continuar pago
+            </Link>
+          </section>
+        )}
+
+        {pending && !order.paymentMethod && (
+          <section className={styles.section}>
+            <h2>Pago pendiente</h2>
+            <p className={styles.mutedBlock}>
+              Tu orden está a la espera de confirmación. Abre las instrucciones de pago para
+              continuar.
+            </p>
+            <Link href={paymentHref} className={styles.link}>
+              Ir a pago
+            </Link>
+          </section>
+        )}
+
+        {failed && (
+          <section className={styles.section} aria-live="polite">
+            <h2>No se pudo completar</h2>
+            <p className={styles.mutedBlock}>
+              Estado: {orderStatusLabel(order.status)}. No hay cargo activo. Elige asientos de
+              nuevo para generar una nueva reserva.
+            </p>
+            <div className={styles.actions}>
+              <Link href={recoverEventHref} className={styles.link}>
+                Reelegir asientos
+              </Link>
+              <Link href="/cart" className={styles.ghost}>
+                Ir al carrito
+              </Link>
+              <Link href="/ayuda" className={styles.ghost}>
+                Ayuda
+              </Link>
+            </div>
           </section>
         )}
 
@@ -229,21 +374,23 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
           <div className={styles.sectionHead}>
             <h2>Tus boletos ({tickets.length})</h2>
             {completed && (
-              <a className={styles.pdfLink} href={`${API}/orders/${publicId}/tickets.pdf`}>
+              <a className={styles.pdfLink} href={pdfHref}>
                 Descargar PDF
               </a>
             )}
           </div>
           <ul className={styles.ticketList}>
-            {tickets.map((t) => (
-              <li key={t.code}>
-                <code>{t.code}</code>
-                <span>{seatLabel(t) || 'Entrada general'}</span>
+            {tickets.map((ticket) => (
+              <li key={ticket.id ?? ticket.code}>
+                <code>{ticket.code}</code>
+                <span>{seatLabel(ticket) || 'Entrada general'}</span>
               </li>
             ))}
             {!tickets.length && (
               <li className={styles.muted}>
-                Los códigos QR aparecerán cuando el pago se confirme.
+                {pending
+                  ? 'Los códigos QR aparecerán cuando el pago se confirme.'
+                  : 'Aún no hay boletos asociados a esta orden.'}
               </li>
             )}
           </ul>
@@ -251,27 +398,60 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
 
         {completed && <OrderQrCards publicId={order.publicId} />}
 
+        {completed && (
+          <section className={styles.help} aria-label="Ayuda post-compra">
+            <h2>¿Necesitas ayuda?</h2>
+            <ul>
+              <li>
+                <strong>Reenviar boletos:</strong> descarga el PDF de esta página o revisa el
+                correo de confirmación. Si no llegó, consulta{' '}
+                <Link href="/ayuda">ayuda</Link>.
+              </li>
+              <li>
+                <strong>Transferir boletos:</strong> cede un boleto desde{' '}
+                <Link href="/cuenta?transfer=">Mi cuenta</Link>.
+              </li>
+              <li>
+                <strong>Soporte:</strong> dudas de acceso, pago o entrega en{' '}
+                <Link href="/ayuda">/ayuda</Link>.
+              </li>
+            </ul>
+          </section>
+        )}
+
         <div className={styles.actions}>
           {cal && completed && (
             <a className={styles.secondary} href={cal} target="_blank" rel="noreferrer">
               Agregar al calendario
             </a>
           )}
-          <Link href="/cuenta" className={styles.link}>
+          {completed && (
+            <a className={styles.link} href={pdfHref}>
+              Descargar PDF
+            </a>
+          )}
+          {pending && (
+            <Link href={paymentHref} className={styles.link}>
+              Ir a instrucciones de pago
+            </Link>
+          )}
+          <Link href="/cuenta" className={styles.ghost}>
             Ir a Mis boletos
           </Link>
+          {completed && (
+            <Link href="/cuenta?transfer=" className={styles.ghost}>
+              Transferir boleto
+            </Link>
+          )}
           <Link href="/events" className={styles.ghost}>
             Ver más eventos
           </Link>
         </div>
 
-        <ul className={styles.trust}>
-          <li>Boletos oficiales BOLETERA</li>
-          <li>Entrada con QR</li>
-          <li>Pago Banorte</li>
-        </ul>
+        <div className={styles.trustWrap}>
+          <TrustRow items={trustItems} label="Garantías de tu compra" />
+        </div>
       </main>
-      <SiteFooter />
     </div>
   );
 }

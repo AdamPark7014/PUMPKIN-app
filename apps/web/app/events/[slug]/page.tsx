@@ -1,78 +1,103 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/SiteHeader';
 import { EventPosterArt } from '@/components/EventPosterArt';
 import { WaitlistSignup } from '@/components/WaitlistSignup';
 import { ZoneOfferButtons } from '@/components/ZoneOfferButtons';
+import { AvailabilityBadge } from '@/components/storefront/AvailabilityBadge';
+import { Breadcrumbs } from '@/components/storefront/Breadcrumbs';
+import { EventCard } from '@/components/storefront/EventCard';
+import { JsonLd } from '@/components/storefront/JsonLd';
+import { PriceBreakdown } from '@/components/storefront/PriceBreakdown';
+import {
+  TRUST_OFFICIAL,
+  TRUST_QR,
+  TrustRow,
+  trustPayment,
+  trustTransfer,
+} from '@/components/storefront/TrustRow';
+import { apiCached, apiCachedSafe, apiSafe, REVALIDATE } from '@/lib/api';
+import {
+  categoryLabel,
+  fromPrice,
+  longDateTime,
+  money,
+  timeOfDay,
+  toAmount,
+} from '@/lib/format';
+import {
+  absoluteUrl,
+  canonical,
+  eventJsonLd,
+  mapsUrl,
+  SITE_NAME,
+} from '@/lib/seo';
+import type {
+  CartPricing,
+  EventDetail,
+  EventListItem,
+  GatewayConfig,
+} from '@/lib/storefront-types';
+import { SALE_STATE_MESSAGE } from '@/lib/storefront-types';
 import { EventPurchaseClient } from './EventPurchaseClient';
-import { api } from '@/lib/api';
 import styles from './event.module.scss';
 
-type EventDetail = {
-  id: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  startsAt: string;
-  endsAt?: string | null;
-  category?: string | null;
-  genre?: string | null;
-  rating?: string | null;
-  currency?: string;
-  image?: string | null;
-  bannerImage?: string | null;
-  posterAspect?: string | null;
-  metadata?: { posterAspect?: string } | null;
-  allowResale?: boolean;
-  transferAllowed?: boolean;
-  refundable?: boolean;
-  nonTransferable?: boolean;
-  holdExpiration?: number;
-  seatMap: { snapshotData: unknown } | null;
-  offers: { id: string; zone: string; name?: string; basePrice: string; remainingQuantity?: number }[];
-  venue?: {
-    name: string;
-    city: string;
-    state?: string | null;
-    address?: string | null;
-    postalCode?: string | null;
-    phone?: string | null;
-    website?: string | null;
-  };
-  organization?: { name: string };
-};
-
-type EventHit = {
-  id: string;
-  slug: string;
-  title: string;
-  startsAt: string;
-  minPrice: number | string;
-  currency: string;
-  category?: string | null;
-  image?: string | null;
-  bannerImage?: string | null;
-  venue?: { name: string; city: string };
-};
-
-const CATEGORY_LABEL: Record<string, string> = {
-  MUSIC: 'Concierto',
-  SPORTS: 'Deportes',
-  THEATER: 'Teatro',
-  COMEDY: 'Comedia',
-  FESTIVAL: 'Festival',
-};
-
-const SITE = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3000';
-
-function absUrl(path?: string | null) {
-  if (!path) return undefined;
-  if (/^https?:\/\//i.test(path)) return path;
-  return `${SITE}${path.startsWith('/') ? path : `/${path}`}`;
+async function loadEvent(slug: string): Promise<EventDetail> {
+  try {
+    return await apiCached<EventDetail>(
+      `/discovery/events/${slug}`,
+      REVALIDATE.event,
+      [`event:${slug}`],
+    );
+  } catch {
+    notFound();
+  }
+  // Unreachable — notFound() never returns — keeps TS definite-assignment happy.
+  throw new Error('unreachable');
 }
 
-async function loadEvent(slug: string) {
-  return api<EventDetail>(`/discovery/events/${slug}`);
+async function loadRelated(event: EventDetail, slug: string): Promise<EventListItem[]> {
+  const all = await apiCachedSafe<EventListItem[]>(
+    '/discovery/events?limit=40',
+    REVALIDATE.listing,
+    ['events:listing'],
+  );
+  if (!all?.length) return [];
+
+  const others = all.filter((e) => e.slug !== slug);
+  const matched = others
+    .filter(
+      (e) =>
+        (event.category && e.category === event.category) ||
+        (event.venue?.city && e.venue?.city === event.venue.city),
+    )
+    .slice(0, 4);
+
+  if (matched.length >= 3) return matched;
+  return others.slice(0, 4);
+}
+
+/** Sample fee quote for 1 boleto of the cheapest available offer — never invents numbers. */
+async function samplePricing(event: EventDetail): Promise<CartPricing | null> {
+  const offer =
+    event.offers
+      .filter((o) => {
+        if (o.isAvailable === false) return false;
+        if (typeof o.remainingQuantity === 'number' && o.remainingQuantity <= 0) return false;
+        return toAmount(o.basePrice) > 0;
+      })
+      .sort((a, b) => toAmount(a.basePrice) - toAmount(b.basePrice))[0] ?? event.offers[0];
+
+  if (!offer || !event.sale?.canPurchase) return null;
+
+  return apiSafe<CartPricing>('/pricing/calculate-cart', {
+    method: 'POST',
+    body: JSON.stringify({
+      eventId: event.id,
+      items: [{ offerId: offer.id, quantity: 1 }],
+    }),
+  });
 }
 
 export async function generateMetadata({
@@ -82,20 +107,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const event = await loadEvent(slug);
-    const when = new Date(event.startsAt);
-    const dateLabel = when.toLocaleDateString('es-MX', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+    const event = await apiCached<EventDetail>(
+      `/discovery/events/${slug}`,
+      REVALIDATE.event,
+      [`event:${slug}`],
+    );
     const venue = [event.venue?.name, event.venue?.city].filter(Boolean).join(', ');
     const title = `${event.title} | Boletos oficiales`;
     const description =
       event.description?.slice(0, 155) ||
-      `Compra boletos oficiales para ${event.title}${venue ? ` en ${venue}` : ''} · ${dateLabel}. Pago Banorte.`;
-    const image = absUrl(event.bannerImage || event.image);
-    const url = `${SITE}/events/${slug}`;
+      `Compra boletos oficiales para ${event.title}${venue ? ` en ${venue}` : ''} · ${longDateTime(event.startsAt)}. Pago Banorte.`;
+    const image = absoluteUrl(event.bannerImage || event.image);
+    const url = canonical(`/events/${slug}`);
     return {
       title,
       description,
@@ -103,6 +126,7 @@ export async function generateMetadata({
         title,
         description,
         url,
+        siteName: SITE_NAME,
         type: 'website',
         locale: 'es_MX',
         images: image ? [{ url: image }] : undefined,
@@ -116,7 +140,7 @@ export async function generateMetadata({
       alternates: { canonical: url },
     };
   } catch {
-    return { title: 'Evento | BOLETERA' };
+    return { title: `Evento | ${SITE_NAME}` };
   }
 }
 
@@ -130,35 +154,30 @@ export default async function EventPage({
   const { slug } = await params;
   const { zone } = await searchParams;
   const event = await loadEvent(slug);
+  const [related, feeSample, payments] = await Promise.all([
+    loadRelated(event, slug),
+    samplePricing(event),
+    apiSafe<GatewayConfig>('/payments/config'),
+  ]);
 
-  let related: EventHit[] = [];
-  try {
-    const all = await api<EventHit[]>('/discovery/events?limit=40');
-    related = all
-      .filter((e) => e.slug !== slug)
-      .filter(
-        (e) =>
-          e.category === event.category || e.venue?.city === event.venue?.city,
-      )
-      .slice(0, 4);
-    if (related.length < 3) {
-      related = all.filter((e) => e.slug !== slug).slice(0, 4);
-    }
-  } catch {
-    related = [];
-  }
-
-  const prices = event.offers.map((o) => Number(o.basePrice)).filter((n) => !Number.isNaN(n));
+  const currency = event.currency || 'MXN';
+  const prices = event.offers
+    .map((o) => toAmount(o.basePrice))
+    .filter((n) => Number.isFinite(n) && n > 0);
   const minPrice = prices.length ? Math.min(...prices) : 0;
-  const when = new Date(event.startsAt);
-  const dateLabel = when.toLocaleDateString('es-MX', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-  const timeLabel = when.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-  const end = event.endsAt ? new Date(event.endsAt) : new Date(when.getTime() + 3 * 60 * 60 * 1000);
+
+  const transferAllowed =
+    !(event.transferAllowed === false || event.nonTransferable);
+  const canPurchase = event.sale?.canPurchase ?? true;
+  const saleState = event.sale?.state;
+  const saleMessage = saleState ? SALE_STATE_MESSAGE[saleState] : null;
+
+  const remainingKnown = event.offers
+    .map((o) => o.remainingQuantity)
+    .filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
+  const totalRemaining =
+    remainingKnown.length > 0 ? remainingKnown.reduce((a, b) => a + b, 0) : null;
+
   const poster = {
     id: event.id,
     slug: event.slug,
@@ -168,50 +187,42 @@ export default async function EventPage({
     bannerImage: event.bannerImage,
     startsAt: event.startsAt,
     posterAspect:
-      event.posterAspect ??
-      event.metadata?.posterAspect ??
-      undefined,
+      event.posterAspect ?? event.metadata?.posterAspect ?? undefined,
   };
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: event.title,
-    description: event.description,
-    startDate: event.startsAt,
-    endDate: end.toISOString(),
-    eventStatus: 'https://schema.org/EventScheduled',
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    image: absUrl(event.bannerImage || event.image),
-    location: event.venue
-      ? {
-          '@type': 'Place',
-          name: event.venue.name,
-          address: {
-            '@type': 'PostalAddress',
-            addressLocality: event.venue.city,
-            streetAddress: event.venue.address || undefined,
-            addressCountry: 'MX',
+
+  const crumbTrail = [
+    { name: 'Cartelera', path: '/' },
+    ...(event.category
+      ? [
+          {
+            name: categoryLabel(event.category),
+            path: `/categoria/${event.category}`,
           },
-        }
-      : undefined,
-    offers: {
-      '@type': 'AggregateOffer',
-      lowPrice: minPrice,
-      priceCurrency: event.currency || 'MXN',
-      availability: 'https://schema.org/InStock',
-      url: `${SITE}/events/${slug}`,
-    },
-    organizer: event.organization?.name
-      ? { '@type': 'Organization', name: event.organization.name }
-      : undefined,
-  };
+        ]
+      : []),
+    { name: event.title },
+  ];
+
+  const holdMinutes = Math.round((event.holdExpiration ?? 900) / 60);
+  const venueMaps =
+    event.venue
+      ? mapsUrl({
+          name: event.venue.name,
+          address: event.venue.address,
+          city: event.venue.city,
+          latitude: event.venue.latitude,
+          longitude: event.venue.longitude,
+        })
+      : null;
+
+  const soldOut =
+    event.offers.length > 0 &&
+    totalRemaining === 0 &&
+    remainingKnown.length === event.offers.length;
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={eventJsonLd(event)} />
       <SiteHeader theme="dark" />
       <main className={styles.page}>
         <section className={styles.hero}>
@@ -220,110 +231,147 @@ export default async function EventPage({
           </div>
           <div className={styles.heroShade} aria-hidden />
           <div className={styles.heroCopy}>
-            <nav className={styles.crumb} aria-label="Breadcrumb">
-              <Link href="/">Cartelera</Link>
-              <span aria-hidden>/</span>
-              {event.category && (
-                <>
-                  <Link href={`/categoria/${event.category}`}>
-                    {CATEGORY_LABEL[event.category] ?? event.category}
-                  </Link>
-                  <span aria-hidden>/</span>
-                </>
-              )}
-              <span>{event.title}</span>
-            </nav>
-            <p className={styles.brandMark}>BOLETERA</p>
+            <Breadcrumbs trail={crumbTrail} tone="dark" />
+            <p className={styles.brandMark}>{SITE_NAME}</p>
             <p className={styles.eyebrow}>
-              {CATEGORY_LABEL[event.category || ''] ?? 'Evento'}
+              {categoryLabel(event.category, true)}
               {event.organization?.name ? ` · ${event.organization.name}` : ''}
             </p>
             <h1>{event.title}</h1>
             <p className={styles.meta}>
-              {dateLabel} · {timeLabel}
+              <time dateTime={event.startsAt}>{longDateTime(event.startsAt)}</time>
             </p>
-            <p className={styles.venue}>
-              {event.venue?.name}
-              {event.venue?.city ? ` · ${event.venue.city}` : ''}
-            </p>
+            {event.venue && (
+              <p className={styles.venue}>
+                {venueMaps ? (
+                  <a href={venueMaps} target="_blank" rel="noreferrer">
+                    {event.venue.name}
+                    {event.venue.city ? ` · ${event.venue.city}` : ''}
+                  </a>
+                ) : (
+                  <>
+                    {event.venue.name}
+                    {event.venue.city ? ` · ${event.venue.city}` : ''}
+                  </>
+                )}
+              </p>
+            )}
             <div className={styles.heroCta}>
-              <a href="#compra" className={styles.cta}>
-                Comprar boletos
-              </a>
-              {minPrice > 0 && (
-                <span className={styles.fromPrice}>
-                  Desde ${minPrice.toLocaleString('es-MX', { maximumFractionDigits: 0 })}{' '}
-                  {event.currency || 'MXN'}
+              {canPurchase && !soldOut ? (
+                <a href="#compra" className={styles.cta}>
+                  Comprar boletos
+                </a>
+              ) : (
+                <span className={styles.ctaMuted} role="status">
+                  {soldOut ? 'Agotado' : saleMessage ?? 'Venta no disponible'}
                 </span>
+              )}
+              {minPrice > 0 && (
+                <span className={styles.fromPrice}>{fromPrice(minPrice, currency)}</span>
+              )}
+              {totalRemaining != null && (
+                <AvailabilityBadge remaining={totalRemaining} threshold={40} />
               )}
             </div>
           </div>
         </section>
 
-        <section className={styles.trustStrip} aria-label="Garantías de compra">
-          <ul>
-            <li>
-              <strong>Boletos oficiales</strong>
-              <span>Emitidos por el promotor en BOLETERA</span>
-            </li>
-            <li>
-              <strong>Pago Banorte</strong>
-              <span>Cobro directo a la cuenta del organizador</span>
-            </li>
-            <li>
-              <strong>Entrada con QR</strong>
-              <span>En tu celular o PDF listo para escanear</span>
-            </li>
-            <li>
-              <strong>
-                {event.transferAllowed === false || event.nonTransferable
-                  ? 'No transferible'
-                  : 'Transferible'}
-              </strong>
-              <span>
-                {event.transferAllowed === false || event.nonTransferable
-                  ? 'Este evento no permite cesión de boletos'
-                  : 'Cede boletos desde tu cuenta si lo necesitas'}
-              </span>
-            </li>
-          </ul>
-        </section>
+        <div className={styles.trustWrap}>
+          <TrustRow
+            items={[
+              TRUST_OFFICIAL,
+              trustPayment(Boolean(payments?.demo)),
+              TRUST_QR,
+              trustTransfer(transferAllowed),
+            ]}
+          />
+        </div>
 
         <div className={styles.shell}>
           <div className={styles.layout}>
             <div className={styles.mainCol}>
+              {saleMessage && !canPurchase && (
+                <div className={styles.saleBanner} role="status">
+                  <strong>{saleMessage}</strong>
+                  {event.sale?.nextChangeAt && (
+                    <span>
+                      Próximo cambio:{' '}
+                      <time dateTime={event.sale.nextChangeAt}>
+                        {longDateTime(event.sale.nextChangeAt)}
+                      </time>
+                    </span>
+                  )}
+                </div>
+              )}
+
               {event.offers.length > 0 && (
-                <section className={styles.offers} aria-label="Precios">
+                <section className={styles.offers} aria-label="Zonas y precios">
                   <h2>Zonas y precios</h2>
                   <p className={styles.sectionLead}>
-                    Elige una zona para filtrar el mapa y continuar al pago.
+                    Elige una zona para filtrar el mapa. Los precios base se muestran aquí;
+                    los cargos de servicio e impuestos se confirman en el checkout.
                   </p>
                   <ZoneOfferButtons
                     offers={event.offers}
-                    currency={event.currency || 'MXN'}
+                    currency={currency}
                     activeZone={zone}
+                    disabled={!canPurchase}
                   />
+                  <div className={styles.feeNote}>
+                    {feeSample ? (
+                      <>
+                        <p className={styles.feeLead}>
+                          Ejemplo con 1 boleto · {money(feeSample.subtotal, currency)} + cargos
+                        </p>
+                        <PriceBreakdown pricing={feeSample} currency={currency} />
+                      </>
+                    ) : (
+                      <p className={styles.feeLead}>
+                        Los cargos de servicio e impuestos se calculan al ir al pago. Sin
+                        sorpresas: verás el desglose completo antes de confirmar.
+                      </p>
+                    )}
+                  </div>
                 </section>
               )}
 
-              <section className={styles.purchase} aria-label="Comprar">
-                <h2>Selecciona tus asientos</h2>
-                {event.offers.length > 0 ? (
+              <section className={styles.purchase} aria-label="Comprar" id="compra">
+                <div className={styles.purchaseHead}>
+                  <h2>
+                    {soldOut || event.offers.length === 0
+                      ? 'Lista de espera'
+                      : 'Selecciona tus asientos'}
+                  </h2>
+                  {canPurchase && !soldOut && event.offers.length > 0 && (
+                    <p className={styles.purchaseLead}>
+                      Reserva hasta {holdMinutes} min mientras terminas el pago
+                      {minPrice > 0 ? ` · ${fromPrice(minPrice, currency)}` : ''}
+                    </p>
+                  )}
+                </div>
+
+                {event.offers.length === 0 || soldOut ? (
+                  <div className={styles.purchaseBody}>
+                    <WaitlistSignup eventId={event.id} eventTitle={event.title} />
+                  </div>
+                ) : (
                   <EventPurchaseClient
                     eventId={event.id}
                     eventTitle={event.title}
                     slug={event.slug}
                     startsAt={event.startsAt}
-                    venueName={event.venue?.name}
-                    venueCity={event.venue?.city}
+                    venueName={event.venue?.name ?? undefined}
+                    venueCity={event.venue?.city ?? undefined}
                     mapData={event.seatMap?.snapshotData}
                     offers={event.offers}
                     minPrice={minPrice}
-                    currency={event.currency || 'MXN'}
+                    currency={currency}
                     focusZone={zone ?? null}
+                    canPurchase={canPurchase}
+                    saleMessage={saleMessage}
+                    maxTickets={event.maxTicketsPerOrder ?? 8}
+                    holdMinutes={holdMinutes}
                   />
-                ) : (
-                  <WaitlistSignup eventId={event.id} eventTitle={event.title} />
                 )}
               </section>
 
@@ -335,15 +383,36 @@ export default async function EventPage({
               )}
 
               <details className={styles.info} open>
-                <summary>Información importante</summary>
+                <summary>Políticas e información</summary>
                 <ul>
                   {event.venue && (
                     <li>
                       <strong>Venue</strong>
                       <span>
-                        {[event.venue.name, event.venue.address, event.venue.city, event.venue.state]
+                        {[
+                          event.venue.name,
+                          event.venue.address,
+                          event.venue.city,
+                          event.venue.state,
+                        ]
                           .filter(Boolean)
                           .join(' · ')}
+                        {venueMaps && (
+                          <>
+                            {' · '}
+                            <a href={venueMaps} target="_blank" rel="noreferrer">
+                              Cómo llegar
+                            </a>
+                          </>
+                        )}
+                      </span>
+                    </li>
+                  )}
+                  {event.doorsAt && (
+                    <li>
+                      <strong>Apertura de puertas</strong>
+                      <span>
+                        <time dateTime={event.doorsAt}>{timeOfDay(event.doorsAt)}</time>
                       </span>
                     </li>
                   )}
@@ -370,9 +439,9 @@ export default async function EventPage({
                   <li>
                     <strong>Transferencia</strong>
                     <span>
-                      {event.nonTransferable || event.transferAllowed === false
-                        ? 'No transferible'
-                        : 'Transferencia permitida desde tu cuenta'}
+                      {transferAllowed
+                        ? 'Transferencia permitida desde tu cuenta'
+                        : 'No transferible'}
                     </span>
                   </li>
                   <li>
@@ -386,8 +455,7 @@ export default async function EventPage({
                   <li>
                     <strong>Reserva</strong>
                     <span>
-                      Los asientos se reservan{' '}
-                      {Math.round((event.holdExpiration ?? 900) / 60)} minutos durante el checkout
+                      Los asientos se reservan {holdMinutes} minutos durante el checkout
                     </span>
                   </li>
                   {event.venue?.website && (
@@ -411,27 +479,31 @@ export default async function EventPage({
                 </div>
                 <p className={styles.railTitle}>{event.title}</p>
                 <p className={styles.railMeta}>
-                  {dateLabel}
-                  <br />
-                  {timeLabel}
-                  {event.venue?.name ? ` · ${event.venue.name}` : ''}
+                  {longDateTime(event.startsAt)}
+                  {event.venue?.name ? (
+                    <>
+                      <br />
+                      {event.venue.name}
+                    </>
+                  ) : null}
                 </p>
                 {minPrice > 0 && (
-                  <p className={styles.railPrice}>
-                    Desde ${minPrice.toLocaleString('es-MX', { maximumFractionDigits: 0 })}{' '}
-                    {event.currency || 'MXN'}
+                  <p className={styles.railPrice}>{fromPrice(minPrice, currency)}</p>
+                )}
+                {canPurchase && !soldOut ? (
+                  <a href="#compra" className={styles.cta}>
+                    Ir a comprar
+                  </a>
+                ) : (
+                  <p className={styles.railClosed} role="status">
+                    {soldOut ? 'Agotado' : saleMessage ?? 'Venta cerrada'}
                   </p>
                 )}
-                <a href="#compra" className={styles.cta}>
-                  Ir a comprar
-                </a>
                 <ul className={styles.railTrust}>
                   <li>Boletos oficiales</li>
                   <li>Pago Banorte</li>
                   <li>Entrada con QR</li>
-                  <li>
-                    Hold {Math.round((event.holdExpiration ?? 900) / 60)} min al elegir
-                  </li>
+                  <li>Hold {holdMinutes} min al elegir</li>
                   {event.organization?.name && (
                     <li>Organiza {event.organization.name}</li>
                   )}
@@ -442,29 +514,16 @@ export default async function EventPage({
 
           {related.length > 0 && (
             <section className={styles.related} aria-label="Más eventos">
-              <h2>También te puede interesar</h2>
-              <ul>
+              <div className={styles.relatedHead}>
+                <h2>También te puede interesar</h2>
+                <Link href="/" className={styles.relatedMore}>
+                  Ver cartelera
+                </Link>
+              </div>
+              <ul className={styles.relatedList}>
                 {related.map((e) => (
                   <li key={e.id}>
-                    <Link href={`/events/${e.slug}`} className={styles.relatedCard}>
-                      <div className={styles.relatedArt}>
-                        <EventPosterArt event={e} size="lg" showDate />
-                      </div>
-                      <div>
-                        <p className={styles.relatedCat}>
-                          {CATEGORY_LABEL[e.category || ''] ?? 'Evento'}
-                        </p>
-                        <strong>{e.title}</strong>
-                        <span>
-                          {e.venue?.city}
-                          {e.venue?.city ? ' · ' : ''}
-                          Desde $
-                          {Number(e.minPrice).toLocaleString('es-MX', {
-                            maximumFractionDigits: 0,
-                          })}
-                        </span>
-                      </div>
-                    </Link>
+                    <EventCard event={e} />
                   </li>
                 ))}
               </ul>

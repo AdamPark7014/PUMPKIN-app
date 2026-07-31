@@ -1,161 +1,235 @@
-import { Body, Controller, Get, Param, Post, Query, Request, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OrgAccessGuard } from '../auth/org-access.guard';
+import { Permissions } from '../auth/permissions.decorator';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AdminService } from './admin.service';
+import {
+  AdminPagedQueryDto,
+  AdminSalesReportQueryDto,
+  AdminScopeQueryDto,
+  CancelOrderDto,
+  CompletePayoutDto,
+  CreateVenueDto,
+  OrderIdParamDto,
+  PayoutIdParamDto,
+  ProcessPayoutDto,
+  RefundOrderDto,
+  SuggestLayoutDto,
+  UpdateBrandingDto,
+} from './dto/admin.dto';
+
+type AuthedRequest = { user: AuthenticatedUser };
 
 @ApiTags('Admin')
 @Controller('admin')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, OrgAccessGuard)
 @ApiBearerAuth()
 export class AdminController {
-  constructor(private admin: AdminService) {}
+  constructor(private readonly admin: AdminService) {}
 
   @Get('dashboard')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER', 'VENUE_MANAGER')
-  dashboard(@Request() req: { user: { organizationId?: string } }) {
-    return this.admin.dashboard(req.user.organizationId!);
+  @Permissions('analytics:read')
+  @ApiOperation({ summary: 'Tenant operations dashboard KPIs' })
+  dashboard(@Query() query: AdminScopeQueryDto) {
+    return this.admin.dashboard(query.organizationId);
   }
 
   @Get('platform/overview')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER', 'VENUE_MANAGER')
-  platformOverview(@Request() req: { user: { organizationId?: string } }) {
-    return this.admin.platformOverview(req.user.organizationId!);
+  @Permissions('analytics:read')
+  @ApiOperation({ summary: 'Platform overview for the tenant admin home' })
+  platformOverview(@Query() query: AdminScopeQueryDto) {
+    return this.admin.platformOverview(query.organizationId);
   }
 
   @Get('orders')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER', 'VENUE_MANAGER')
-  orders(@Request() req: { user: { organizationId?: string } }) {
-    return this.admin.listOrders(req.user.organizationId!);
+  @Permissions('order:read')
+  @ApiOperation({ summary: 'Paginated tenant order list' })
+  orders(@Query() query: AdminPagedQueryDto) {
+    return this.admin.listOrders(query.organizationId, query);
   }
 
   @Get('orders/:id')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER', 'VENUE_MANAGER')
+  @Permissions('order:read')
+  @ApiOperation({ summary: 'Order detail scoped to the tenant' })
   orderDetail(
-    @Request() req: { user: { organizationId?: string } },
-    @Param('id') id: string,
+    @Query() query: AdminScopeQueryDto,
+    @Param() params: OrderIdParamDto,
   ) {
-    return this.admin.getOrder(req.user.organizationId!, id);
+    return this.admin.getOrder(query.organizationId, params.id);
   }
 
   @Post('orders/:id/refund')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER')
+  // PROMOTER lacks `payment:refund` in the auth permission map; role gate kept for contract.
+  @ApiOperation({ summary: 'Request a refund for a tenant order' })
   refundOrder(
-    @Request() req: { user: { organizationId?: string; email?: string; sub?: string } },
-    @Param('id') id: string,
-    @Body() body: { reason?: string; amount?: number; notes?: string },
+    @Request() req: AuthedRequest,
+    @Query() query: AdminScopeQueryDto,
+    @Param() params: OrderIdParamDto,
+    @Body() body: RefundOrderDto,
   ) {
-    return this.admin.requestRefund(req.user.organizationId!, id, {
-      ...body,
-      requestedBy: req.user.email || req.user.sub || 'staff',
-    });
+    return this.admin.requestRefund(
+      query.organizationId,
+      params.id,
+      body,
+      req.user.email || req.user.sub || 'staff',
+    );
   }
 
   @Post('orders/:id/resend-email')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER', 'VENUE_MANAGER')
+  // PROMOTER / VENUE_MANAGER lack `order:write` in the auth permission map.
+  @ApiOperation({ summary: 'Re-queue order confirmation and ticket PDF emails' })
   resendEmail(
-    @Request() req: { user: { organizationId?: string } },
-    @Param('id') id: string,
+    @Query() query: AdminScopeQueryDto,
+    @Param() params: OrderIdParamDto,
   ) {
-    return this.admin.resendOrderEmail(req.user.organizationId!, id);
+    return this.admin.resendOrderEmail(query.organizationId, params.id);
   }
 
   @Post('orders/:id/cancel')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER')
+  // PROMOTER lacks `order:write` in the auth permission map.
+  @ApiOperation({ summary: 'Cancel a non-completed tenant order' })
   cancelOrder(
-    @Request() req: { user: { organizationId?: string } },
-    @Param('id') id: string,
-    @Body() body: { reason?: string },
+    @Query() query: AdminScopeQueryDto,
+    @Param() params: OrderIdParamDto,
+    @Body() body: CancelOrderDto,
   ) {
-    return this.admin.cancelOrderForOrg(req.user.organizationId!, id, body.reason || 'Admin cancel');
+    return this.admin.cancelOrderForOrg(query.organizationId, params.id, body);
   }
 
   @Get('payouts')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER')
-  payouts(@Request() req: { user: { organizationId?: string } }) {
-    return this.admin.listPayouts(req.user.organizationId!);
+  @Permissions('payment:read')
+  @ApiOperation({ summary: 'Channel totals and promoter payouts for the tenant' })
+  payouts(@Query() query: AdminPagedQueryDto) {
+    return this.admin.listPayouts(query.organizationId, query);
   }
 
   @Post('payouts/:payoutId/process')
   @Roles('ADMIN', 'SUPER_ADMIN')
+  @Permissions('payment:refund')
+  @ApiOperation({ summary: 'Mark a promoter payout as PROCESSING' })
   processPayout(
-    @Request() req: { user: { organizationId?: string } },
-    @Param('payoutId') payoutId: string,
-    @Body() body: { referenceId?: string },
+    @Query() query: AdminScopeQueryDto,
+    @Param() params: PayoutIdParamDto,
+    @Body() body: ProcessPayoutDto,
   ) {
-    return this.admin.markPayoutProcessing(req.user.organizationId!, payoutId, body.referenceId);
+    return this.admin.markPayoutProcessing(
+      query.organizationId,
+      params.payoutId,
+      body,
+    );
   }
 
   @Post('payouts/:payoutId/complete')
   @Roles('ADMIN', 'SUPER_ADMIN')
+  @Permissions('payment:refund')
+  @ApiOperation({ summary: 'Mark a promoter payout COMPLETED after SPEI' })
   completePayout(
-    @Request() req: { user: { organizationId?: string } },
-    @Param('payoutId') payoutId: string,
-    @Body() body: { referenceId: string },
+    @Query() query: AdminScopeQueryDto,
+    @Param() params: PayoutIdParamDto,
+    @Body() body: CompletePayoutDto,
   ) {
-    return this.admin.markPayoutCompleted(req.user.organizationId!, payoutId, body.referenceId);
+    return this.admin.markPayoutCompleted(
+      query.organizationId,
+      params.payoutId,
+      body,
+    );
   }
 
   @Get('events')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER', 'VENUE_MANAGER')
-  events(@Request() req: { user: { organizationId?: string } }) {
-    return this.admin.listEvents(req.user.organizationId!);
+  @Permissions('event:read')
+  @ApiOperation({ summary: 'Paginated tenant event catalog' })
+  events(@Query() query: AdminPagedQueryDto) {
+    return this.admin.listEvents(query.organizationId, query);
   }
 
   @Get('venues')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER', 'VENUE_MANAGER')
-  venues(@Request() req: { user: { organizationId?: string } }) {
-    return this.admin.listVenues(req.user.organizationId!);
+  @Permissions('venue:manage')
+  @ApiOperation({ summary: 'Paginated tenant venues' })
+  venues(@Query() query: AdminPagedQueryDto) {
+    return this.admin.listVenues(query.organizationId, query);
   }
 
   @Post('venues')
   @Roles('ADMIN', 'SUPER_ADMIN', 'VENUE_MANAGER', 'PROMOTER')
+  @Permissions('venue:manage')
+  @ApiOperation({ summary: 'Create a venue with an empty active layout' })
   createVenue(
-    @Request() req: { user: { organizationId?: string } },
-    @Body()
-    body: {
-      name: string;
-      city?: string;
-      state?: string;
-      country?: string;
-      address?: string;
-      timezone?: string;
-      totalCapacity?: number;
-      template?: 'arena' | 'theater' | 'stadium' | 'festival' | 'blank';
-    },
+    @Query() query: AdminScopeQueryDto,
+    @Body() body: CreateVenueDto,
   ) {
-    return this.admin.createVenue(req.user.organizationId!, body);
+    return this.admin.createVenue(query.organizationId, body);
   }
 
   @Get('branding')
   @Roles('ADMIN', 'SUPER_ADMIN')
-  getBranding(@Request() req: { user: { organizationId?: string } }) {
-    return this.admin.getTheme(req.user.organizationId!);
+  @Permissions('tenant:manage')
+  @ApiOperation({ summary: 'Tenant theme / branding' })
+  getBranding(@Query() query: AdminScopeQueryDto) {
+    return this.admin.getTheme(query.organizationId);
   }
 
   @Post('branding')
   @Roles('ADMIN', 'SUPER_ADMIN')
-  branding(
-    @Request() req: { user: { organizationId?: string } },
-    @Body() body: { primaryColor?: string; logoUrl?: string; subdomain?: string },
+  @Permissions('tenant:manage')
+  @ApiOperation({ summary: 'Upsert tenant theme / branding' })
+  brandingPost(
+    @Query() query: AdminScopeQueryDto,
+    @Body() body: UpdateBrandingDto,
   ) {
-    return this.admin.updateTheme(req.user.organizationId!, body);
+    return this.admin.updateTheme(query.organizationId, body);
+  }
+
+  @Put('branding')
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @Permissions('tenant:manage')
+  @ApiOperation({ summary: 'Upsert tenant theme / branding' })
+  brandingPut(
+    @Query() query: AdminScopeQueryDto,
+    @Body() body: UpdateBrandingDto,
+  ) {
+    return this.admin.updateTheme(query.organizationId, body);
   }
 
   @Get('reports/sales')
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER')
-  sales(
-    @Request() req: { user: { organizationId?: string } },
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
-    return this.admin.salesReport(req.user.organizationId!, from, to);
+  @Permissions('analytics:read')
+  @ApiOperation({ summary: 'Sales totals grouped by channel' })
+  sales(@Query() query: AdminSalesReportQueryDto) {
+    return this.admin.salesReport(query.organizationId, query);
   }
 
   @Post('venues/suggest-layout')
   @Roles('ADMIN', 'SUPER_ADMIN', 'VENUE_MANAGER')
-  suggestLayout(@Body() body: { venueId: string; planDescription: string }) {
-    return this.admin.suggestLayoutFromPlan(body.venueId, body.planDescription);
+  @Permissions('venue:manage')
+  @ApiOperation({ summary: 'Heuristic layout suggestion for a tenant venue' })
+  suggestLayout(
+    @Query() query: AdminScopeQueryDto,
+    @Body() body: SuggestLayoutDto,
+  ) {
+    return this.admin.suggestLayoutFromPlan(query.organizationId, body);
   }
 }

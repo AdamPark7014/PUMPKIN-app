@@ -1,18 +1,45 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
-import { EventPosterArt } from '@/components/EventPosterArt';
-import { api } from '@/lib/api';
-import type { EventHit } from '@/components/EventDiscoveryPanel';
+import { Breadcrumbs } from '@/components/storefront/Breadcrumbs';
+import { EventCard } from '@/components/storefront/EventCard';
+import { JsonLd } from '@/components/storefront/JsonLd';
+import { apiCachedSafe, REVALIDATE } from '@/lib/api';
+import { CATEGORY_LABEL, categoryLabel, plural } from '@/lib/format';
+import { canonical, eventListJsonLd, SITE_NAME } from '@/lib/seo';
+import type { DiscoveryFacets, EventListItem } from '@/lib/storefront-types';
 import styles from '../../hub.module.scss';
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-MX', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ city: string }>;
+}): Promise<Metadata> {
+  const { city: raw } = await params;
+  const city = decodeURIComponent(raw);
+  const title = `Eventos en ${city}`;
+  const description = `Cartelera oficial en ${city}. Compra boletos con inventario real y pago Banorte.`;
+  const path = `/ciudades/${encodeURIComponent(city)}`;
+  const url = canonical(path);
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      type: 'website',
+      locale: 'es_MX',
+      siteName: SITE_NAME,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    alternates: { canonical: url },
+  };
 }
 
 export default async function CiudadPage({
@@ -22,60 +49,138 @@ export default async function CiudadPage({
 }) {
   const { city: raw } = await params;
   const city = decodeURIComponent(raw);
-  let events: EventHit[] = [];
-  try {
-    events = await api<EventHit[]>(
+
+  const [eventsRaw, facets] = await Promise.all([
+    apiCachedSafe<EventListItem[]>(
       `/discovery/events?city=${encodeURIComponent(city)}&limit=60`,
-    );
-  } catch {
-    events = [];
+      REVALIDATE.listing,
+      [`discovery-city-${city}`],
+    ),
+    apiCachedSafe<DiscoveryFacets>('/discovery/facets', REVALIDATE.facets, ['discovery-facets']),
+  ]);
+
+  const events = [...(eventsRaw ?? [])].sort(
+    (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+  );
+
+  const venueMap = new Map<string, { slug: string; name: string }>();
+  const categoryKeys = new Set<string>();
+  for (const event of events) {
+    if (event.category && event.category in CATEGORY_LABEL) {
+      categoryKeys.add(event.category);
+    }
+    const venue = event.venue;
+    if (venue?.slug && venue.name && !venueMap.has(venue.slug)) {
+      venueMap.set(venue.slug, { slug: venue.slug, name: venue.name });
+    }
   }
+  const venues = [...venueMap.values()].slice(0, 8);
+  const categories = [...categoryKeys].slice(0, 6);
+  const otherCities = (facets?.cities ?? [])
+    .filter((c) => c.name.toLowerCase() !== city.toLowerCase())
+    .slice(0, 6);
+
+  const trail = [
+    { name: 'Cartelera', path: '/' },
+    { name: 'Ciudades', path: '/ciudades' },
+    { name: city },
+  ] as const;
 
   return (
     <>
       <SiteHeader />
       <main className={styles.page}>
-        <div className={styles.crumb}>
-          <Link href="/">Cartelera</Link>
-          <span>/</span>
-          <Link href="/ciudades">Ciudades</Link>
-          <span>/</span>
-          <span>{city}</span>
-        </div>
+        <Breadcrumbs trail={trail} />
+        {events.length > 0 && (
+          <JsonLd data={eventListJsonLd(events, `Eventos en ${city}`)} />
+        )}
+
         <header className={styles.hero}>
           <h1>{city}</h1>
           <p>
-            {events.length} evento{events.length === 1 ? '' : 's'} disponibles
+            {plural(events.length, 'evento')} disponible
+            {events.length === 1 ? '' : 's'} · boletos oficiales
           </p>
         </header>
+
         {events.length === 0 ? (
-          <p className={styles.empty}>
-            Sin eventos en esta ciudad. <Link href="/ciudades">Ver otras</Link>
-          </p>
+          <div className={styles.empty}>
+            <p>Sin eventos publicados en {city} por ahora.</p>
+            <div className={styles.emptyLinks}>
+              <Link href="/ciudades">Otras ciudades</Link>
+              <Link href="/">Ver cartelera</Link>
+              <Link href="/venues">Ver recintos</Link>
+            </div>
+          </div>
         ) : (
           <ul className={styles.grid}>
-            {events.map((e) => (
-              <li key={e.id}>
-                <Link href={`/events/${e.slug}`} className={styles.card}>
-                  <EventPosterArt event={e} size="sm" />
-                  <div>
-                    <strong>{e.title}</strong>
-                    <span>
-                      {fmtDate(e.startsAt)}
-                      {e.venue?.name ? ` · ${e.venue.name}` : ''}
-                    </span>
-                  </div>
-                  <em>
-                    {Number(e.minPrice) > 0
-                      ? `$${Number(e.minPrice).toLocaleString('es-MX', {
-                          maximumFractionDigits: 0,
-                        })}`
-                      : '—'}
-                  </em>
-                </Link>
+            {events.map((event) => (
+              <li key={event.id}>
+                <EventCard event={event} showVenue />
               </li>
             ))}
           </ul>
+        )}
+
+        {venues.length > 0 && (
+          <section className={styles.section} aria-labelledby="city-venues">
+            <h2 id="city-venues">Recintos en {city}</h2>
+            <ul className={styles.chipRow}>
+              {venues.map((v) => (
+                <li key={v.slug}>
+                  <Link href={`/venues/${v.slug}`} className={styles.chip}>
+                    {v.name}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href="/venues" className={styles.chip}>
+                  Todos los recintos
+                </Link>
+              </li>
+            </ul>
+          </section>
+        )}
+
+        {categories.length > 0 && (
+          <section className={styles.section} aria-labelledby="city-cats">
+            <h2 id="city-cats">Categorías</h2>
+            <ul className={styles.chipRow}>
+              {categories.map((key) => (
+                <li key={key}>
+                  <Link
+                    href={`/categoria/${key.toLowerCase()}`}
+                    className={styles.chip}
+                  >
+                    {categoryLabel(key)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {otherCities.length > 0 && (
+          <section className={styles.section} aria-labelledby="city-more">
+            <h2 id="city-more">Otras ciudades</h2>
+            <ul className={styles.chipRow}>
+              {otherCities.map((c) => (
+                <li key={c.name}>
+                  <Link
+                    href={`/ciudades/${encodeURIComponent(c.name)}`}
+                    className={styles.chip}
+                  >
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href="/ciudades" className={styles.chip}>
+                  Ver todas
+                </Link>
+              </li>
+            </ul>
+          </section>
         )}
       </main>
     </>

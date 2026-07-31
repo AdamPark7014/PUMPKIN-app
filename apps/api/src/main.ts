@@ -5,9 +5,33 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/http-exception.filter';
+import { parseCookies } from './common/cookie.middleware';
+import { validateTicketQrSecret } from './common/validate-ticket-qr-secret';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+
+function validateSecurityConfiguration(): void {
+  const required = ['DATABASE_URL', 'JWT_SECRET'] as const;
+  const missing = required.filter((name) => !process.env[name]);
+  if (missing.length) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+  if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
+    throw new Error('CORS_ORIGIN is required in production');
+  }
+  validateTicketQrSecret();
+}
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  validateSecurityConfiguration();
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
+  app.disable('x-powered-by');
+  const trustedProxyHops = Number.parseInt(process.env.TRUST_PROXY_HOPS ?? '0', 10);
+  if (trustedProxyHops > 0) app.set('trust proxy', trustedProxyHops);
+  app.useBodyParser('json', { limit: '1mb' });
+  app.useBodyParser('urlencoded', { limit: '256kb', extended: false });
+  app.use(parseCookies);
 
   app.use(
     helmet({
@@ -43,18 +67,15 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (configured.includes('*') || configured.includes(origin)) {
-        return callback(null, true);
-      }
-      // Always allow loopback (web/admin/taquilla may use alternate ports in local).
-      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+      if (configured.includes(origin)) {
         return callback(null, true);
       }
       const isDev = process.env.NODE_ENV !== 'production';
       if (
         isDev &&
+        (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin) ||
         (/^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin) ||
-          /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin))
+          /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin)))
       ) {
         return callback(null, true);
       }
@@ -69,8 +90,10 @@ async function bootstrap() {
       'X-Channel',
       'X-Cashier-Id',
       'Idempotency-Key',
-      'X-Forwarded-For',
+      'X-CSRF-Token',
+      'X-Correlation-Id',
     ],
+    exposedHeaders: ['X-Correlation-Id'],
   });
 
   // Swagger documentation
@@ -92,6 +115,7 @@ async function bootstrap() {
     .addTag('Analytics', 'Reporting and analytics endpoints')
     .addTag('Fraud', 'Fraud detection and security')
     .addTag('Admin', 'Admin operations')
+    .addTag('Event Scheduling', 'Series, recurrence, sale windows and venue availability')
     .addTag('Access', 'Venue entry scanning and QR validation')
     .addTag('Tenant', 'Multi-tenant resolution')
     .build();

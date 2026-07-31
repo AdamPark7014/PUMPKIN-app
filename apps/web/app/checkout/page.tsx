@@ -2,49 +2,53 @@
 
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import { Button, Input } from '@boletera/ui';
 import { SiteHeader } from '@/components/SiteHeader';
-import { SiteFooter } from '@/components/SiteFooter';
 import { HoldCountdown } from '@/components/HoldCountdown';
+import { PriceBreakdown } from '@/components/storefront/PriceBreakdown';
+import { PurchaseSteps } from '@/components/storefront/PurchaseSteps';
+import { TrustRow, TRUST_OFFICIAL, TRUST_QR, trustPayment } from '@/components/storefront/TrustRow';
+import { API_BASE, ApiError, api } from '@/lib/api';
 import { authHeaders, getStoredUser } from '@/lib/auth';
-import { useCartStore } from '@/lib/cart-store';
+import { normalizeCartItem, useCartStore } from '@/lib/cart-store';
+import {
+  buildIdempotencySeed,
+  hasCheckoutErrors,
+  newIdempotencyKey,
+  paymentErrorMessage,
+  validateCheckoutForm,
+  type CheckoutFormErrors,
+} from '@/lib/checkout-guards';
+import { dateTime, moneyExact } from '@/lib/format';
+import type {
+  CartPricing,
+  GatewayConfig,
+  PaymentAction,
+  PaymentMethodId,
+} from '@/lib/storefront-types';
 import styles from './checkout.module.scss';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-
-type Pricing = {
-  subtotal: string;
-  fees: string;
-  taxes: string;
-  total: string;
-  discount: string;
+type OrderCreationResponse = {
+  publicId: string;
+  paymentAction?: PaymentAction | null;
 };
 
-type PaymentAction = {
-  gateway: string;
-  intentId: string;
-  redirectUrl?: string;
-  reference?: string;
-  metadata?: {
-    type?: string;
-    clabe?: string;
-    concept?: string;
-    demo?: boolean;
-  };
-  status: string;
-};
+type RequestState = 'idle' | 'loading' | 'ready' | 'error';
 
-type GatewayInfo = {
-  settlement: string;
-  demo: boolean;
-  mode?: 'demo' | 'live';
-  productionReady?: boolean;
-  buyerNote?: string;
-  accountClabeMasked?: string | null;
-};
-
-const METHODS = [
+const METHODS: readonly {
+  id: PaymentMethodId;
+  label: string;
+  detail: string;
+}[] = [
   {
     id: 'CARD',
     label: 'Tarjeta',
@@ -67,201 +71,297 @@ function CheckoutForm() {
   const router = useRouter();
   const eventId = params.get('eventId') ?? '';
   const offerId = params.get('offerId') ?? '';
-  const storedUser = getStoredUser();
-  const urlHoldIds = (params.get('holdIds') ?? '').split(',').filter(Boolean);
+  const urlHoldIdsValue = params.get('holdIds') ?? '';
+  const urlHoldIds = useMemo(
+    () => urlHoldIdsValue.split(',').filter(Boolean),
+    [urlHoldIdsValue],
+  );
+  const [storedUser] = useState(() => getStoredUser());
   const rawCart = useCartStore((s) => s.items.find((i) => i.eventId === eventId));
-  const cartItem = rawCart
-    ? {
-        ...rawCart,
-        lines:
-          rawCart.lines?.length
-            ? rawCart.lines
-            : rawCart.offerId && rawCart.holdIds
-              ? [
-                  {
-                    offerId: rawCart.offerId,
-                    holdIds: rawCart.holdIds,
-                    seatLabels: rawCart.seatLabels,
-                    quantity: rawCart.holdIds.length,
-                    lineTotal: rawCart.lineTotal,
-                  },
-                ]
-              : [],
-      }
-    : null;
-  const orderLines =
-    cartItem?.lines?.length
-      ? cartItem.lines
-      : offerId && urlHoldIds.length
-        ? [{ offerId, holdIds: urlHoldIds, quantity: urlHoldIds.length }]
-        : [];
-  const holdIds = orderLines.flatMap((l) => l.holdIds);
+  const cartItem = useMemo(
+    () => (rawCart ? normalizeCartItem(rawCart) : null),
+    [rawCart],
+  );
+  const orderLines = useMemo(
+    () =>
+      cartItem?.lines?.length
+        ? cartItem.lines
+        : offerId && urlHoldIds.length
+          ? [{ offerId, holdIds: urlHoldIds, quantity: urlHoldIds.length }]
+          : [],
+    [cartItem, offerId, urlHoldIds],
+  );
+  const holdIds = useMemo(() => orderLines.flatMap((line) => line.holdIds), [orderLines]);
   const cartExpires = cartItem?.expiresAt;
   const expiresAt = params.get('expiresAt') || cartExpires || null;
   const [holdExpired, setHoldExpired] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState(
+    () => `${storedUser?.firstName ?? ''} ${storedUser?.lastName ?? ''}`.trim(),
+  );
+  const [email, setEmail] = useState(() => storedUser?.email ?? '');
+  const [fieldErrors, setFieldErrors] = useState<CheckoutFormErrors>({});
   const [promo, setPromo] = useState('');
   const [promoMsg, setPromoMsg] = useState<string | null>(null);
   const [promoValid, setPromoValid] = useState(false);
-  const [method, setMethod] = useState('CARD');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [method, setMethod] = useState<PaymentMethodId>('CARD');
   const [loading, setLoading] = useState(false);
-  const [pricing, setPricing] = useState<Pricing | null>(null);
+  const [pricing, setPricing] = useState<CartPricing | null>(null);
+  const [pricingState, setPricingState] = useState<RequestState>('idle');
   const [error, setError] = useState('');
-  const [gatewayInfo, setGatewayInfo] = useState<GatewayInfo | null>(null);
+  const [gatewayInfo, setGatewayInfo] = useState<GatewayConfig | null>(null);
+  const submittingRef = useRef(false);
+  const idempotencyRef = useRef<{ seed: string; key: string } | null>(null);
+  const handleHoldExpire = useCallback(() => setHoldExpired(true), []);
 
   useEffect(() => {
-    if (storedUser) {
-      setName(`${storedUser.firstName} ${storedUser.lastName}`.trim());
-      setEmail(storedUser.email);
-    }
-  }, [storedUser]);
-
-  useEffect(() => {
-    fetch(`${API}/payments/config`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: GatewayInfo | null) => setGatewayInfo(data))
-      .catch(() => {});
+    const controller = new AbortController();
+    fetch(`${API_BASE}/payments/config`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<GatewayConfig>) : null))
+      .then((data) => {
+        if (data) setGatewayInfo(data);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
   }, []);
 
-  const linesKey = orderLines.map((l) => `${l.offerId}:${l.holdIds.length}`).join('|');
+  const linesKey = useMemo(
+    () => orderLines.map((line) => `${line.offerId}:${line.holdIds.join(',')}`).join('|'),
+    [orderLines],
+  );
 
   useEffect(() => {
-    if (!eventId || !orderLines.length) return;
+    if (!eventId || !orderLines.length) {
+      setPricing(null);
+      setPricingState('idle');
+      return;
+    }
+    const controller = new AbortController();
     const items = orderLines.map((l) => ({
       offerId: l.offerId,
       quantity: l.holdIds.length || l.quantity || 1,
     }));
-    fetch(`${API}/pricing/calculate-cart`, {
+    setPricingState('loading');
+    fetch(`${API_BASE}/pricing/calculate-cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      cache: 'no-store',
       body: JSON.stringify({
         eventId,
         items,
-        promotionCode: promoValid ? promo : undefined,
+        promotionCode: promoValid ? promo.trim() : undefined,
       }),
     })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setPricing)
-      .catch(() => {});
-  }, [eventId, linesKey, promo, promoValid]); // eslint-disable-line react-hooks/exhaustive-deps
+      .then(async (response) => {
+        if (!response.ok) throw new Error('pricing');
+        return response.json() as Promise<CartPricing>;
+      })
+      .then((nextPricing) => {
+        setPricing(nextPricing);
+        setPricingState('ready');
+      })
+      .catch((requestError: unknown) => {
+        if (requestError instanceof DOMException && requestError.name === 'AbortError') return;
+        setPricing(null);
+        setPricingState('error');
+      });
+    return () => controller.abort();
+  }, [eventId, linesKey, orderLines, promo, promoValid]);
 
   async function validatePromo() {
-    if (!promo.trim() || !eventId) return;
+    const normalizedPromo = promo.trim();
+    if (!normalizedPromo || !eventId || promoLoading) return;
+    setPromoLoading(true);
     setPromoMsg(null);
-    const res = await fetch(`${API}/campaigns/validate-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: promo, eventId, userId: email || 'guest' }),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch(`${API_BASE}/campaigns/validate-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({
+          code: normalizedPromo,
+          eventId,
+          userId: email.trim() || 'guest',
+        }),
+      });
+      if (!res.ok) {
+        setPromoValid(false);
+        setPromoMsg('El código no es válido o ya expiró. Revisa e intenta de nuevo.');
+        return;
+      }
+      const body = (await res.json()) as { valid?: boolean; reason?: string };
+      if (body.valid === false) {
+        setPromoValid(false);
+        setPromoMsg(body.reason || 'El código no es válido o ya expiró.');
+        return;
+      }
+      setPromo(normalizedPromo);
       setPromoValid(true);
-      setPromoMsg('Código aplicado');
-    } else {
+      setPromoMsg('Código aplicado correctamente.');
+    } catch {
       setPromoValid(false);
-      setPromoMsg('Código inválido o expirado');
+      setPromoMsg('No pudimos validar el código. Revisa tu conexión e intenta de nuevo.');
+    } finally {
+      setPromoLoading(false);
     }
   }
 
-  function paymentMethodForApi() {
-    if (method === 'OXXO' || method === 'SPEI') return method;
-    return 'CARD';
+  function ensureIdempotencyKey(): string {
+    const seed = buildIdempotencySeed({
+      eventId,
+      holdIds,
+      email,
+    });
+    if (idempotencyRef.current?.seed !== seed) {
+      idempotencyRef.current = { seed, key: newIdempotencyKey() };
+    }
+    return idempotencyRef.current.key;
   }
 
-  async function pay() {
+  async function pay(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submittingRef.current || loading) return;
+
+    const errors = validateCheckoutForm({
+      name,
+      email,
+      holdIds,
+      holdExpired,
+    });
+    setFieldErrors(errors);
+    if (hasCheckoutErrors(errors)) {
+      setError(errors.holds ?? 'Revisa los datos marcados e inténtalo de nuevo.');
+      return;
+    }
+    if (!eventId || !orderLines.length) {
+      setError('No hay asientos reservados. Vuelve al mapa para continuar.');
+      return;
+    }
+
+    submittingRef.current = true;
     setLoading(true);
     setError('');
+
     try {
-      const res = await fetch(`${API}/orders`, {
+      const idempotencyKey = ensureIdempotencyKey();
+      const order = await api<OrderCreationResponse>('/orders', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
+          'Idempotency-Key': idempotencyKey,
           ...authHeaders(),
         },
         body: JSON.stringify({
           eventId,
           items: orderLines.map((l) => ({ offerId: l.offerId, holdIds: l.holdIds })),
           holdIds,
-          offerId: orderLines.length === 1 ? orderLines[0].offerId : offerId || undefined,
-          buyerName: name || `${storedUser?.firstName ?? ''} ${storedUser?.lastName ?? ''}`.trim(),
-          buyerEmail: email || storedUser?.email,
-          paymentMethod: paymentMethodForApi(),
-          promotionCode: promoValid ? promo : undefined,
+          buyerName: name.trim(),
+          buyerEmail: email.trim().toLowerCase(),
+          paymentMethod: method,
+          promotionCode: promoValid ? promo.trim() : undefined,
         }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || 'No se pudo crear la orden');
-      }
-      const order = await res.json();
 
       if (order.paymentAction) {
-        const action = order.paymentAction as PaymentAction;
+        const action = order.paymentAction;
         if (action.redirectUrl) {
           window.location.href = action.redirectUrl;
           return;
         }
-        router.push(
-          `/orders/${order.publicId}/pago?method=${method}&ref=${encodeURIComponent(action.reference ?? '')}&clabe=${encodeURIComponent(String(action.metadata?.clabe ?? ''))}&concept=${encodeURIComponent(String(action.metadata?.concept ?? ''))}`,
-        );
+        router.push(`/orders/${order.publicId}/pago?method=${method}`);
         return;
       }
 
       router.push(`/orders/${order.publicId}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error de pago');
+      const detail = paymentErrorMessage(e);
+      setError(detail);
+      if (
+        e instanceof ApiError &&
+        (e.isConflict ||
+          detail.toLowerCase().includes('expir') ||
+          detail.toLowerCase().includes('disponible'))
+      ) {
+        // Rotate key on conflict / inventory change so a corrected retry is a new attempt.
+        idempotencyRef.current = null;
+      }
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
 
-  const seatLabels =
-    cartItem?.lines?.flatMap((l) => l.seatLabels ?? []) ?? cartItem?.seatLabels ?? [];
+  const seatLabels = useMemo(
+    () => cartItem?.lines?.flatMap((l) => l.seatLabels ?? []) ?? cartItem?.seatLabels ?? [],
+    [cartItem],
+  );
+  const currency = cartItem?.currency || 'MXN';
+  const demo = gatewayInfo?.demo === true;
+  const canSubmit =
+    !loading && !holdExpired && holdIds.length > 0 && Boolean(eventId) && orderLines.length > 0;
+  const methodHint =
+    method === 'SPEI'
+      ? 'Te mostraremos CLABE y concepto exactos para transferir.'
+      : method === 'OXXO'
+        ? 'Recibirás una referencia para pagar en tienda.'
+        : demo
+          ? 'Simulación local sin cargo real ni datos de tarjeta.'
+          : 'Serás redirigido a Banorte Payworks con 3-D Secure.';
+  const recoverHref = cartItem?.slug ? `/events/${cartItem.slug}` : '/events';
+  const payLabel = demo
+    ? `Simular pago${pricing ? ` ${moneyExact(pricing.total, currency)}` : ''}`
+    : `Pagar${pricing ? ` ${moneyExact(pricing.total, currency)}` : ''} con Banorte`;
 
   return (
     <div className={styles.shell}>
       <SiteHeader />
       <main className={styles.page}>
-        <div className={styles.steps} aria-label="Progreso de compra">
-          <Link href="/cart" className={styles.stepDone}>
-            1 Carrito
-          </Link>
-          <span className={styles.stepActive}>2 Pago</span>
-          <span className={styles.stepTodo}>3 Boletos</span>
-        </div>
+        <PurchaseSteps current="checkout" />
 
         <header className={styles.hero}>
           <h1>Checkout</h1>
           <p>
-            {gatewayInfo?.demo
-              ? `Modo demo · ${holdIds.length} boleto${holdIds.length === 1 ? '' : 's'}`
+            {demo
+              ? `Modo demo · ${holdIds.length} boleto${holdIds.length === 1 ? '' : 's'} · sin cargo real`
               : `Pago Banorte · ${holdIds.length} boleto${holdIds.length === 1 ? '' : 's'}`}
+            {!storedUser ? ' · Compra como invitado' : ''}
           </p>
         </header>
 
-        <HoldCountdown expiresAt={expiresAt} onExpire={() => setHoldExpired(true)} />
+        <HoldCountdown expiresAt={expiresAt} onExpire={handleHoldExpire} />
         {holdExpired && (
           <p className={styles.error} role="alert">
-            Tu reserva expiró.{' '}
-            <Link href={cartItem?.slug ? `/events/${cartItem.slug}` : '/events'}>
-              Volver a elegir asientos
-            </Link>
+            Tu reserva expiró y los asientos se liberaron.{' '}
+            <Link href={recoverHref}>Volver a elegir asientos</Link>
+          </p>
+        )}
+        {!holdIds.length && !holdExpired && (
+          <p className={styles.error} role="alert">
+            No encontramos holds activos para este checkout.{' '}
+            <Link href="/cart">Regresar al carrito</Link> o{' '}
+            <Link href={recoverHref}>elegir asientos de nuevo</Link>.
+          </p>
+        )}
+        {fieldErrors.holds && !holdExpired && holdIds.length > 0 && (
+          <p className={styles.error} role="alert">
+            {fieldErrors.holds}
           </p>
         )}
 
         <div className={styles.layout}>
-          <section className={styles.formCol} aria-label="Datos de pago">
-            <div className={styles.trust}>
-              <span>Boletos oficiales</span>
-              <span>{gatewayInfo?.demo ? 'Demo' : 'Banorte'}</span>
-              <span>QR de acceso</span>
-            </div>
+          <form className={styles.formCol} aria-label="Datos de pago" onSubmit={pay} noValidate>
+            <TrustRow
+              items={[TRUST_OFFICIAL, TRUST_QR, trustPayment(demo)]}
+              tone="light"
+            />
 
             {gatewayInfo && (
               <p
-                className={`${styles.banorteNote} ${gatewayInfo.demo ? styles.banorteDemo : ''}`}
-                role={gatewayInfo.demo ? 'status' : undefined}
+                className={`${styles.banorteNote} ${demo ? styles.banorteDemo : ''}`}
+                role={demo ? 'status' : undefined}
               >
                 {gatewayInfo.buyerNote ?? gatewayInfo.settlement}
                 {gatewayInfo.accountClabeMasked
@@ -272,26 +372,49 @@ function CheckoutForm() {
 
             <div className={styles.fieldGrid}>
               <Input
+                id="checkout-name"
                 label="Nombre completo"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (fieldErrors.name) {
+                    setFieldErrors((prev) => ({ ...prev, name: undefined }));
+                  }
+                }}
                 autoComplete="name"
+                name="name"
                 required
+                requiredMark
+                error={fieldErrors.name}
+                disabled={loading || holdExpired}
               />
               <Input
+                id="checkout-email"
                 label="Email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) {
+                    setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                  }
+                }}
                 autoComplete="email"
+                name="email"
+                inputMode="email"
                 required
+                requiredMark
+                error={fieldErrors.email}
+                hint="Aquí enviamos tus boletos y el comprobante. No necesitas cuenta."
+                disabled={loading || holdExpired}
               />
             </div>
 
-            <label className={styles.promoLabel}>
-              Código promocional
+            <div className={styles.promoLabel}>
+              <label htmlFor="checkout-promo">Código promocional</label>
               <div className={styles.promoRow}>
                 <input
+                  id="checkout-promo"
                   value={promo}
                   onChange={(e) => {
                     setPromo(e.target.value);
@@ -299,23 +422,34 @@ function CheckoutForm() {
                     setPromoMsg(null);
                   }}
                   placeholder="Opcional"
+                  autoComplete="off"
+                  spellCheck={false}
+                  disabled={loading || holdExpired}
+                  aria-describedby={promoMsg ? 'checkout-promo-msg' : undefined}
                 />
                 <Button
                   type="button"
                   variant="secondary"
                   size="md"
                   onClick={validatePromo}
-                  disabled={!promo.trim()}
+                  disabled={!promo.trim() || promoLoading || loading || holdExpired}
+                  aria-busy={promoLoading}
                 >
-                  Validar
+                  {promoLoading ? 'Validando…' : 'Validar'}
                 </Button>
               </div>
               {promoMsg && (
-                <span className={promoValid ? styles.promoOk : styles.promoErr}>{promoMsg}</span>
+                <span
+                  id="checkout-promo-msg"
+                  className={promoValid ? styles.promoOk : styles.promoErr}
+                  role="status"
+                >
+                  {promoMsg}
+                </span>
               )}
-            </label>
+            </div>
 
-            <fieldset className={styles.methods}>
+            <fieldset className={styles.methods} disabled={loading || holdExpired}>
               <legend>Método de pago</legend>
               <div className={styles.methodGrid} role="radiogroup" aria-label="Método de pago">
                 {METHODS.map((m) => (
@@ -329,41 +463,53 @@ function CheckoutForm() {
                   >
                     <strong>{m.label}</strong>
                     <span>
-                      {gatewayInfo?.demo && m.id === 'CARD'
+                      {demo && m.id === 'CARD'
                         ? 'Simulación local · sin cargo real'
                         : m.detail}
                     </span>
                   </button>
                 ))}
               </div>
+              <p className={styles.methodHint} id="checkout-method-hint">
+                {methodHint}
+              </p>
             </fieldset>
 
             {error && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
+              <div className={styles.errorBox} role="alert" aria-live="assertive">
+                <p>{error}</p>
+                <div className={styles.errorActions}>
+                  {!holdExpired && holdIds.length > 0 ? (
+                    <button type="submit" disabled={!canSubmit || loading}>
+                      Reintentar pago
+                    </button>
+                  ) : null}
+                  <Link href={recoverHref}>Volver a los asientos</Link>
+                  <Link href="/cart">Volver al carrito</Link>
+                </div>
+              </div>
             )}
 
             <Button
-              type="button"
+              type="submit"
               size="lg"
               className={styles.pay}
-              disabled={loading || !name || !email || !holdIds.length || holdExpired}
-              onClick={pay}
+              disabled={!canSubmit}
+              loading={loading}
+              loadingLabel="Creando orden…"
             >
-              {loading
-                ? 'Procesando…'
-                : gatewayInfo?.demo
-                  ? `Simular pago${pricing ? ` $${pricing.total}` : ''}`
-                  : `Pagar${pricing ? ` $${pricing.total}` : ''} con Banorte`}
+              {payLabel}
             </Button>
 
             <p className={styles.fine}>
-              Al continuar aceptas los{' '}
-              <Link href="/terminos">términos</Link> y el{' '}
-              <Link href="/privacidad">aviso de privacidad</Link>.
+              Al continuar aceptas los <Link href="/terminos">términos</Link> y el{' '}
+              <Link href="/privacidad">aviso de privacidad</Link>. No almacenamos datos de tarjeta
+              en TicketOS.
+              {!storedUser
+                ? ' Puedes pagar como invitado; el email es suficiente para recibir tus boletos.'
+                : ''}
             </p>
-          </section>
+          </form>
 
           <aside className={styles.summaryCol} aria-label="Resumen del pedido">
             {cartItem ? (
@@ -374,22 +520,14 @@ function CheckoutForm() {
                   <p className={styles.lineMeta}>
                     {cartItem.venueName}
                     {cartItem.venueCity ? ` · ${cartItem.venueCity}` : ''}
-                    {cartItem.startsAt
-                      ? ` · ${new Date(cartItem.startsAt).toLocaleString('es-MX', {
-                          weekday: 'short',
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}`
-                      : ''}
+                    {cartItem.startsAt ? ` · ${dateTime(cartItem.startsAt)}` : ''}
                   </p>
                 )}
                 {orderLines.length > 0 && (
                   <ul className={styles.zoneList}>
                     {orderLines.map((line) => (
                       <li key={line.offerId}>
-                        <span>{line.offerName || 'Zona'}</span>
+                        <span>{('offerName' in line && line.offerName) || 'Zona'}</span>
                         <em>×{line.holdIds.length || line.quantity || 1}</em>
                       </li>
                     ))}
@@ -407,37 +545,34 @@ function CheckoutForm() {
             ) : (
               <div className={styles.lineItems}>
                 <p className={styles.summaryKicker}>Tu pedido</p>
-                <h2>{holdIds.length} boleto(s)</h2>
+                <h2>
+                  {holdIds.length} boleto{holdIds.length === 1 ? '' : 's'}
+                </h2>
                 <p className={styles.lineMeta}>Reserva desde hold activo</p>
               </div>
             )}
 
-            {pricing && (
-              <div className={styles.summary}>
-                <div>
-                  <span>Subtotal</span>
-                  <strong>${pricing.subtotal}</strong>
-                </div>
-                <div>
-                  <span>Cargos de servicio</span>
-                  <strong>${pricing.fees}</strong>
-                </div>
-                <div>
-                  <span>Impuestos</span>
-                  <strong>${pricing.taxes}</strong>
-                </div>
-                {Number(pricing.discount) > 0 && (
-                  <div>
-                    <span>Descuento</span>
-                    <strong>−${pricing.discount}</strong>
-                  </div>
-                )}
-                <div className={styles.total}>
-                  <span>Total</span>
-                  <strong>${pricing.total}</strong>
-                </div>
-              </div>
-            )}
+            <div className={styles.summary} aria-live="polite">
+              {pricingState === 'error' && (
+                <p className={styles.summaryStatus}>
+                  No pudimos cargar el desglose. El total final se confirma al crear la orden.
+                </p>
+              )}
+              {pricingState === 'idle' && !pricing && (
+                <p className={styles.summaryStatus}>El desglose aparecerá al cargar el carrito.</p>
+              )}
+              <PriceBreakdown
+                pricing={pricing}
+                currency={currency}
+                loading={pricingState === 'loading'}
+              />
+            </div>
+
+            <ol className={styles.nextSteps}>
+              <li>Revisa total y método</li>
+              <li>{demo ? 'Simula el pago (sin cargo)' : 'Confirma con Banorte'}</li>
+              <li>Recibe QR de acceso</li>
+            </ol>
 
             <Link href="/cart" className={styles.backCart}>
               ← Volver al carrito
@@ -445,14 +580,22 @@ function CheckoutForm() {
           </aside>
         </div>
       </main>
-      <SiteFooter />
     </div>
   );
 }
 
 export default function CheckoutPage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className={styles.shell}>
+          <SiteHeader />
+          <main className={styles.page}>
+            <p role="status">Cargando checkout…</p>
+          </main>
+        </div>
+      }
+    >
       <CheckoutForm />
     </Suspense>
   );

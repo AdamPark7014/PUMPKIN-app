@@ -1,0 +1,148 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: boletera-ops-null
+    receivers:
+      - uid: boletera-ops-null
+        type: "webhook"
+        settings:
+          url: http://127.0.0.1:9/noop
+          httpMethod: POST
+        disableResolveMessage: true
+
+policies:
+  - orgId: 1
+    receiver: boletera-ops-null
+    group_by:
+      - grafana_folder
+      - alertname
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
+
+groups:
+  - orgId: 1
+    name: ticketing-slo
+    folder: Boletera
+    interval: 1m
+    rules:
+      - uid: checkout_latency_slo
+        title: Checkout latency SLO (p95 > 1.5s)
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: boletera:checkout_latency_p95_seconds
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [1.5]
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Checkout/payment path p95 latency exceeds 1.5s SLO
+          description: Instrument HTTP histograms on orders/payments routes; inspect Tempo traces.
+        labels:
+          severity: warning
+          sli: checkout_latency
+
+      - uid: payment_error_slo
+        title: Payment error ratio SLO (> 1%)
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: boletera:payment_error_ratio
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.01]
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Payment 5xx ratio exceeds 1% SLO
+          description: Check /api/v1/payments/intents and /confirm; correlate Loki + Tempo.
+        labels:
+          severity: critical
+          sli: payment_errors
+
+      - uid: db_saturation_slo
+        title: DB saturation SLO (> 85%)
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: boletera:db_saturation_ratio
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.85]
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Database pool saturation exceeds 85% SLO
+          description: Export db.client.connections.* via OTel; inspect slow queries.
+        labels:
+          severity: warning
+          sli: db_saturation

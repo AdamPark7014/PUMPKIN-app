@@ -14,7 +14,9 @@
       "@/*": ["./*"],
       "@boletera/ui": ["../../packages/ui/src"],
       "@boletera/venue-3d": ["../../packages/venue-3d/src"],
-      "@boletera/venue-engine": ["../../packages/venue-engine/dist"]
+      "@boletera/venue-engine": ["../../packages/venue-engine/src/index.ts"],
+      "@boletera/venue-engine/render": ["../../packages/venue-engine/src/render/index.ts"],
+      "@boletera/venue-engine/*": ["../../packages/venue-engine/src/*"]
     }
   },
   "include": ["next-env.d.ts", "types/**/*.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

@@ -1,19 +1,49 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ComponentType } from 'react';
-import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
-  SeatMapViewer,
-  type SelectedSeatInfo,
-} from '@/components/SeatMapViewer';
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+} from 'react';
+import { useRouter } from 'next/navigation';
+import type { SelectedSeatInfo } from '@/components/SeatMapViewer';
 import {
   flatSeats,
   normalizeSeatMap,
   resolveOfferForSection,
 } from '@boletera/venue-engine';
 import type { Venue3DViewerProps } from '@boletera/venue-3d';
+import { API_BASE, errorMessage } from '@/lib/api';
 import { useCartStore, type CartOfferLine } from '@/lib/cart-store';
+import { money, plural } from '@/lib/format';
+import type { CartPricing, HoldResponse, OfferSummary } from '@/lib/storefront-types';
 import styles from './event.module.scss';
+
+type MapOffer = { id: string; zone: string; name?: string; basePrice: string };
+
+function toMapOffers(offers: OfferSummary[]): MapOffer[] {
+  return offers.map((o) => ({
+    id: o.id,
+    zone: o.zone,
+    name: o.name ?? undefined,
+    basePrice: o.basePrice,
+  }));
+}
+
+const SeatMapViewer = dynamic(
+  () =>
+    import('@/components/SeatMapViewer').then((m) => m.SeatMapViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <p className={styles.mapLoading} role="status">
+        Cargando mapa de asientos…
+      </p>
+    ),
+  },
+);
 
 const SECTION_PALETTE = ['#5b9fd4', '#c45c6a', '#c4a35a', '#5a9e78', '#7a8fd4', '#b87a9a'];
 
@@ -23,15 +53,9 @@ function colorForSection(key: string) {
   return SECTION_PALETTE[h % SECTION_PALETTE.length];
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-
-type Offer = {
-  id: string;
-  zone: string;
-  name?: string;
-  basePrice: string;
-  remainingQuantity?: number;
-};
+function offerLabel(o: Pick<OfferSummary, 'name' | 'zone'>): string {
+  return o.name?.trim() || `Zona ${o.zone.toUpperCase()}`;
+}
 
 export function EventPurchaseClient({
   eventId,
@@ -45,6 +69,10 @@ export function EventPurchaseClient({
   minPrice = 0,
   currency = 'MXN',
   focusZone = null,
+  canPurchase = true,
+  saleMessage = null,
+  maxTickets = 8,
+  holdMinutes = 15,
 }: {
   eventId: string;
   eventTitle?: string;
@@ -53,13 +81,20 @@ export function EventPurchaseClient({
   venueName?: string;
   venueCity?: string;
   mapData: unknown;
-  offers: Offer[];
+  offers: OfferSummary[];
   minPrice?: number;
   currency?: string;
   focusZone?: string | null;
+  canPurchase?: boolean;
+  saleMessage?: string | null;
+  maxTickets?: number;
+  holdMinutes?: number;
 }) {
   const router = useRouter();
   const addToCart = useCartStore((s) => s.addItem);
+  const ticketCap = Math.min(Math.max(1, maxTickets || 8), 8);
+
+  const mapOffers = useMemo(() => toMapOffers(offers), [offers]);
   const normalized = useMemo(() => normalizeSeatMap(mapData), [mapData]);
   const seats2d = useMemo(() => flatSeats(normalized), [normalized]);
   const hasSeatMap = seats2d.length > 0;
@@ -72,42 +107,43 @@ export function EventPurchaseClient({
   );
   const [viewer3dError, setViewer3dError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [buyMode, setBuyMode] = useState<'map' | 'best' | 'ga'>(hasSeatMap ? 'map' : 'ga');
-  const [qty, setQty] = useState(2);
+  const [qty, setQty] = useState(Math.min(2, ticketCap));
+  const [livePricing, setLivePricing] = useState<CartPricing | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
 
   const focusedOffer = useMemo(() => {
     if (focusZone) {
       const needle = focusZone.toLowerCase();
       return (
-        offers.find(
+        mapOffers.find(
           (o) =>
             o.zone.toLowerCase() === needle ||
             (o.name && o.name.toLowerCase().includes(needle)),
         ) ?? null
       );
     }
-    // Prefer an offer that matches published sections (skip stale orphan zones).
     for (const sec of normalized.sections) {
-      const match = resolveOfferForSection(offers, sec.slug, sec.name);
+      const match = resolveOfferForSection(mapOffers, sec.slug, sec.name);
       if (match && (match.zone === sec.slug || match.name === sec.name || match.zone === sec.name)) {
         return match;
       }
-      const bySlug = offers.find((o) => o.zone.toLowerCase() === sec.slug.toLowerCase());
+      const bySlug = mapOffers.find((o) => o.zone.toLowerCase() === sec.slug.toLowerCase());
       if (bySlug) return bySlug;
     }
-    return offers[0] ?? null;
-  }, [focusZone, offers, normalized.sections]);
+    return mapOffers[0] ?? null;
+  }, [focusZone, mapOffers, normalized.sections]);
 
   const seatsForFocusedOffer = useMemo(() => {
     if (!focusedOffer) return [];
     return seats2d.filter((seat) => {
       const sec = normalized.sections.find((s) => s.id === seat.sectionId);
-      const offer = resolveOfferForSection(offers, sec?.slug ?? '', seat.sectionName);
+      const offer = resolveOfferForSection(mapOffers, sec?.slug ?? '', seat.sectionName);
       return offer?.id === focusedOffer.id;
     });
-  }, [focusedOffer, seats2d, normalized.sections, offers]);
+  }, [focusedOffer, seats2d, normalized.sections, mapOffers]);
 
-  // True GA only when there is no seat map, or the focused zone is GA and has no seats.
   const isGaOffer = useMemo(() => {
     if (!hasSeatMap) return true;
     if (!focusedOffer || !focusZone) return false;
@@ -124,6 +160,10 @@ export function EventPurchaseClient({
     if (isGaOffer) setBuyMode('ga');
     else setBuyMode((m) => (m === 'ga' ? 'map' : m));
   }, [hasSeatMap, isGaOffer]);
+
+  useEffect(() => {
+    setQty((q) => Math.min(q, ticketCap));
+  }, [ticketCap]);
 
   useEffect(() => {
     if (!view3d || Venue3DViewer || viewer3dError) return;
@@ -144,17 +184,21 @@ export function EventPurchaseClient({
   }, [view3d, Venue3DViewer, viewer3dError]);
 
   useEffect(() => {
-    fetch(`${API}/3d/events/${eventId}/interactive`)
+    fetch(`${API_BASE}/3d/events/${eventId}/interactive`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!data) return;
-        if (data.statusBySeat && typeof data.statusBySeat === 'object') {
-          setSeats3dStatus(data.statusBySeat as Record<string, string>);
+      .then((data: unknown) => {
+        if (!data || typeof data !== 'object') return;
+        const payload = data as {
+          statusBySeat?: Record<string, string>;
+          venue?: { seats?: { id: string; status?: string }[] }[];
+        };
+        if (payload.statusBySeat && typeof payload.statusBySeat === 'object') {
+          setSeats3dStatus(payload.statusBySeat);
           return;
         }
-        if (!data.venue) return;
+        if (!payload.venue) return;
         const status: Record<string, string> = {};
-        for (const section of data.venue as { seats?: { id: string; status?: string }[] }[]) {
+        for (const section of payload.venue) {
           for (const s of section.seats ?? []) {
             if (s.status) status[s.id] = s.status;
           }
@@ -167,7 +211,7 @@ export function EventPurchaseClient({
   const seatsFor3d = useMemo(() => {
     return seats2d.map((seat) => {
       const sec = normalized.sections.find((s) => s.id === seat.sectionId);
-      const offer = resolveOfferForSection(offers, sec?.slug ?? '', seat.sectionName);
+      const offer = resolveOfferForSection(mapOffers, sec?.slug ?? '', seat.sectionName);
       return {
         id: seat.id,
         label: seat.label,
@@ -191,7 +235,7 @@ export function EventPurchaseClient({
             : (seats3dStatus[seat.id] as 'available' | 'held' | 'sold' | 'blocked') || 'available',
       };
     });
-  }, [seats2d, normalized.sections, offers, seats3dStatus]);
+  }, [seats2d, normalized.sections, mapOffers, seats3dStatus]);
 
   const selectedInfo: SelectedSeatInfo[] = useMemo(() => {
     return selected
@@ -199,7 +243,7 @@ export function EventPurchaseClient({
         const seat = seats2d.find((s) => s.id === id);
         if (!seat) return null;
         const sec = normalized.sections.find((s) => s.id === seat.sectionId);
-        const offer = resolveOfferForSection(offers, sec?.slug ?? '', seat.sectionName);
+        const offer = resolveOfferForSection(mapOffers, sec?.slug ?? '', seat.sectionName);
         return {
           seatId: id,
           label: seat.label,
@@ -210,15 +254,73 @@ export function EventPurchaseClient({
         };
       })
       .filter((x): x is SelectedSeatInfo => Boolean(x));
-  }, [selected, seats2d, normalized.sections, offers]);
+  }, [selected, seats2d, normalized.sections, mapOffers]);
 
-  const estimate = selectedInfo.reduce((s, i) => s + i.price, 0);
+  const estimate = selectedInfo.reduce((sum, info) => sum + info.price, 0);
   const bestEstimate = focusedOffer ? Number(focusedOffer.basePrice) * qty : 0;
 
+  const pricingKey = useMemo(() => {
+    if (buyMode === 'map') {
+      const byOffer = new Map<string, number>();
+      for (const info of selectedInfo) {
+        if (!info.offerId) continue;
+        byOffer.set(info.offerId, (byOffer.get(info.offerId) ?? 0) + 1);
+      }
+      return Array.from(byOffer.entries())
+        .map(([offerId, quantity]) => `${offerId}:${quantity}`)
+        .sort()
+        .join('|');
+    }
+    if (focusedOffer && qty > 0) {
+      return `${focusedOffer.id}:${qty}`;
+    }
+    return '';
+  }, [buyMode, selectedInfo, focusedOffer, qty]);
+
+  useEffect(() => {
+    if (!canPurchase || !pricingKey) {
+      setLivePricing(null);
+      setPricingLoading(false);
+      return;
+    }
+    const items = pricingKey.split('|').map((part) => {
+      const [offerId, quantityRaw] = part.split(':');
+      return { offerId, quantity: Number(quantityRaw) };
+    });
+    const controller = new AbortController();
+    setPricingLoading(true);
+    const timer = window.setTimeout(() => {
+      fetch(`${API_BASE}/pricing/calculate-cart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({ eventId, items }),
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error('pricing');
+          return res.json() as Promise<CartPricing>;
+        })
+        .then((data) => {
+          setLivePricing(data);
+          setPricingLoading(false);
+        })
+        .catch((err: unknown) => {
+          if (err instanceof DOMException && err.name === 'AbortError') return;
+          setLivePricing(null);
+          setPricingLoading(false);
+        });
+    }, 280);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [canPurchase, eventId, pricingKey]);
+
   function toggleSeat(seatId: string) {
+    setError(null);
     setSelected((prev) => {
       if (prev.includes(seatId)) return prev.filter((id) => id !== seatId);
-      if (prev.length >= 8) return prev;
+      if (prev.length >= ticketCap) return prev;
       return [...prev, seatId];
     });
   }
@@ -239,7 +341,7 @@ export function EventPurchaseClient({
         existing.quantity += 1;
         existing.lineTotal = (existing.lineTotal ?? 0) + info.price;
       } else {
-        const offer = offers.find((o) => o.id === info.offerId);
+        const offer = mapOffers.find((o) => o.id === info.offerId);
         byOffer.set(info.offerId, {
           offerId: info.offerId,
           offerName: offer?.name || offer?.zone,
@@ -277,47 +379,48 @@ export function EventPurchaseClient({
   }
 
   async function checkoutMap() {
-    if (!selected.length) return;
+    if (!canPurchase || !selected.length) return;
     setLoading(true);
+    setError(null);
     try {
-      const holdRes = await fetch(`${API}/inventory/holds`, {
+      const holdRes = await fetch(`${API_BASE}/inventory/holds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventId, seatIds: selected, sessionId: crypto.randomUUID() }),
       });
-      const holdData = await holdRes.json();
+      const holdData = (await holdRes.json()) as HoldResponse & { message?: string };
       if (!holdRes.ok) {
         throw new Error(holdData.message || 'No se pudieron reservar los asientos');
       }
-      const holds: { id: string; seatId?: string | null }[] = holdData.holds ?? [];
+      const holds = holdData.holds ?? [];
       const holdBySeat = new Map<string, string>();
       for (const h of holds) {
         if (h.seatId) holdBySeat.set(h.seatId, h.id);
       }
-      // Fallback if seatId missing on hold: zip by selection order
       if (holdBySeat.size === 0 && holds.length === selected.length) {
         selected.forEach((seatId, i) => holdBySeat.set(seatId, holds[i].id));
       }
       const lines = groupLines(selectedInfo, holdBySeat);
       if (!lines.length) throw new Error('No se pudo asociar ofertas a los asientos');
       const expiresAt =
-        holdData.expiresAt ?? new Date(Date.now() + 900_000).toISOString();
+        holdData.expiresAt ?? new Date(Date.now() + holdMinutes * 60_000).toISOString();
       goCheckout(lines, expiresAt);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al reservar');
+      setError(errorMessage(e, 'No se pudieron reservar los asientos. Inténtalo de nuevo.'));
     } finally {
       setLoading(false);
     }
   }
 
   async function checkoutBestOrGa() {
-    if (!focusedOffer) return;
+    if (!canPurchase || !focusedOffer) return;
     setLoading(true);
+    setError(null);
     try {
       const endpoint =
         buyMode === 'ga'
-          ? `${API}/inventory/holds`
-          : `${API}/inventory/holds/best-available`;
+          ? `${API_BASE}/inventory/holds`
+          : `${API_BASE}/inventory/holds/best-available`;
       const body =
         buyMode === 'ga'
           ? {
@@ -338,17 +441,23 @@ export function EventPurchaseClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const holdData = await holdRes.json();
+      const holdData = (await holdRes.json()) as HoldResponse & { message?: string };
       if (!holdRes.ok) {
         throw new Error(holdData.message || 'No se pudieron reservar boletos');
       }
-      const holds: { id: string }[] = holdData.holds ?? [];
+      const holds = holdData.holds ?? [];
       const seatLabels: string[] =
         holdData.seats?.map(
-          (s: { label?: string; section?: string; row?: string; seatNumber?: string }) =>
+          (s) =>
             s.label ||
-            [s.section, s.row ? `Fila ${s.row}` : null, s.seatNumber].filter(Boolean).join(' · '),
-        ) ?? Array.from({ length: holds.length }, (_, i) => `${focusedOffer.name || focusedOffer.zone} · ${i + 1}`);
+            [s.section, s.row ? `Fila ${s.row}` : null, s.seatNumber]
+              .filter(Boolean)
+              .join(' · '),
+        ) ??
+        Array.from(
+          { length: holds.length },
+          (_, i) => `${offerLabel(focusedOffer)} · ${i + 1}`,
+        );
       const lines: CartOfferLine[] = [
         {
           offerId: focusedOffer.id,
@@ -360,34 +469,71 @@ export function EventPurchaseClient({
         },
       ];
       const expiresAt =
-        holdData.expiresAt ?? new Date(Date.now() + 900_000).toISOString();
+        holdData.expiresAt ?? new Date(Date.now() + holdMinutes * 60_000).toISOString();
       goCheckout(lines, expiresAt);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al reservar');
+      setError(errorMessage(e, 'No se pudieron reservar boletos. Inténtalo de nuevo.'));
     } finally {
       setLoading(false);
     }
   }
 
   const canPayMap = selected.length > 0 && buyMode === 'map';
-  const canPayQty = (buyMode === 'best' || buyMode === 'ga') && qty > 0 && Boolean(focusedOffer);
+  const canPayQty =
+    (buyMode === 'best' || buyMode === 'ga') && qty > 0 && Boolean(focusedOffer);
+  const buyDisabled =
+    loading || !canPurchase || (buyMode === 'map' ? !canPayMap : !canPayQty);
+
+  const stickySubtitle = (() => {
+    if (!canPurchase) return saleMessage ?? 'La venta no está abierta';
+    if (livePricing) {
+      return `Estimado ${money(livePricing.total, currency)} (con cargos)`;
+    }
+    if (pricingLoading) return 'Calculando cargos…';
+    if (buyMode === 'map') {
+      return selected.length
+        ? `Subtotal ${money(estimate, currency)} · cargos en checkout`
+        : minPrice > 0
+          ? `Desde ${money(minPrice, currency)}`
+          : 'Elige asientos en el mapa';
+    }
+    return `Subtotal ${money(bestEstimate, currency)} · cargos en checkout`;
+  })();
 
   return (
-    <div className={styles.buyBox} id="compra">
-      <div className={styles.toggle}>
+    <div className={styles.buyBox}>
+      {!canPurchase && saleMessage && (
+        <div className={styles.inlineError} role="status">
+          {saleMessage}
+        </div>
+      )}
+
+      <div className={styles.toggle} role="tablist" aria-label="Modo de compra">
         {!isGaOffer && (
           <>
             <button
               type="button"
-              onClick={() => setBuyMode('map')}
-              className={buyMode === 'map' ? styles.active : ''}
+              role="tab"
+              aria-selected={buyMode === 'map'}
+              onClick={() => {
+                setBuyMode('map');
+                setError(null);
+              }}
+              className={buyMode === 'map' ? styles.active : undefined}
+              disabled={!canPurchase}
             >
               Elegir en mapa
             </button>
             <button
               type="button"
-              onClick={() => setBuyMode('best')}
-              className={buyMode === 'best' ? styles.active : ''}
+              role="tab"
+              aria-selected={buyMode === 'best'}
+              onClick={() => {
+                setBuyMode('best');
+                setError(null);
+              }}
+              className={buyMode === 'best' ? styles.active : undefined}
+              disabled={!canPurchase}
             >
               Mejor disponible
             </button>
@@ -396,8 +542,14 @@ export function EventPurchaseClient({
         {(isGaOffer || buyMode === 'ga') && (
           <button
             type="button"
-            onClick={() => setBuyMode('ga')}
-            className={buyMode === 'ga' ? styles.active : ''}
+            role="tab"
+            aria-selected={buyMode === 'ga'}
+            onClick={() => {
+              setBuyMode('ga');
+              setError(null);
+            }}
+            className={buyMode === 'ga' ? styles.active : undefined}
+            disabled={!canPurchase}
           >
             Entrada general
           </button>
@@ -407,15 +559,18 @@ export function EventPurchaseClient({
             <button
               type="button"
               onClick={() => setView3d(false)}
-              className={!view3d ? styles.active : ''}
+              className={!view3d ? styles.active : undefined}
+              aria-pressed={!view3d}
+              disabled={!canPurchase}
             >
               2D
             </button>
             <button
               type="button"
               onClick={() => setView3d(true)}
-              className={view3d ? styles.active : ''}
-              disabled={!seatsFor3d.length || Boolean(viewer3dError)}
+              className={view3d ? styles.active : undefined}
+              aria-pressed={view3d}
+              disabled={!seatsFor3d.length || Boolean(viewer3dError) || !canPurchase}
               title={viewer3dError ?? undefined}
             >
               3D
@@ -431,21 +586,33 @@ export function EventPurchaseClient({
               {buyMode === 'ga' ? 'Entrada general' : 'Mejor disponible'}
             </p>
             <p className={styles.qtyMeta}>
-              {focusedOffer.name || focusedOffer.zone} · $
-              {Number(focusedOffer.basePrice).toLocaleString('es-MX', {
-                maximumFractionDigits: 0,
-              })}{' '}
-              {currency} c/u
+              {offerLabel(focusedOffer)} · {money(focusedOffer.basePrice, currency)} c/u
             </p>
           </div>
           <label className={styles.qtyStepper}>
             <span>Cantidad</span>
             <div>
-              <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Menos">
+              <button
+                type="button"
+                onClick={() => {
+                  setQty((q) => Math.max(1, q - 1));
+                  setError(null);
+                }}
+                aria-label="Menos boletos"
+                disabled={!canPurchase || qty <= 1}
+              >
                 −
               </button>
-              <strong>{qty}</strong>
-              <button type="button" onClick={() => setQty((q) => Math.min(8, q + 1))} aria-label="Más">
+              <strong aria-live="polite">{qty}</strong>
+              <button
+                type="button"
+                onClick={() => {
+                  setQty((q) => Math.min(ticketCap, q + 1));
+                  setError(null);
+                }}
+                aria-label="Más boletos"
+                disabled={!canPurchase || qty >= ticketCap}
+              >
                 +
               </button>
             </div>
@@ -456,7 +623,8 @@ export function EventPurchaseClient({
       {buyMode === 'map' && !isGaOffer && (
         seats2d.length === 0 ? (
           <p className={styles.qtyMeta}>
-            Este evento aún no tiene mapa de asientos publicado. Usa «Mejor disponible» o vuelve más tarde.
+            Este evento aún no tiene mapa de asientos publicado. Usa «Mejor disponible» o
+            vuelve más tarde.
           </p>
         ) : view3d ? (
           Venue3DViewer ? (
@@ -478,48 +646,58 @@ export function EventPurchaseClient({
               mapData={normalized}
             />
           ) : (
-            <p className={styles.qtyMeta}>Cargando vista 3D del venue…</p>
+            <p className={styles.mapLoading} role="status">
+              Cargando vista 3D del venue…
+            </p>
           )
         ) : (
           <SeatMapViewer
             eventId={eventId}
             mapData={normalized}
             selected={selected}
-            offers={offers}
+            offers={mapOffers}
             currency={currency}
             focusZone={focusZone}
             onToggle={toggleSeat}
-            onClear={() => setSelected([])}
+            onClear={() => {
+              setSelected([]);
+              setError(null);
+            }}
           />
         )
       )}
 
-      <div className={styles.stickyBuy}>
-        <div>
+      {error && (
+        <div className={styles.inlineError} role="alert" aria-live="assertive">
+          {error}
+        </div>
+      )}
+
+      <div className={styles.stickyBuy} aria-live="polite">
+        <div className={styles.stickyCopy}>
           <p className={styles.stickyTitle}>
             {buyMode === 'map'
               ? selected.length
-                ? `${selected.length} asiento${selected.length === 1 ? '' : 's'} · listos`
+                ? `${plural(selected.length, 'asiento')} · listos`
                 : 'Selecciona asientos en el mapa'
-              : `${qty} boleto${qty === 1 ? '' : 's'} · ${focusedOffer?.name || focusedOffer?.zone || 'zona'}`}
+              : `${plural(qty, 'boleto')} · ${focusedOffer ? offerLabel(focusedOffer) : 'zona'}`}
           </p>
-          <p className={styles.stickyMeta}>
-            {buyMode === 'map'
-              ? selected.length
-                ? `Total $${estimate.toLocaleString('es-MX', { maximumFractionDigits: 0 })} ${currency}`
-                : `Desde $${minPrice.toLocaleString('es-MX', { maximumFractionDigits: 0 })} ${currency}`
-              : `Total $${bestEstimate.toLocaleString('es-MX', { maximumFractionDigits: 0 })} ${currency}`}
-          </p>
+          <p className={styles.stickyMeta}>{stickySubtitle}</p>
         </div>
         <button
           type="button"
           className={styles.cta}
-          disabled={loading || (buyMode === 'map' ? !canPayMap : !canPayQty)}
+          disabled={buyDisabled}
           onClick={() => (buyMode === 'map' ? checkoutMap() : checkoutBestOrGa())}
         >
-          {loading ? 'Reservando…' : 'Continuar al pago'}
+          {loading
+            ? 'Reservando…'
+            : !canPurchase
+              ? 'No disponible'
+              : 'Continuar al pago'}
         </button>
       </div>
+      <div className={styles.buyBarSpacer} aria-hidden />
     </div>
   );
 }

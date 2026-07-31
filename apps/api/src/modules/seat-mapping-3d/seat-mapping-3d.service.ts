@@ -1,4 +1,11 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { EventStatus, TicketStatus } from '@prisma/client';
 import type { SeatMapData } from '@boletera/shared';
 import {
   calculateSightlines,
@@ -6,6 +13,7 @@ import {
   projectTo3D,
   resolveGeometry,
 } from '@boletera/venue-engine';
+import { TenantContextService } from '../../common/tenant-context.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface SeatPosition {
@@ -42,43 +50,93 @@ export interface Section3D {
   };
 }
 
+const PUBLIC_EVENT_STATUSES: ReadonlySet<EventStatus> = new Set([
+  EventStatus.SCHEDULED,
+  EventStatus.LIVE,
+]);
+
+function asSeatTier(value: string | undefined): SeatPosition['tier'] {
+  if (value === 'premium' || value === 'economy' || value === 'standard') return value;
+  return 'standard';
+}
+
+function asSeatStatus(value: string): SeatPosition['status'] {
+  if (value === 'held' || value === 'sold' || value === 'blocked' || value === 'available') {
+    return value;
+  }
+  return 'available';
+}
+
 @Injectable()
 export class SeatMapping3DService {
-  private logger = new Logger(SeatMapping3DService.name);
+  private readonly logger = new Logger(SeatMapping3DService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenant: TenantContextService,
+  ) {}
 
-  /** Load authored SeatMapData for a venue (active layout). */
-  private async loadVenueMap(venueId: string): Promise<SeatMapData | null> {
+  private async loadVenueMap(
+    venueId: string,
+    organizationId: string,
+  ): Promise<SeatMapData | null> {
     const layout = await this.prisma.venueLayout.findFirst({
-      where: { venueId, isActive: true },
+      where: { venueId, isActive: true, venue: { organizationId } },
       orderBy: { updatedAt: 'desc' },
+      select: { mapData: true },
     });
     if (!layout?.mapData) return null;
     return normalizeSeatMap(layout.mapData);
   }
 
-  /** Prefer published event snapshot; fall back to active venue layout. */
-  private async loadEventMap(eventId: string): Promise<{
-    map: SeatMapData;
-    venueId: string;
-    venueName: string;
-  }> {
+  private async requireEventForMap(eventId: string, opts?: { requireStaff?: boolean }) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      include: {
-        venue: true,
-        seatMap: true,
+      select: {
+        id: true,
+        organizationId: true,
+        venueId: true,
+        status: true,
+        publishedAt: true,
+        venue: { select: { name: true } },
+        seatMap: { select: { snapshotData: true } },
       },
     });
-    if (!event) throw new BadRequestException('Event not found');
+    if (!event) throw new NotFoundException('Event not found');
+
+    const ctx = this.tenant.current();
+    const isStaff =
+      Boolean(ctx.organizationId || ctx.privileged) &&
+      (ctx.privileged || ctx.organizationId === event.organizationId);
+
+    if (opts?.requireStaff) {
+      if (!isStaff) throw new ForbiddenException('Organization access denied');
+      this.tenant.assertOrganization(event.organizationId);
+    } else if (!isStaff) {
+      if (!event.publishedAt || !PUBLIC_EVENT_STATUSES.has(event.status)) {
+        throw new NotFoundException('Event not found');
+      }
+    } else {
+      this.tenant.assertOrganization(event.organizationId);
+    }
+
+    return event;
+  }
+
+  private async loadEventMap(eventId: string, opts?: { requireStaff?: boolean }) {
+    const event = await this.requireEventForMap(eventId, opts);
 
     const raw =
       event.seatMap?.snapshotData ??
       (
         await this.prisma.venueLayout.findFirst({
-          where: { venueId: event.venueId, isActive: true },
+          where: {
+            venueId: event.venueId,
+            isActive: true,
+            venue: { organizationId: event.organizationId },
+          },
           orderBy: { updatedAt: 'desc' },
+          select: { mapData: true },
         })
       )?.mapData;
 
@@ -88,17 +146,19 @@ export class SeatMapping3DService {
       map: normalizeSeatMap(raw),
       venueId: event.venueId,
       venueName: event.venue.name,
+      organizationId: event.organizationId,
     };
   }
 
   private async ticketStatusMap(eventId: string) {
     const tickets = await this.prisma.ticket.findMany({
-      where: { eventId },
+      where: { eventId, seatId: { not: null } },
       select: { status: true, seatId: true },
     });
     const map = new Map<string, string>();
     for (const t of tickets) {
-      if (t.seatId) map.set(t.seatId, String(t.status).toLowerCase());
+      if (!t.seatId) continue;
+      map.set(t.seatId, String(t.status).toLowerCase());
     }
     return map;
   }
@@ -118,10 +178,7 @@ export class SeatMapping3DService {
         const pose = poseById.get(s.id);
         const sight = sightlineBySeat?.get(s.id);
         const statusRaw = ticketMap?.get(s.id) ?? 'available';
-        const status =
-          s.visibility?.blocked
-            ? 'blocked'
-            : (statusRaw as SeatPosition['status']);
+        const status = s.visibility?.blocked ? 'blocked' : asSeatStatus(statusRaw);
         return {
           id: s.id,
           label: s.label,
@@ -131,7 +188,7 @@ export class SeatMapping3DService {
           x: pose?.px ?? s.x,
           y: pose?.py ?? s.elevation ?? 0,
           z: pose?.pz ?? s.y,
-          tier: (s.tier as SeatPosition['tier']) || 'standard',
+          tier: asSeatTier(s.tier),
           visible: !s.visibility?.blocked,
           accessible: false,
           price: 0,
@@ -158,13 +215,30 @@ export class SeatMapping3DService {
     });
   }
 
-  // ==================== 3D VENUE GENERATION ====================
+  async generateVenue3D(venueId: string, organizationId?: string) {
+    const ctx = this.tenant.current();
+    const orgId =
+      organizationId && organizationId.length > 0
+        ? organizationId
+        : ctx.privileged
+          ? undefined
+          : this.tenant.requireOrganization();
 
-  async generateVenue3D(venueId: string) {
-    const venue = await this.prisma.venue.findUnique({ where: { id: venueId } });
-    if (!venue) throw new BadRequestException('Venue not found');
+    if (orgId) this.tenant.assertOrganization(orgId);
 
-    const map = await this.loadVenueMap(venueId);
+    const venue = orgId
+      ? await this.prisma.venue.findFirst({
+          where: { id: venueId, organizationId: orgId },
+          select: { id: true, name: true, organizationId: true },
+        })
+      : await this.prisma.venue.findUnique({
+          where: { id: venueId },
+          select: { id: true, name: true, organizationId: true },
+        });
+    if (!venue) throw new NotFoundException('Venue not found');
+    this.tenant.assertOrganization(venue.organizationId);
+
+    const map = await this.loadVenueMap(venueId, venue.organizationId);
     if (!map || !map.sections.some((s) => s.seats.length)) {
       throw new BadRequestException(
         'Venue has no authored seat map. Open the map editor and apply a template first.',
@@ -200,12 +274,6 @@ export class SeatMapping3DService {
     return 80;
   }
 
-  // ==================== INTERACTIVE 3D VIEW ====================
-
-  /**
-   * Live inventory status for client-side 3D (web/admin project geometry locally).
-   * Keeps a compatible envelope; does not re-run projectTo3D / sightlines on every poll.
-   */
   async getInteractiveSeatView(eventId: string, selectedSeatId?: string) {
     const { map, venueName } = await this.loadEventMap(eventId);
     const ticketMap = await this.ticketStatusMap(eventId);
@@ -217,7 +285,7 @@ export class SeatMapping3DService {
         const statusRaw = ticketMap.get(s.id) ?? 'available';
         const status: SeatPosition['status'] = s.visibility?.blocked
           ? 'blocked'
-          : (statusRaw as SeatPosition['status']);
+          : asSeatStatus(statusRaw);
         statusBySeat[s.id] = status;
         return {
           id: s.id,
@@ -225,11 +293,10 @@ export class SeatMapping3DService {
           section: sec.name,
           row: s.row ?? 'A',
           seatNumber: numMatch ? parseInt(numMatch[1], 10) : idx + 1,
-          // Map-space placeholders — clients use published map + venue-3d for world poses
           x: s.x,
           y: s.elevation ?? 0,
           z: s.y,
-          tier: (s.tier as SeatPosition['tier']) || 'standard',
+          tier: asSeatTier(s.tier),
           visible: !s.visibility?.blocked,
           accessible: false,
           price: 0,
@@ -254,7 +321,7 @@ export class SeatMapping3DService {
     });
 
     const selectedSeat = selectedSeatId
-      ? venue.flatMap((s) => s.seats).find((s) => s.id === selectedSeatId) ?? null
+      ? (venue.flatMap((s) => s.seats).find((s) => s.id === selectedSeatId) ?? null)
       : null;
 
     this.logger.log(
@@ -281,8 +348,6 @@ export class SeatMapping3DService {
     };
   }
 
-  // ==================== SEAT RECOMMENDATION ====================
-
   async recommendSeats(
     eventId: string,
     preferences: {
@@ -292,7 +357,7 @@ export class SeatMapping3DService {
       viewQuality?: 'best' | 'good' | 'any';
     },
   ) {
-    const { map } = await this.loadEventMap(eventId);
+    const { map } = await this.loadEventMap(eventId, { requireStaff: true });
     const ticketMap = await this.ticketStatusMap(eventId);
     const scene = resolveGeometry(map);
     const sight = calculateSightlines(scene);
@@ -303,9 +368,15 @@ export class SeatMapping3DService {
       if (st !== 'available') return false;
       if (s.visibility?.blocked) return false;
       if (preferences.tier && s.tier && s.tier !== preferences.tier) return false;
+      if (preferences.accessible && s.metadata?.accessible !== true) return false;
       const grade = scoreById.get(s.id)?.grade;
-      if (preferences.viewQuality === 'best' && grade !== 'premium' && grade !== 'good') return false;
-      if (preferences.viewQuality === 'good' && (grade === 'restricted' || grade === 'blocked')) {
+      if (preferences.viewQuality === 'best' && grade !== 'premium' && grade !== 'good') {
+        return false;
+      }
+      if (
+        preferences.viewQuality === 'good' &&
+        (grade === 'restricted' || grade === 'blocked')
+      ) {
         return false;
       }
       return true;
@@ -345,20 +416,24 @@ export class SeatMapping3DService {
     };
   }
 
-  // ==================== HEAT MAP (OCCUPANCY) ====================
-
   async getOccupancyHeatmap(eventId: string) {
-    const tickets = await this.prisma.ticket.findMany({
+    await this.requireEventForMap(eventId);
+
+    const grouped = await this.prisma.ticket.groupBy({
+      by: ['status'],
       where: { eventId },
-      select: { status: true, seatId: true },
+      _count: { _all: true },
     });
 
+    const countOf = (status: TicketStatus) =>
+      grouped.find((g) => g.status === status)?._count._all ?? 0;
+
     const occupancy = {
-      total: tickets.length,
-      sold: tickets.filter((t) => t.status === 'SOLD').length,
-      held: tickets.filter((t) => t.status === 'HELD').length,
-      available: tickets.filter((t) => t.status === 'AVAILABLE').length,
-      refunded: tickets.filter((t) => t.status === 'REFUNDED').length,
+      total: grouped.reduce((n, g) => n + g._count._all, 0),
+      sold: countOf(TicketStatus.SOLD),
+      held: countOf(TicketStatus.HELD),
+      available: countOf(TicketStatus.AVAILABLE),
+      refunded: countOf(TicketStatus.REFUNDED),
     };
 
     const occupancyPercent =

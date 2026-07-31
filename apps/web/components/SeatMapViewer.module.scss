@@ -268,8 +268,8 @@
 
 .viewport {
   position: relative;
-  height: min(58vh, 480px);
-  min-height: 320px;
+  height: min(58vh, 520px);
+  min-height: 300px;
   overflow: hidden;
   touch-action: none;
   cursor: grab;
@@ -278,6 +278,37 @@
     #09090b;
   border: 1px solid #1c1c1f;
   user-select: none;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.a11ySelect {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(250, 250, 250, 0.72);
+
+  span {
+    letter-spacing: 0.02em;
+  }
+
+  select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid #2a2a2e;
+    border-radius: 8px;
+    background: #121214;
+    color: #fafafa;
+    font: inherit;
+  }
 }
 
 .dragging {

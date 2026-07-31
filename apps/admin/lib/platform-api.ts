@@ -158,6 +158,7 @@ export function listVenues(token: string) {
       name: string;
       slug: string;
       city?: string;
+      timezone?: string;
       totalCapacity?: number;
       capacity?: number;
       _count?: { events: number };

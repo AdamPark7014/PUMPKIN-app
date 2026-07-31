@@ -1,18 +1,19 @@
 import {
-  Injectable,
   BadRequestException,
-  InternalServerErrorException,
+  ConflictException,
+  Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
-  Currency,
-  PaymentGateway,
-  PaymentMethod,
-  PaymentStatus,
-  OrderStatus,
-  TicketStatus,
   HoldStatus,
+  OrderStatus,
+  PaymentGateway,
+  PaymentStatus,
+  Prisma,
+  RefundReason,
+  RefundStatus,
+  TicketStatus,
 } from '@prisma/client';
 import {
   getProvider,
@@ -23,22 +24,51 @@ import {
   validateBanorteProductionConfig,
 } from '@boletera/payments';
 import { generateTicketCode } from '@boletera/crypto';
+import { AuditService } from '../../common/audit.service';
+import { TenantContextService } from '../../common/tenant-context.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CampaignExecutionService } from '../campaign-execution/campaign-execution.service';
 import { NotificationService } from '../notification/notification.service';
 
 initDefaultProviders();
 
+type TxClient = Prisma.TransactionClient;
+
+type IntentMeta = {
+  holdIds?: string[];
+  items?: Array<{ offerId: string; holdIds: string[] }>;
+  intentId?: string;
+};
+
 @Injectable()
 export class PaymentService {
-  private logger = new Logger(PaymentService.name);
-  private banorte = getProvider('banorte') as BanorteProvider;
+  private readonly logger = new Logger(PaymentService.name);
+  private readonly banorte = getProvider('banorte') as BanorteProvider;
 
   constructor(
-    private prisma: PrismaService,
-    private notifications: NotificationService,
-    private campaigns: CampaignExecutionService,
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationService,
+    private readonly campaigns: CampaignExecutionService,
+    private readonly tenant: TenantContextService,
+    private readonly audit: AuditService,
   ) {}
+
+  private assertTenantIfPresent(organizationId: string): void {
+    const ctx = this.tenant.current();
+    if (!ctx.organizationId && !ctx.privileged) return;
+    this.tenant.assertOrganization(organizationId);
+  }
+
+  private resolveStaffOrganization(orderOrganizationId: string): string {
+    const ctx = this.tenant.current();
+    if (ctx.privileged) {
+      this.tenant.assertOrganization(orderOrganizationId);
+      return orderOrganizationId;
+    }
+    const organizationId = this.tenant.requireOrganization();
+    this.tenant.assertOrganization(orderOrganizationId);
+    return organizationId;
+  }
 
   async createPaymentIntent(data: {
     orderId: string;
@@ -48,19 +78,55 @@ export class PaymentService {
     buyerName: string;
     paymentMethod?: string;
     publicId?: string;
+    idempotencyKey?: string;
   }) {
-    const order = await this.prisma.order.findUnique({
+    if (data.idempotencyKey) {
+      const existing = await this.prisma.paymentIntent.findUnique({
+        where: { idempotencyKey: data.idempotencyKey },
+      });
+      if (existing) {
+        const meta = (existing.metadata as Record<string, unknown> | null) ?? {};
+        return {
+          intentId: String(meta.intentId ?? existing.externalId ?? existing.id),
+          status: existing.status,
+          redirectUrl: typeof meta.redirectUrl === 'string' ? meta.redirectUrl : undefined,
+          reference: existing.externalId ?? undefined,
+          metadata: existing.metadata,
+          gateway: 'BANORTE' as const,
+          settlement: 'Cuenta Banorte del comercio',
+          reused: true,
+        };
+      }
+    }
+
+    const order = await this.prisma.order.findFirst({
       where: { id: data.orderId },
-      include: { event: true },
+      select: {
+        id: true,
+        publicId: true,
+        status: true,
+        totalAmount: true,
+        currency: true,
+        channel: true,
+        paymentMethod: true,
+        organizationId: true,
+        buyerEmail: true,
+      },
     });
-    if (!order) throw new BadRequestException('Order not found');
+    if (!order) throw new NotFoundException('Order not found');
+    this.assertTenantIfPresent(order.organizationId);
     if (order.status !== OrderStatus.PENDING) {
       throw new BadRequestException('Order must be PENDING');
     }
 
+    const amount = Number(data.amount);
+    if (Math.abs(amount - Number(order.totalAmount)) > 0.009) {
+      throw new BadRequestException('Amount does not match order total');
+    }
+
     const method = (data.paymentMethod ?? order.paymentMethod ?? 'CARD').toUpperCase();
     const intent = await this.banorte.createIntent({
-      amount: Number(data.amount),
+      amount,
       currency: data.currency,
       orderId: data.orderId,
       channel: 'WEB',
@@ -68,19 +134,45 @@ export class PaymentService {
       buyerName: data.buyerName,
       paymentMethod: method as 'CARD' | 'SPEI' | 'OXXO',
       metadata: { publicId: data.publicId ?? order.publicId },
+      idempotencyKey: data.idempotencyKey,
     });
 
-    await this.prisma.paymentIntent.create({
-      data: {
-        orderId: data.orderId,
-        provider: PaymentGateway.BANORTE,
-        externalId: intent.externalId ?? intent.intentId,
-        amount: data.amount,
-        currency: order.currency,
-        status: PaymentStatus.PENDING,
-        channel: order.channel,
-        metadata: { intentId: intent.intentId, ...(intent.metadata as object) },
-      },
+    try {
+      await this.prisma.paymentIntent.create({
+        data: {
+          orderId: data.orderId,
+          provider: PaymentGateway.BANORTE,
+          externalId: intent.externalId ?? intent.intentId,
+          amount: data.amount,
+          currency: order.currency,
+          status: PaymentStatus.PENDING,
+          channel: order.channel,
+          idempotencyKey: data.idempotencyKey,
+          metadata: {
+            intentId: intent.intentId,
+            redirectUrl: intent.redirectUrl,
+            ...(intent.metadata as object),
+          },
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002' &&
+        data.idempotencyKey
+      ) {
+        return this.createPaymentIntent(data);
+      }
+      throw error;
+    }
+
+    await this.audit.log({
+      action: 'payment.intent.created',
+      entityType: 'PaymentIntent',
+      entityId: intent.intentId,
+      organizationId: order.organizationId,
+      userId: this.tenant.current().userId,
+      metadata: { orderId: order.id, amount, method },
     });
 
     return {
@@ -89,7 +181,7 @@ export class PaymentService {
       redirectUrl: intent.redirectUrl,
       reference: intent.reference,
       metadata: intent.metadata,
-      gateway: 'BANORTE',
+      gateway: 'BANORTE' as const,
       settlement: 'Cuenta Banorte del comercio',
     };
   }
@@ -99,18 +191,22 @@ export class PaymentService {
     intentId?: string;
     externalId?: string;
   }) {
-    const order = await this.prisma.order.findUnique({
+    const order = await this.prisma.order.findFirst({
       where: { id: data.orderId },
-      include: { items: true, event: true },
+      select: { id: true, status: true, organizationId: true },
     });
     if (!order) throw new NotFoundException('Order not found');
+    this.assertTenantIfPresent(order.organizationId);
     if (order.status === OrderStatus.COMPLETED) {
-      return { order, alreadyCompleted: true };
+      return { orderId: order.id, alreadyCompleted: true };
     }
 
     const cfg = getBanorteConfig();
     if (cfg.isDemo) {
-      return this.completeOrder(order.id, data.externalId ?? data.intentId ?? `banorte_demo_${order.id}`);
+      return this.completeOrder(
+        order.id,
+        data.externalId ?? data.intentId ?? `banorte_demo_${order.id}`,
+      );
     }
 
     throw new BadRequestException(
@@ -118,178 +214,292 @@ export class PaymentService {
     );
   }
 
+  /**
+   * Idempotent order completion. Uses a conditional PENDING→COMPLETED update so
+   * concurrent webhooks/reconciles cannot double-fulfill inventory.
+   */
   async completeOrder(orderId: string, externalId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const order = await tx.order.findUnique({
-        where: { id: orderId },
-        include: { items: { include: { offer: true } }, event: true },
+    const prefetched = await this.prisma.order.findFirst({
+      where: { id: orderId },
+      select: { id: true, organizationId: true, status: true },
+    });
+    if (!prefetched) throw new NotFoundException('Order not found');
+    this.assertTenantIfPresent(prefetched.organizationId);
+
+    if (prefetched.status === OrderStatus.COMPLETED) {
+      const payment = await this.prisma.payment.findFirst({
+        where: { orders: { some: { id: orderId } } },
       });
-      if (!order) throw new NotFoundException('Order not found');
-      if (order.status === OrderStatus.COMPLETED) {
-        return { order, payment: await tx.payment.findFirst({ where: { id: order.paymentId ?? '' } }) };
-      }
+      return { order: prefetched, payment, alreadyCompleted: true };
+    }
 
-      const pendingIntent = await tx.paymentIntent.findFirst({
-        where: { orderId },
-        orderBy: { createdAt: 'desc' },
-      });
-      const intentMeta = (pendingIntent?.metadata as Record<string, unknown>) ?? {};
-      const holdIds = Array.isArray(intentMeta.holdIds) ? (intentMeta.holdIds as string[]) : [];
-
-      const payment = await tx.payment.create({
-        data: {
-          gateway: PaymentGateway.BANORTE,
-          externalId,
-          status: PaymentStatus.COMPLETED,
-          amount: order.totalAmount,
-          currency: order.currency,
-          method: order.paymentMethod,
-          processedAt: new Date(),
-          metadata: { source: 'banorte_direct' },
-        },
-      });
-
-      const updatedOrder = await tx.order.update({
-        where: { id: orderId },
-        data: {
-          status: OrderStatus.COMPLETED,
-          paymentId: payment.id,
-          completedAt: new Date(),
-        },
-        include: { items: true },
-      });
-
-      const tickets = [];
-      const itemByOffer = new Map(updatedOrder.items.map((i) => [i.offerId, i]));
-      const metaItems = Array.isArray(intentMeta.items)
-        ? (intentMeta.items as { offerId: string; holdIds: string[] }[])
-        : [];
-      const holdToOffer = new Map<string, string>();
-      for (const item of metaItems) {
-        for (const hid of item.holdIds ?? []) holdToOffer.set(hid, item.offerId);
-      }
-
-      if (holdIds.length > 0) {
-        const holds = await tx.seatHold.findMany({
-          where: { id: { in: holdIds }, eventId: order.eventId },
+    const result = await this.prisma.$transaction(
+      async (tx) => {
+        const claimed = await tx.order.updateMany({
+          where: {
+            id: orderId,
+            organizationId: prefetched.organizationId,
+            status: OrderStatus.PENDING,
+          },
+          data: {
+            status: OrderStatus.COMPLETED,
+            completedAt: new Date(),
+          },
         });
-        for (const hold of holds) {
-          await tx.seatHold.update({
-            where: { id: hold.id },
-            data: { status: HoldStatus.CONVERTED },
+        if (claimed.count === 0) {
+          const current = await tx.order.findFirst({
+            where: { id: orderId, organizationId: prefetched.organizationId },
+            include: { items: true },
           });
-          let offerId =
-            holdToOffer.get(hold.id) ||
-            hold.offerId ||
-            undefined;
-          if (!offerId && hold.seatId) {
-            const ticket = await tx.ticket.findFirst({
-              where: { eventId: order.eventId, seatId: hold.seatId },
-              select: { offerId: true },
-            });
-            offerId = ticket?.offerId;
-          }
-          const orderItem =
-            (offerId ? itemByOffer.get(offerId) : undefined) ?? updatedOrder.items[0];
-          if (hold.seatId) {
-            await tx.ticket.updateMany({
-              where: { eventId: order.eventId, seatId: hold.seatId },
-              data: {
-                status: TicketStatus.SOLD,
-                buyerEmail: order.buyerEmail,
-                buyerName: order.buyerName,
-                code: generateTicketCode(),
-                orderItemId: orderItem?.id,
-              },
-            });
-          } else if (offerId) {
-            const available = await tx.ticket.findFirst({
-              where: {
-                eventId: order.eventId,
-                offerId,
-                status: TicketStatus.HELD,
-              },
-            });
-            if (available) {
-              await tx.ticket.update({
-                where: { id: available.id },
-                data: {
-                  status: TicketStatus.SOLD,
-                  buyerEmail: order.buyerEmail,
-                  buyerName: order.buyerName,
-                  code: generateTicketCode(),
-                  orderItemId: orderItem?.id,
-                },
-              });
-            }
-          }
-          if (offerId) {
-            await tx.offer.update({
-              where: { id: offerId },
-              data: {
-                soldQuantity: { increment: 1 },
-                remainingQuantity: { decrement: 1 },
-              },
-            });
-          }
+          return {
+            order: current,
+            payment: current?.paymentId
+              ? await tx.payment.findFirst({ where: { id: current.paymentId } })
+              : null,
+            alreadyCompleted: true as const,
+            tickets: [] as Array<{ id: string }>,
+          };
         }
-      }
 
-      for (const item of updatedOrder.items) {
-        const existing = await tx.ticket.count({
-          where: { orderItemId: item.id, status: TicketStatus.SOLD },
+        const order = await tx.order.findFirst({
+          where: { id: orderId, organizationId: prefetched.organizationId },
+          include: { items: true, event: { select: { id: true, organizationId: true } } },
         });
-        const toCreate = item.quantity - existing;
-        for (let i = 0; i < toCreate; i++) {
-          const ticket = await tx.ticket.create({
+        if (!order) throw new NotFoundException('Order not found');
+
+        const existingPayment = await tx.payment.findFirst({
+          where: { externalId },
+          select: { id: true },
+        });
+        const payment =
+          existingPayment ??
+          (await tx.payment.create({
             data: {
-              code: generateTicketCode(),
-              eventId: order.eventId,
-              offerId: item.offerId,
-              status: TicketStatus.SOLD,
-              orderItemId: item.id,
-              buyerName: order.buyerName,
-              buyerEmail: order.buyerEmail,
+              gateway: PaymentGateway.BANORTE,
+              externalId,
+              status: PaymentStatus.COMPLETED,
+              amount: order.totalAmount,
+              currency: order.currency,
+              method: order.paymentMethod,
+              processedAt: new Date(),
+              metadata: { source: 'banorte_complete' },
             },
-          });
-          tickets.push(ticket);
-        }
-        if (toCreate > 0) {
-          await tx.offer.update({
-            where: { id: item.offerId },
+          }));
+
+        await tx.order.update({
+          where: { id: orderId },
+          data: { paymentId: payment.id },
+        });
+
+        const pendingIntent = await tx.paymentIntent.findFirst({
+          where: { orderId, status: { in: [PaymentStatus.PENDING, PaymentStatus.COMPLETED] } },
+          orderBy: { createdAt: 'desc' },
+        });
+        const intentMeta = (pendingIntent?.metadata as IntentMeta | null) ?? {};
+        const holdIds = Array.isArray(intentMeta.holdIds) ? intentMeta.holdIds : [];
+
+        await this.fulfillFromHolds(tx, {
+          order,
+          holdIds,
+          metaItems: Array.isArray(intentMeta.items) ? intentMeta.items : [],
+        });
+
+        if (pendingIntent && pendingIntent.status === PaymentStatus.PENDING) {
+          await tx.paymentIntent.update({
+            where: { id: pendingIntent.id },
             data: {
-              soldQuantity: { increment: toCreate },
-              remainingQuantity: { decrement: toCreate },
+              status: PaymentStatus.COMPLETED,
+              externalId: pendingIntent.externalId ?? externalId,
             },
           });
         }
-      }
 
-      if (pendingIntent?.status === PaymentStatus.PENDING) {
-        await tx.paymentIntent.update({
-          where: { id: pendingIntent.id },
-          data: { status: PaymentStatus.COMPLETED },
-        });
-      }
+        this.logger.log(`Banorte: order ${orderId} completed`);
+        return {
+          order: { ...order, status: OrderStatus.COMPLETED, paymentId: payment.id },
+          payment,
+          alreadyCompleted: false as const,
+          tickets: [] as Array<{ id: string }>,
+        };
+      },
+      { timeout: 30_000 },
+    );
 
-      this.logger.log(`Banorte: order ${orderId} completed, ${tickets.length} tickets`);
-      return { order: updatedOrder, payment, tickets };
-    }).then(async (result) => {
+    if (!result.alreadyCompleted && result.order) {
       await this.notifications.enqueueOrderConfirmation(
         result.order.id,
         result.order.buyerEmail,
         result.order.buyerName,
       );
       if (result.order.promotionId) {
-        const promo = await this.prisma.promotion.findUnique({
+        const promo = await this.prisma.promotion.findFirst({
           where: { id: result.order.promotionId },
+          select: { code: true },
         });
         if (promo) {
           await this.campaigns.recordPromotionUse(result.order.eventId, promo.code);
         }
       }
-      return result;
+      await this.audit.log({
+        action: 'payment.order.completed',
+        entityType: 'Order',
+        entityId: result.order.id,
+        organizationId: prefetched.organizationId,
+        userId: this.tenant.current().userId,
+        metadata: { externalId },
+      });
+    }
+
+    return result;
+  }
+
+  private async fulfillFromHolds(
+    tx: TxClient,
+    opts: {
+      order: {
+        id: string;
+        eventId: string;
+        buyerEmail: string;
+        buyerName: string;
+        items: Array<{ id: string; offerId: string; quantity: number }>;
+      };
+      holdIds: string[];
+      metaItems: Array<{ offerId: string; holdIds: string[] }>;
+    },
+  ): Promise<void> {
+    const itemByOffer = new Map(opts.order.items.map((i) => [i.offerId, i]));
+    const holdToOffer = new Map<string, string>();
+    for (const item of opts.metaItems) {
+      for (const hid of item.holdIds ?? []) holdToOffer.set(hid, item.offerId);
+    }
+
+    if (!opts.holdIds.length) {
+      throw new ConflictException('Payment intent missing holdIds — cannot fulfill safely');
+    }
+
+    const holds = await tx.seatHold.findMany({
+      where: {
+        id: { in: opts.holdIds },
+        eventId: opts.order.eventId,
+        status: { in: [HoldStatus.ACTIVE, HoldStatus.CONVERTED] },
+      },
     });
+    if (holds.length !== opts.holdIds.length) {
+      throw new ConflictException('Holds missing or expired for paid order');
+    }
+
+    const offerIncrements = new Map<string, number>();
+
+    for (const hold of holds) {
+      await tx.seatHold.updateMany({
+        where: {
+          id: hold.id,
+          status: { in: [HoldStatus.ACTIVE, HoldStatus.CONVERTED] },
+        },
+        data: { status: HoldStatus.CONVERTED },
+      });
+
+      let offerId = holdToOffer.get(hold.id) || hold.offerId || undefined;
+      if (!offerId && hold.seatId) {
+        const ticket = await tx.ticket.findFirst({
+          where: { eventId: opts.order.eventId, seatId: hold.seatId },
+          select: { offerId: true },
+        });
+        offerId = ticket?.offerId;
+      }
+      const orderItem = offerId ? itemByOffer.get(offerId) : undefined;
+      if (!orderItem || !offerId) {
+        throw new ConflictException('Could not map hold to order item');
+      }
+
+      let newlySold = 0;
+
+      if (hold.seatId) {
+        const alreadySold = await tx.ticket.count({
+          where: {
+            eventId: opts.order.eventId,
+            seatId: hold.seatId,
+            status: TicketStatus.SOLD,
+            orderItemId: orderItem.id,
+          },
+        });
+        if (alreadySold === 0) {
+          const sold = await tx.ticket.updateMany({
+            where: {
+              eventId: opts.order.eventId,
+              seatId: hold.seatId,
+              status: TicketStatus.HELD,
+            },
+            data: {
+              status: TicketStatus.SOLD,
+              buyerEmail: opts.order.buyerEmail,
+              buyerName: opts.order.buyerName,
+              code: generateTicketCode(),
+              orderItemId: orderItem.id,
+            },
+          });
+          if (sold.count === 0) {
+            throw new ConflictException(`Seat ${hold.seatId} unavailable after payment`);
+          }
+          newlySold = sold.count;
+        }
+      } else {
+        const soldForLine = await tx.ticket.count({
+          where: {
+            orderItemId: orderItem.id,
+            offerId,
+            status: TicketStatus.SOLD,
+            seatId: null,
+          },
+        });
+        if (soldForLine >= orderItem.quantity) {
+          newlySold = 0;
+        } else {
+          const held = await tx.ticket.findFirst({
+            where: {
+              eventId: opts.order.eventId,
+              offerId,
+              status: TicketStatus.HELD,
+              seatId: null,
+            },
+            select: { id: true },
+            orderBy: { updatedAt: 'asc' },
+          });
+          if (!held) {
+            throw new ConflictException('Held GA ticket missing after payment');
+          }
+          const sold = await tx.ticket.updateMany({
+            where: { id: held.id, status: TicketStatus.HELD },
+            data: {
+              status: TicketStatus.SOLD,
+              buyerEmail: opts.order.buyerEmail,
+              buyerName: opts.order.buyerName,
+              code: generateTicketCode(),
+              orderItemId: orderItem.id,
+            },
+          });
+          if (sold.count === 0) {
+            throw new ConflictException('GA ticket conflict after payment');
+          }
+          newlySold = sold.count;
+        }
+      }
+
+      if (newlySold > 0) {
+        offerIncrements.set(offerId, (offerIncrements.get(offerId) ?? 0) + newlySold);
+      }
+    }
+
+    for (const [offerId, qty] of offerIncrements) {
+      if (qty <= 0) continue;
+      await tx.offer.update({
+        where: { id: offerId },
+        data: {
+          soldQuantity: { increment: qty },
+          remainingQuantity: { decrement: qty },
+        },
+      });
+    }
   }
 
   async createRefund(data: {
@@ -298,12 +508,22 @@ export class PaymentService {
     amount?: number;
     notes?: string;
     requestedBy?: string;
+    reasonCode?: RefundReason;
+    idempotencyKey?: string;
   }) {
-    const order = await this.prisma.order.findUnique({
+    const order = await this.prisma.order.findFirst({
       where: { id: data.orderId },
-      include: { payment: true },
+      include: {
+        payment: true,
+        refunds: {
+          where: { status: { in: [RefundStatus.PENDING, RefundStatus.COMPLETED] } },
+          select: { id: true, amount: true, status: true, notes: true },
+        },
+      },
     });
     if (!order?.payment) throw new BadRequestException('No payment found');
+    const organizationId = this.resolveStaffOrganization(order.organizationId);
+
     if (
       order.status !== OrderStatus.COMPLETED &&
       order.status !== OrderStatus.PARTIALLY_REFUNDED
@@ -311,45 +531,80 @@ export class PaymentService {
       throw new BadRequestException('Only completed orders can be refunded');
     }
 
+    if (data.idempotencyKey) {
+      const prior = order.refunds.find((r) =>
+        String(r.notes ?? '').includes(`idempotency:${data.idempotencyKey}`),
+      );
+      if (prior) {
+        return {
+          refund: prior,
+          banorte: { success: prior.status === RefundStatus.COMPLETED, refundId: prior.id },
+          nextStep: null,
+          reused: true,
+        };
+      }
+    }
+
     const refundAmount = data.amount ?? Number(order.totalAmount);
+    if (refundAmount <= 0) throw new BadRequestException('Invalid refund amount');
+    if (refundAmount > Number(order.totalAmount) + 0.009) {
+      throw new BadRequestException('Refund exceeds order total');
+    }
+
+    const alreadyRefunded = order.refunds
+      .filter((r) => r.status === RefundStatus.COMPLETED)
+      .reduce((s, r) => s + Number(r.amount), 0);
+    if (alreadyRefunded + refundAmount > Number(order.totalAmount) + 0.009) {
+      throw new ConflictException('Refund would exceed remaining refundable amount');
+    }
+
     const result = await this.banorte.refund(order.payment.externalId, refundAmount);
     const requestedBy = data.requestedBy ?? 'admin';
+    const reasonCode = data.reasonCode ?? RefundReason.CUSTOMER_REQUEST;
+    const notes = [
+      data.notes,
+      data.reason,
+      data.idempotencyKey ? `idempotency:${data.idempotencyKey}` : null,
+      result.error,
+      result.success
+        ? 'Refund completed via Banorte'
+        : 'Pending manual Banorte portal refund — call POST /payments/refunds/:id/complete when done',
+    ]
+      .filter(Boolean)
+      .join(' | ');
 
     const refund = await this.prisma.refund.create({
       data: {
-        orderId: data.orderId,
+        orderId: order.id,
         amount: refundAmount,
-        reason: 'CUSTOMER_REQUEST',
-        status: result.success ? 'COMPLETED' : 'PENDING',
+        reason: reasonCode,
+        status: result.success ? RefundStatus.COMPLETED : RefundStatus.PENDING,
         requestedBy,
         processedAt: result.success ? new Date() : undefined,
-        notes:
-          data.notes ||
-          result.error ||
-          (result.success
-            ? 'Refund completed via Banorte'
-            : 'Pending manual Banorte portal refund — call POST /payments/refunds/:id/complete when done'),
+        notes,
       },
     });
 
-    await this.prisma.auditEvent.create({
-      data: {
-        action: result.success ? 'REFUND_COMPLETED' : 'REFUND_REQUESTED',
-        entityType: 'Refund',
-        entityId: refund.id,
-        organizationId: order.organizationId,
-        metadata: {
-          orderId: order.id,
-          amount: refundAmount,
-          banorteSuccess: result.success,
-          banorteError: result.error,
-          requestedBy,
-        },
+    await this.audit.log({
+      action: result.success ? 'REFUND_COMPLETED' : 'REFUND_REQUESTED',
+      entityType: 'Refund',
+      entityId: refund.id,
+      organizationId,
+      userId: this.tenant.current().userId,
+      metadata: {
+        orderId: order.id,
+        amount: refundAmount,
+        banorteSuccess: result.success,
+        banorteError: result.error,
+        requestedBy,
+        idempotencyKey: data.idempotencyKey ?? null,
       },
     });
 
     if (result.success) {
-      await this.applyRefundInventory(order.id, refundAmount >= Number(order.totalAmount));
+      const full =
+        alreadyRefunded + refundAmount >= Number(order.totalAmount) - 0.009;
+      await this.applyRefundInventory(order.id, organizationId, full);
     }
 
     return {
@@ -357,32 +612,32 @@ export class PaymentService {
       banorte: result,
       nextStep: result.success
         ? null
-        : 'Process refund in Banorte portal, then POST /api/v1/payments/refunds/' +
-          refund.id +
-          '/complete',
+        : `Process refund in Banorte portal, then POST /api/v1/payments/refunds/${refund.id}/complete`,
     };
   }
 
-  /** After staff completes Banorte portal refund, finalize order + inventory. */
   async completeManualRefund(
     refundId: string,
     processedBy: string,
     banorteReference?: string,
   ) {
-    const refund = await this.prisma.refund.findUnique({
+    const refund = await this.prisma.refund.findFirst({
       where: { id: refundId },
-      include: { order: true },
+      include: {
+        order: { select: { id: true, organizationId: true, totalAmount: true, status: true } },
+      },
     });
     if (!refund) throw new NotFoundException('Refund not found');
-    if (refund.status === 'COMPLETED') {
+    const organizationId = this.resolveStaffOrganization(refund.order.organizationId);
+
+    if (refund.status === RefundStatus.COMPLETED) {
       return { refund, alreadyCompleted: true };
     }
 
-    const full = Number(refund.amount) >= Number(refund.order.totalAmount);
-    const updated = await this.prisma.refund.update({
-      where: { id: refundId },
+    const claimed = await this.prisma.refund.updateMany({
+      where: { id: refundId, status: RefundStatus.PENDING },
       data: {
-        status: 'COMPLETED',
+        status: RefundStatus.COMPLETED,
         processedBy,
         processedAt: new Date(),
         notes: [refund.notes, banorteReference ? `Banorte ref: ${banorteReference}` : null]
@@ -390,26 +645,54 @@ export class PaymentService {
           .join(' | '),
       },
     });
+    if (claimed.count === 0) {
+      const current = await this.prisma.refund.findFirst({ where: { id: refundId } });
+      return { refund: current, alreadyCompleted: true };
+    }
 
-    await this.applyRefundInventory(refund.orderId, full);
-
-    await this.prisma.auditEvent.create({
-      data: {
-        action: 'REFUND_MANUAL_COMPLETED',
-        entityType: 'Refund',
-        entityId: refundId,
-        organizationId: refund.order.organizationId,
-        metadata: { processedBy, banorteReference },
+    const completedRefunds = await this.prisma.refund.aggregate({
+      where: {
+        orderId: refund.orderId,
+        status: RefundStatus.COMPLETED,
       },
+      _sum: { amount: true },
+    });
+    const refundedTotal = Number(completedRefunds._sum.amount ?? 0);
+    const full = refundedTotal >= Number(refund.order.totalAmount) - 0.009;
+    await this.applyRefundInventory(refund.orderId, organizationId, full);
+
+    await this.audit.log({
+      action: 'REFUND_MANUAL_COMPLETED',
+      entityType: 'Refund',
+      entityId: refundId,
+      organizationId,
+      userId: this.tenant.current().userId,
+      metadata: { processedBy, banorteReference },
     });
 
+    const updated = await this.prisma.refund.findFirst({ where: { id: refundId } });
     return { refund: updated, inventoryReleased: true };
   }
 
-  private async applyRefundInventory(orderId: string, fullRefund: boolean) {
+  private async applyRefundInventory(
+    orderId: string,
+    organizationId: string,
+    fullRefund: boolean,
+  ) {
     await this.prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: orderId },
+      const order = await tx.order.findFirst({
+        where: { id: orderId, organizationId },
+        select: { id: true, status: true, eventId: true },
+      });
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.status === OrderStatus.REFUNDED) return;
+
+      await tx.order.updateMany({
+        where: {
+          id: orderId,
+          organizationId,
+          status: { in: [OrderStatus.COMPLETED, OrderStatus.PARTIALLY_REFUNDED] },
+        },
         data: {
           status: fullRefund ? OrderStatus.REFUNDED : OrderStatus.PARTIALLY_REFUNDED,
           refundedAt: new Date(),
@@ -423,9 +706,14 @@ export class PaymentService {
         select: { id: true, offerId: true, quantity: true },
       });
       const itemIds = items.map((i) => i.id);
-      if (itemIds.length) {
-        await tx.ticket.updateMany({
-          where: { orderItemId: { in: itemIds } },
+
+      for (const item of items) {
+        const released = await tx.ticket.updateMany({
+          where: {
+            orderItemId: item.id,
+            eventId: order.eventId,
+            status: { in: [TicketStatus.SOLD, TicketStatus.USED] },
+          },
           data: {
             status: TicketStatus.AVAILABLE,
             orderItemId: null,
@@ -435,36 +723,54 @@ export class PaymentService {
             usedAt: null,
           },
         });
+        if (released.count > 0) {
+          await tx.offer.update({
+            where: { id: item.offerId },
+            data: {
+              soldQuantity: { decrement: released.count },
+              remainingQuantity: { increment: released.count },
+            },
+          });
+        }
       }
 
-      for (const item of items) {
-        await tx.offer.update({
-          where: { id: item.offerId },
-          data: {
-            soldQuantity: { decrement: item.quantity },
-            remainingQuantity: { increment: item.quantity },
-          },
-        });
+      if (itemIds.length === 0) {
+        // no-op — order had no line items
       }
 
       await tx.paymentIntent.updateMany({
-        where: { orderId, status: { in: [PaymentStatus.PENDING, PaymentStatus.COMPLETED] } },
+        where: {
+          orderId,
+          status: { in: [PaymentStatus.PENDING, PaymentStatus.COMPLETED] },
+        },
         data: { status: PaymentStatus.REFUNDED },
       });
     });
   }
 
   async handleBanorteWebhook(payload: unknown, signature?: string) {
-    const result = await this.banorte.handleWebhook!(payload, signature);
+    let result;
+    try {
+      result = await this.banorte.handleWebhook!(payload, signature);
+    } catch (error) {
+      this.logger.warn(`Banorte webhook rejected: ${error instanceof Error ? error.message : error}`);
+      throw new BadRequestException('Invalid Banorte webhook');
+    }
+
     if (!result.orderId) {
       this.logger.warn('Banorte webhook without orderId');
       return { received: true };
     }
 
-    let order = await this.prisma.order.findUnique({ where: { id: result.orderId } });
+    // Exact match on order id or publicId — never substring contains().
+    let order = await this.prisma.order.findFirst({
+      where: { id: result.orderId },
+      select: { id: true, organizationId: true, status: true },
+    });
     if (!order) {
       order = await this.prisma.order.findFirst({
-        where: { publicId: { contains: String(result.orderId) } },
+        where: { publicId: String(result.orderId) },
+        select: { id: true, organizationId: true, status: true },
       });
     }
 
@@ -476,9 +782,20 @@ export class PaymentService {
     if (result.status === 'completed') {
       await this.completeOrder(order.id, result.intentId ?? `banorte_${order.id}`);
     } else if (result.status === 'failed') {
-      await this.prisma.order.update({
-        where: { id: order.id },
+      await this.prisma.order.updateMany({
+        where: {
+          id: order.id,
+          organizationId: order.organizationId,
+          status: OrderStatus.PENDING,
+        },
         data: { status: OrderStatus.FAILED },
+      });
+      await this.audit.log({
+        action: 'payment.order.failed',
+        entityType: 'Order',
+        entityId: order.id,
+        organizationId: order.organizationId,
+        metadata: { source: 'banorte_webhook' },
       });
     }
 
@@ -523,6 +840,11 @@ export class PaymentService {
   }
 
   validateBanorteSetup() {
+    // Staff-only: require a tenant (or privileged) context.
+    const ctx = this.tenant.current();
+    if (!ctx.privileged) {
+      this.tenant.requireOrganization();
+    }
     const validation = validateBanorteProductionConfig();
     const ipn = getBanorteIpnEndpoints();
     return {
@@ -540,5 +862,3 @@ export class PaymentService {
     };
   }
 }
-
-

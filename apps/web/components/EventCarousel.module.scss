@@ -1,0 +1,225 @@
+.carousel {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--pz-hairline);
+  background: var(--pz-soot);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+
+  &:focus-visible {
+    outline: 2px solid var(--pz-pumpkin);
+    outline-offset: 3px;
+  }
+}
+
+.viewport {
+  position: relative;
+  /* Alto fijo por proporción: evita el salto de layout al cambiar de slide. */
+  aspect-ratio: 16 / 9;
+  min-height: 260px;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+
+  &.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.photo {
+  object-fit: cover;
+}
+
+.caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: clamp(1.1rem, 4vw, 2rem);
+  /* El degradado garantiza contraste del texto sea cual sea la foto. */
+  background: linear-gradient(to top, rgba(6, 4, 4, 0.92), rgba(6, 4, 4, 0.45) 55%, transparent);
+}
+
+.slideTitle {
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(1.35rem, 1rem + 1.8vw, 2rem);
+  letter-spacing: 0.02em;
+  color: var(--pz-bone);
+}
+
+.slideText {
+  font-size: var(--text-sm);
+  color: var(--pz-dim);
+  max-width: 48ch;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 1px solid var(--pz-hairline);
+  background: rgba(10, 7, 7, 0.6);
+  color: var(--pz-bone);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 106, 19, 0.22);
+    border-color: var(--pz-pumpkin);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--pz-pumpkin);
+    outline-offset: 2px;
+  }
+}
+
+.prev { left: 0.75rem; }
+.next { right: 0.75rem; }
+
+.dots {
+  position: absolute;
+  bottom: 0.85rem;
+  right: clamp(1.1rem, 4vw, 2rem);
+  display: flex;
+  gap: 0.4rem;
+}
+
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(245, 239, 230, 0.32);
+  cursor: pointer;
+  transition: background 0.2s ease, width 0.2s ease;
+
+  &:focus-visible {
+    outline: 2px solid var(--pz-pumpkin);
+    outline-offset: 2px;
+  }
+}
+
+.dotOn {
+  width: 1.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--pz-pumpkin);
+}
+
+/* ---- Escena generada (sin fotos todavía) ---- */
+
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #120b14 0%, #241219 45%, #3d1a12 100%);
+}
+
+.glow {
+  position: absolute;
+  left: 50%;
+  bottom: -22%;
+  width: 120%;
+  height: 85%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(255, 138, 40, 0.5), transparent 62%);
+  filter: blur(14px);
+}
+
+.hills {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 58%;
+  fill: #0d0709;
+}
+
+.pumpkins {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.5rem, 3vw, 2.2rem);
+  padding: 0 6%;
+
+  svg {
+    width: clamp(34px, 8vw, 68px);
+    height: auto;
+    fill: #6b2f10;
+    color: #3f2412;
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6));
+  }
+
+  svg:nth-child(even) { transform: translateY(14%) scale(0.86); }
+}
+
+.lit {
+  fill: var(--pz-pumpkin) !important;
+  filter: drop-shadow(0 0 16px rgba(255, 138, 40, 0.75)) !important;
+}
+
+.string {
+  position: absolute;
+  top: 12%;
+  left: -2%;
+  right: -2%;
+  display: flex;
+  justify-content: space-between;
+
+  span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pz-candle);
+    box-shadow: 0 0 12px 3px rgba(255, 180, 84, 0.65);
+    animation: flicker 3.2s ease-in-out infinite;
+  }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  45% { opacity: 0.45; }
+}
+
+/* Variantes de tono por escena */
+.passage .sky { background: linear-gradient(180deg, #0b0510 0%, #1b0a1f 50%, #2a0d12 100%); }
+.passage .glow { background: radial-gradient(ellipse at center, rgba(157, 78, 221, 0.42), transparent 62%); }
+.carving .sky { background: linear-gradient(180deg, #17100c 0%, #2e1a10 55%, #43230f 100%); }
+.night .sky { background: linear-gradient(180deg, #07060f 0%, #140d1c 50%, #2a1113 100%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .slide { transition: none; }
+  .string span { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .arrow { width: 2.25rem; height: 2.25rem; }
+  .dots { bottom: 0.6rem; }
+}

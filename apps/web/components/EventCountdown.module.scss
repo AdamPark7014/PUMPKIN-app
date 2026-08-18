@@ -1,0 +1,64 @@
+.countdown {
+  display: flex;
+  gap: clamp(0.5rem, 2vw, 1rem);
+  /* Reserva la altura desde el primer pintado para que el montaje del cliente
+     no empuje el contenido de abajo. */
+  min-height: 4.75rem;
+}
+
+.unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3.75rem;
+  padding: 0.5rem 0.65rem 0.55rem;
+  border: 1px solid var(--pz-hairline);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(6px);
+}
+
+.value {
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(1.5rem, 1rem + 2vw, 2.1rem);
+  line-height: 1;
+  color: var(--pz-bone);
+  /* Tabular evita que el ancho salte cada segundo. */
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  margin-top: 0.2rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pz-dim);
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--pz-candle);
+}
+
+.pulse {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--pz-pumpkin);
+  box-shadow: 0 0 0 0 rgba(255, 106, 19, 0.6);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  70% { box-shadow: 0 0 0 0.75rem rgba(255, 106, 19, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 106, 19, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; }
+}

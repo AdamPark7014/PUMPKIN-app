@@ -67,8 +67,8 @@ export function DashboardHeader({
           >
             Actualizar
           </Button>
-          <Link href="/events/new" className={styles.primaryLink}>
-            Crear evento
+          <Link href="/events" className={styles.primaryLink}>
+            Ver evento
           </Link>
         </div>
       }

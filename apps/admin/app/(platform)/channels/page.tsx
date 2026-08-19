@@ -320,7 +320,7 @@ export default function ChannelsPage() {
             description="La salud, la asignación y el mix de ingresos se calculan por evento."
             illustration="inbox"
             action={
-              <Link href="/events/new">
+              <Link href="/events">
                 <Button type="button">Crear evento</Button>
               </Link>
             }

@@ -1,1 +1,0 @@
-export { InventoryModule } from './InventoryModule';

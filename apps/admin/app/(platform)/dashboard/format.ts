@@ -248,9 +248,9 @@ export function alertHref(entityType?: string, entityId?: string): string | null
     case 'offer':
       return '/events';
     case 'promotion':
-      return '/campaigns';
+      return '/orders';
     case 'fraud':
-      return '/fraud';
+      return '/orders';
     case 'order':
       return entityId ? `/orders/${entityId}` : '/orders';
     default:

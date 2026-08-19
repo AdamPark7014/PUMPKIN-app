@@ -108,16 +108,6 @@ function ShellCommandPaletteComponent({
 
     const actionItems: CommandAction[] = [
       {
-        id: 'action-new-event',
-        label: 'Crear evento',
-        description: 'Ir al formulario de nuevo evento',
-        group: 'Acciones',
-        keywords: ['nuevo', 'crear', 'evento'],
-        icon: <ShellIcon name="events" size={16} />,
-        shortcut: ['G', 'N'],
-        onSelect: go('/events/new'),
-      },
-      {
         id: 'action-orders',
         label: 'Revisar órdenes',
         group: 'Acciones',
@@ -134,11 +124,11 @@ function ShellCommandPaletteComponent({
         onSelect: go('/scanner'),
       },
       {
-        id: 'action-analytics',
-        label: 'Ver analítica',
+        id: 'action-reports',
+        label: 'Ver reportes',
         group: 'Acciones',
         icon: <ShellIcon name="analytics" size={16} />,
-        onSelect: go('/analytics'),
+        onSelect: go('/reports'),
       },
       {
         id: 'action-toggle-compact',

@@ -212,12 +212,12 @@ function ShellNotificationsComponent({ linkProps }: ShellNotificationsProps) {
 
         <footer className={styles.notifyFooter}>
           <Link
-            href="/analytics"
+            href="/reports"
             className={styles.notifyFooterLink}
             onClick={() => setOpen(false)}
-            {...linkProps('/analytics')}
+            {...linkProps('/reports')}
           >
-            Ver analítica
+            Ver reportes
           </Link>
         </footer>
       </div>

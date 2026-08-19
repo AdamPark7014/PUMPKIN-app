@@ -7,9 +7,9 @@ export function alertHref(entityType?: string, entityId?: string): string | null
     case 'offer':
       return '/events';
     case 'promotion':
-      return '/campaigns';
+      return '/reports';
     case 'fraud':
-      return '/fraud';
+      return '/orders';
     case 'order':
       return entityId ? `/orders/${entityId}` : '/orders';
     default:
@@ -20,23 +20,23 @@ export function alertHref(entityType?: string, entityId?: string): string | null
 export function domainHref(domain: MetricsAlertDomain | string): string {
   switch (domain) {
     case 'fraud':
-      return '/fraud';
+      return '/orders';
     case 'campaigns':
-      return '/campaigns';
+      return '/reports';
     case 'orders':
       return '/orders';
     case 'settlements':
       return '/payouts';
     case 'waitlist':
-      return '/waitlist';
+      return '/orders';
     case 'resale':
-      return '/resale';
+      return '/orders';
     case 'inventory':
     case 'events':
     case 'access':
       return '/events';
     default:
-      return '/analytics';
+      return '/reports';
   }
 }
 

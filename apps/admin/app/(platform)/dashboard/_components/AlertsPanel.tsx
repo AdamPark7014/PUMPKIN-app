@@ -32,9 +32,9 @@ function alertActionHref(alert: MetricsAlert): string {
   return (
     alertHref(alert.entityType, alert.entityId) ??
     (alert.domain === 'fraud'
-      ? '/fraud'
+      ? '/orders'
       : alert.domain === 'campaigns'
-        ? '/campaigns'
+        ? '/reports'
         : alert.domain === 'orders'
           ? '/orders'
           : '/events')

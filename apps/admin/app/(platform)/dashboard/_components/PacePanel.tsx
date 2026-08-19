@@ -54,7 +54,7 @@ export function PacePanel({ data, loading, error, onRetry }: PacePanelProps) {
           title="Sin eventos activos"
           description="Cuando publiques eventos, aquí verás si van adelantados o atrasados respecto al ritmo esperado."
           action={
-            <Link href="/events/new" className={styles.primaryLink}>
+            <Link href="/events" className={styles.primaryLink}>
               Crear evento
             </Link>
           }

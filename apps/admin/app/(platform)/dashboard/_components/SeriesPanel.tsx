@@ -114,7 +114,7 @@ export function SeriesPanel({
           emptyLabel={`Aún no hay ${meta.noun} en este rango`}
           emptyDescription="Cuando haya ventas, aquí verás la evolución del periodo frente a la ventana anterior."
           emptyAction={
-            <Link href="/events/new" className={styles.primaryLink}>
+            <Link href="/events" className={styles.primaryLink}>
               Crear evento
             </Link>
           }

@@ -668,7 +668,7 @@ function EventsPortfolioPage() {
       type="button"
       variant="primary"
       size="sm"
-      onClick={() => router.push('/events/new')}
+      onClick={() => router.push('/events')}
     >
       Crear evento
     </Button>
@@ -829,17 +829,9 @@ function EventsPortfolioPage() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/calendar')}
+              onClick={() => router.push('/reports')}
             >
-              Calendario
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/events/series')}
-            >
-              Ver series
+              Reportes
             </Button>
           </div>
         }
@@ -966,7 +958,7 @@ function EventsPortfolioPage() {
                     type="button"
                     variant="primary"
                     size="sm"
-                    onClick={() => router.push('/events/new')}
+                    onClick={() => router.push('/events')}
                   >
                     Crear el primero
                   </Button>

@@ -367,6 +367,7 @@ export const PaymentGateway: {
   RAZORPAY: 'RAZORPAY',
   WORLDPAY: 'WORLDPAY',
   BANORTE: 'BANORTE',
+  MERCADOPAGO: 'MERCADOPAGO',
   CLIP: 'CLIP',
   OXXO: 'OXXO',
   SPEI: 'SPEI',

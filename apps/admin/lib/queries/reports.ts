@@ -4,10 +4,28 @@ import { useQuery } from '@tanstack/react-query';
 import { http } from '../http';
 import { queryKeys } from '../query-keys';
 
-export type SalesReportRow = {
-  channel: string;
-  _sum: { totalAmount: string | null };
-  _count: number;
+/**
+ * Reporte de ventas del evento. La API devuelve dos vistas según el rol:
+ *  - `promoter`: boletos y ventas a valor nominal (`gross`). Sin cargos.
+ *  - `internal`: además `serviceFees` (ingreso de la plataforma) y `total`.
+ * Los campos opcionales sólo existen en la vista interna.
+ */
+export type SalesBucket = {
+  orders: number;
+  tickets: number;
+  gross: number;
+  serviceFees?: number;
+  total?: number;
+};
+
+export type SalesReport = {
+  range: { from: string; to: string };
+  view: 'promoter' | 'internal';
+  totals: SalesBucket;
+  byChannel: Array<SalesBucket & { channel: string }>;
+  byPaymentMethod: Array<SalesBucket & { paymentMethod: string }>;
+  byTerminal: Array<SalesBucket & { terminalId: string; terminalName: string }>;
+  byDay: Array<SalesBucket & { date: string }>;
 };
 
 export type ZReport = {
@@ -18,10 +36,11 @@ export type ZReport = {
   report?: unknown;
 };
 
-export function useSalesReport() {
+export function useSalesReport(range: { from: string; to: string }) {
+  const qs = new URLSearchParams({ from: range.from, to: range.to }).toString();
   return useQuery({
-    queryKey: queryKeys.reports.sales(),
-    queryFn: ({ signal }) => http<SalesReportRow[]>('/admin/reports/sales', { signal }),
+    queryKey: [...queryKeys.reports.sales(), range.from, range.to],
+    queryFn: ({ signal }) => http<SalesReport>(`/admin/reports/sales?${qs}`, { signal }),
   });
 }
 

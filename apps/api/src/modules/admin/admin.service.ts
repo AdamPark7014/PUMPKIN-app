@@ -697,7 +697,24 @@ export class AdminService {
     return updated;
   }
 
-  async salesReport(requestedOrgId?: string, query: AdminSalesReportQueryDto = {}) {
+  /**
+   * Reporte de ventas del evento con dos vistas por rol:
+   *
+   *  - **Promotor** (PROMOTER): ve boletos vendidos y ventas a valor nominal
+   *    (`gross` = subtotal, lo que le corresponde). NO ve el cargo por servicio.
+   *  - **Interno** (ADMIN / SUPER_ADMIN): además ve `serviceFees` (ingreso de
+   *    la plataforma) y `total` (lo que pagó el comprador).
+   *
+   * Desglose por canal (WEB / TAQUILLA), método de pago, terminal de taquilla
+   * y día. Los agregados se calculan en memoria sobre las órdenes completadas
+   * del rango: el volumen de un evento único lo permite y evita un groupBy por
+   * cada eje.
+   */
+  async salesReport(
+    requestedOrgId: string | undefined,
+    query: AdminSalesReportQueryDto = {},
+    viewer?: { role?: string },
+  ) {
     const organizationId = this.tenant.resolveOrganization(
       query.organizationId ?? requestedOrgId,
     );
@@ -710,16 +727,110 @@ export class AdminService {
     }
     if (start > end) throw new BadRequestException('"from" must be before "to"');
 
-    return this.prisma.order.groupBy({
-      by: ['channel'],
+    const internal = viewer?.role === 'ADMIN' || viewer?.role === 'SUPER_ADMIN';
+
+    const orders = await this.prisma.order.findMany({
       where: {
         organizationId,
         status: 'COMPLETED',
         createdAt: { gte: start, lte: end },
       },
-      _sum: { totalAmount: true },
-      _count: true,
+      select: {
+        id: true,
+        channel: true,
+        paymentMethod: true,
+        subtotal: true,
+        fees: true,
+        totalAmount: true,
+        createdAt: true,
+        posOps: true,
+        items: { select: { quantity: true } },
+      },
     });
+
+    type Bucket = {
+      orders: number;
+      tickets: number;
+      gross: number;
+      serviceFees: number;
+      total: number;
+    };
+    const empty = (): Bucket => ({ orders: 0, tickets: 0, gross: 0, serviceFees: 0, total: 0 });
+    const add = (b: Bucket, o: (typeof orders)[number]) => {
+      b.orders += 1;
+      b.tickets += o.items.reduce((n, i) => n + i.quantity, 0);
+      b.gross += Number(o.subtotal);
+      b.serviceFees += Number(o.fees);
+      b.total += Number(o.totalAmount);
+    };
+
+    const totals = empty();
+    const byChannel = new Map<string, Bucket>();
+    const byPaymentMethod = new Map<string, Bucket>();
+    const byTerminal = new Map<string, Bucket & { terminalId: string }>();
+    const byDay = new Map<string, Bucket>();
+
+    for (const o of orders) {
+      add(totals, o);
+      const ch = byChannel.get(o.channel) ?? empty();
+      add(ch, o);
+      byChannel.set(o.channel, ch);
+
+      const pm = byPaymentMethod.get(o.paymentMethod) ?? empty();
+      add(pm, o);
+      byPaymentMethod.set(o.paymentMethod, pm);
+
+      const day = o.createdAt.toISOString().slice(0, 10);
+      const d = byDay.get(day) ?? empty();
+      add(d, o);
+      byDay.set(day, d);
+
+      const terminalId = (o.posOps as { terminalId?: string } | null)?.terminalId;
+      if (o.channel === 'TAQUILLA' && terminalId) {
+        const t = byTerminal.get(terminalId) ?? { ...empty(), terminalId };
+        add(t, o);
+        byTerminal.set(terminalId, t);
+      }
+    }
+
+    // Nombres de terminal para el desglose de taquillas.
+    const terminalIds = [...byTerminal.keys()];
+    const terminals = terminalIds.length
+      ? await this.prisma.posTerminal.findMany({
+          where: { id: { in: terminalIds }, organizationId },
+          select: { id: true, name: true, locationName: true },
+        })
+      : [];
+    const terminalName = new Map(terminals.map((t) => [t.id, t.name]));
+
+    // El promotor no ve el cargo por servicio ni el total cobrado.
+    const strip = <T extends Bucket>(b: T) => {
+      if (internal) return b;
+      const { serviceFees: _f, total: _t, ...rest } = b;
+      return rest as Omit<T, 'serviceFees' | 'total'>;
+    };
+    const mapOut = <K extends string>(m: Map<K, Bucket>, key: string) =>
+      [...m.entries()]
+        .map(([k, b]) => ({ [key]: k, ...strip(b) }))
+        .sort((a, b) => (b.gross as number) - (a.gross as number));
+
+    return {
+      range: { from: start.toISOString(), to: end.toISOString() },
+      view: internal ? ('internal' as const) : ('promoter' as const),
+      totals: strip(totals),
+      byChannel: mapOut(byChannel, 'channel'),
+      byPaymentMethod: mapOut(byPaymentMethod, 'paymentMethod'),
+      byTerminal: [...byTerminal.values()]
+        .map((b) => ({
+          terminalId: b.terminalId,
+          terminalName: terminalName.get(b.terminalId) ?? 'Terminal',
+          ...strip(b),
+        }))
+        .sort((a, b) => b.gross - a.gross),
+      byDay: [...byDay.entries()]
+        .map(([date, b]) => ({ date, ...strip(b) }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    };
   }
 
   async suggestLayoutFromPlan(

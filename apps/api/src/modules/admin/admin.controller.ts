@@ -218,8 +218,8 @@ export class AdminController {
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER')
   @Permissions('analytics:read')
   @ApiOperation({ summary: 'Sales totals grouped by channel' })
-  sales(@Query() query: AdminSalesReportQueryDto) {
-    return this.admin.salesReport(query.organizationId, query);
+  sales(@Query() query: AdminSalesReportQueryDto, @Request() req: AuthedRequest) {
+    return this.admin.salesReport(query.organizationId, query, { role: req.user?.role });
   }
 
   @Post('venues/suggest-layout')

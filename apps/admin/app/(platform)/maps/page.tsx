@@ -31,7 +31,7 @@ export default function MapsCreatorPage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
-  const [city, setCity] = useState('Ciudad de México');
+  const [city, setCity] = useState('Puebla');
   const [template, setTemplate] = useState<(typeof TEMPLATES)[number]['id']>('blank');
 
   async function refresh() {

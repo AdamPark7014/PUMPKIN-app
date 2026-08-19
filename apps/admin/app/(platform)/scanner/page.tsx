@@ -188,7 +188,7 @@ export default function ScannerPage() {
       <PageHeader
         eyebrow="Operación en puerta"
         title="Command center de accesos"
-        description="Escaneo en vivo, throughput, no-show e incidentes · Ciudad de México"
+        description="Escaneo en vivo, throughput, no-show e incidentes · Puebla"
         actions={
           <div className={styles.headerActions}>
             <Button

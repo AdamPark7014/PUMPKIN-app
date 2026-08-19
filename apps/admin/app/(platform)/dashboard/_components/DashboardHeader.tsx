@@ -41,7 +41,7 @@ export function DashboardHeader({
         <span className={styles.eyebrowRow}>
           <StatusDot tone="success" size="sm" pulse label="Dashboard ejecutivo" />
           <Badge tone="neutral" variant="outline" size="sm">
-            MXN · Ciudad de México
+            MXN · Puebla
           </Badge>
         </span>
       }

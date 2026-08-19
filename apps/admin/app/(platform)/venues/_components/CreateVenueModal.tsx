@@ -122,14 +122,14 @@ export function CreateVenueModal({ open, onClose }: CreateVenueModalProps) {
             label="Ciudad"
             value={form.city}
             onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-            placeholder="Ciudad de México"
+            placeholder="Puebla"
             autoComplete="address-level2"
           />
           <Input
             label="Estado"
             value={form.state}
             onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))}
-            placeholder="CDMX"
+            placeholder="PUE"
             autoComplete="address-level1"
           />
         </div>

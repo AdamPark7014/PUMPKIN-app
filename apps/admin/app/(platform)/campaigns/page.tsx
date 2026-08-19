@@ -240,7 +240,7 @@ export default function CampaignsPage() {
           </div>
           <h1>Campañas y atribución</h1>
           <p className={styles.lead}>
-            Embudo, ROAS, cupos y códigos de preventa por evento · MXN · Ciudad de México
+            Embudo, ROAS, cupos y códigos de preventa por evento · MXN · Puebla
           </p>
         </div>
 

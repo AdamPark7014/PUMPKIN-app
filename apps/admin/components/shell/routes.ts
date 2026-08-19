@@ -32,7 +32,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   staff: 'Personal',
   settings: 'Configuración',
   branding: 'Marca',
-  payments: 'Pagos Banorte',
+  payments: 'Pagos',
   organization: 'Equipo',
   platform: 'Capacidades',
   waitlist: 'Lista de espera',

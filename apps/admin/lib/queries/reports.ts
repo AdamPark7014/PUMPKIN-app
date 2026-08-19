@@ -36,10 +36,13 @@ export type ZReport = {
   report?: unknown;
 };
 
-export function useSalesReport(range: { from: string; to: string }) {
+export function useSalesReport(rangeKey: string, range: { from: string; to: string }) {
   const qs = new URLSearchParams({ from: range.from, to: range.to }).toString();
   return useQuery({
-    queryKey: [...queryKeys.reports.sales(), range.from, range.to],
+    // La clave es el rango lógico ('30d'), no los timestamps: `range` se
+    // regenera con milisegundos en cada render y una clave inestable remonta
+    // la query para siempre (isLoading eterno).
+    queryKey: [...queryKeys.reports.sales(), rangeKey],
     queryFn: ({ signal }) => http<SalesReport>(`/admin/reports/sales?${qs}`, { signal }),
   });
 }

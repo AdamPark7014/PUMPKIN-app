@@ -142,7 +142,7 @@ export default function PaymentsSettingsPage() {
       <div className={styles.page} aria-busy="true">
         <PageHeader
           eyebrow="Configuración · Liquidación"
-          title="Pagos Banorte"
+          title="Pagos"
           description="Estado de Payworks, SPEI, IPN y entornos."
         />
         <div className={styles.skeletonKpis} aria-hidden="true">
@@ -160,7 +160,7 @@ export default function PaymentsSettingsPage() {
   if (loadError) {
     return (
       <div className={styles.page}>
-        <PageHeader eyebrow="Configuración · Liquidación" title="Pagos Banorte" />
+        <PageHeader eyebrow="Configuración · Liquidación" title="Pagos" />
         <QueryError error={loadError} onRetry={() => void loadPublic()} />
       </div>
     );
@@ -169,7 +169,7 @@ export default function PaymentsSettingsPage() {
   if (!cfg) {
     return (
       <div className={styles.page}>
-        <PageHeader eyebrow="Configuración · Liquidación" title="Pagos Banorte" />
+        <PageHeader eyebrow="Configuración · Liquidación" title="Pagos" />
         <EmptyState
           title="Sin configuración de pagos"
           description="El API no devolvió el estado público de Banorte."
@@ -196,7 +196,7 @@ export default function PaymentsSettingsPage() {
     <div className={styles.page}>
       <PageHeader
         eyebrow="Configuración · Liquidación"
-        title="Pagos Banorte"
+        title="Pagos"
         description="Estado operativo de Payworks / SPEI / OXXO, credenciales enmascaradas, comisiones e IPN. Los secretos nunca se exponen ni se registran en consola."
         actions={
           <>

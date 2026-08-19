@@ -64,7 +64,7 @@ export default function ReportsPage() {
   const [, startTransition] = useTransition();
 
   const rangeIso = metricsRangeIso(range);
-  const sales = useSalesReport(rangeIso);
+  const sales = useSalesReport(range, rangeIso);
   const zReports = useZReports(organizationId);
 
   const report = sales.data;
@@ -250,9 +250,11 @@ export default function ReportsPage() {
     <div className={styles.page}>
       <PageHeader
         eyebrow={
-          <Badge tone={internal ? 'warning' : 'neutral'} variant="outline" size="sm">
-            {internal ? 'Vista interna · incluye cargo por servicio' : 'Vista del promotor'}
-          </Badge>
+          report ? (
+            <Badge tone={internal ? 'warning' : 'neutral'} variant="outline" size="sm">
+              {internal ? 'Vista interna · incluye cargo por servicio' : 'Vista del promotor'}
+            </Badge>
+          ) : null
         }
         title="Reporte de ventas"
         description="Boletos vendidos por canal, método de pago, taquilla y día. Los cortes de caja de cada turno están abajo."

@@ -18,7 +18,7 @@ import {
   type SessionSnapshot,
   type SessionUser,
 } from './session';
-import { http, logoutSession, revokeAllSessions } from './http';
+import { HttpError, http, logoutSession, revokeAllSessions } from './http';
 
 export type Permission = string;
 
@@ -80,8 +80,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession(sessionFromUser(user));
     } catch (error) {
       if (requestId === refreshRequestId.current) {
-        clearSession();
-        setSession(null);
+        // Sólo un rechazo de credenciales (401/403) cierra la sesión. Un 429,
+        // un 5xx o un corte de red NO significan "no autenticado": en ese caso
+        // se conserva la sesión actual y se reintenta en el siguiente ciclo.
+        // Antes cualquier fallo expulsaba al usuario — en un evento con red
+        // inestable eso sacaba a cajeros y admins sin motivo.
+        const status = error instanceof HttpError ? error.status : null;
+        if (status === 401 || status === 403) {
+          clearSession();
+          setSession(null);
+        }
       }
       throw error;
     } finally {

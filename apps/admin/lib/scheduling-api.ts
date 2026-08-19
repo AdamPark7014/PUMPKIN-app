@@ -254,8 +254,14 @@ export function createSeries(body: {
   return http<SeriesDetail>(`${BASE}/series`, { method: 'POST', body });
 }
 
-export function listSeries() {
-  return http<SeriesRow[]>(`${BASE}/series`);
+export async function listSeries(): Promise<SeriesRow[]> {
+  // La API pagina: { items, series, nextCursor, limit }. Versiones previas
+  // devolvían el arreglo pelado; se aceptan ambas formas.
+  const res = await http<SeriesRow[] | { items?: SeriesRow[]; series?: SeriesRow[] }>(
+    `${BASE}/series`,
+  );
+  if (Array.isArray(res)) return res;
+  return res?.items ?? res?.series ?? [];
 }
 
 export function getSeries(seriesId: string) {

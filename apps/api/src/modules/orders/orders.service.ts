@@ -235,11 +235,49 @@ export class OrdersService {
           error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === 'P2002'
         ) {
-          const existing = await this.waitForIdempotentOrder(dto.idempotencyKey);
-          if (existing) return existing;
-          throw new ConflictException('Order is already being processed');
+          // La taquilla reclama la key ANTES de llamar aquí (PosIdempotencyService
+          // crea un intent placeholder con phase='claimed' y sin orden). Ese
+          // registro es de ESTA misma venta, no de una concurrente: se adopta
+          // y se sigue. Sólo si la key ya tiene orden (replay) o es un claim
+          // ajeno en vuelo se espera / se rechaza.
+          const claimed = await this.prisma.paymentIntent.findFirst({
+            where: { idempotencyKey: dto.idempotencyKey },
+            select: { id: true, orderId: true, metadata: true },
+          });
+          const isPosClaim =
+            claimed &&
+            !claimed.orderId &&
+            (claimed.metadata as { phase?: string } | null)?.phase === 'claimed';
+
+          if (!isPosClaim) {
+            const existing = await this.waitForIdempotentOrder(dto.idempotencyKey);
+            if (existing) return existing;
+            throw new ConflictException('Order is already being processed');
+          }
+
+          await this.prisma.paymentIntent.update({
+            where: { id: claimed.id },
+            data: {
+              provider: gatewayEnum,
+              externalId: `pending_${dto.idempotencyKey}`,
+              amount: totalAmount,
+              currency: event.currency,
+              channel,
+              expiresAt: new Date(Date.now() + ORDER_TTL_MS),
+              metadata: {
+                ...((claimed.metadata as object) ?? {}),
+                holdIds,
+                items: pricedLines.map((l) => ({
+                  offerId: l.offerId,
+                  holdIds: l.holdIds,
+                })),
+                placeholder: true,
+              },
+            },
+          });
+        } else {
+          throw error;
         }
-        throw error;
       }
     }
 

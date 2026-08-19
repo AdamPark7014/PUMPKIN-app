@@ -170,12 +170,13 @@ async function main(): Promise<void> {
   });
   const cashier = await prisma.user.upsert({
     where: { email: CASHIER_EMAIL },
-    update: { organizationId: org.id },
+    update: { organizationId: org.id, role: UserRole.TAQUILLA },
     create: {
       email: CASHIER_EMAIL,
       firstName: 'Taquilla',
       lastName: 'Pumpkin Zone',
-      role: UserRole.VENUE_MANAGER,
+      // El POS exige rol TAQUILLA (POS_STAFF en taquilla-pos.controller).
+      role: UserRole.TAQUILLA,
       organizationId: org.id,
       password: passwordHash,
       provider: 'email',

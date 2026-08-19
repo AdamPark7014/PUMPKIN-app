@@ -17,6 +17,12 @@ export type TicketTier = {
   price: number;
   blurb: string;
   perks: string[];
+  /**
+   * Zona/oferta correspondiente en el evento sembrado — se pasa como
+   * `?zone=` a /events/<slug> para preseleccionarla. Debe coincidir con el
+   * nombre de zona del inventario real.
+   */
+  zone?: string;
   featured?: boolean;
   soldOut?: boolean;
 };
@@ -31,6 +37,11 @@ export type Attraction = {
 
 export const EVENT = {
   name: 'Pumpkin Zone',
+  /**
+   * TODO(confirmar): slug del evento sembrado en la base. El CTA de boletos
+   * lleva a /events/<slug>, que es donde viven holds, precios y checkout real.
+   */
+  slug: 'pumpkin-zone-2026',
   edition: '5ª Edición',
   tagline: 'El lugar donde el otoño y Halloween se encuentran',
   intro:
@@ -110,6 +121,7 @@ export const EVENT = {
   tickets: [
     {
       id: 'general',
+      zone: 'General',
       name: 'Acceso General',
       price: 180,
       blurb: 'Entrada al campo de calabazas, bazar, zonas de foto y shows nocturnos.',
@@ -117,6 +129,7 @@ export const EVENT = {
     },
     {
       id: 'terror',
+      zone: 'Pasaje',
       name: 'General + Pasaje',
       price: 320,
       blurb: 'Todo lo del general, más el Pasaje Siniestro sin hacer fila aparte.',
@@ -125,6 +138,7 @@ export const EVENT = {
     },
     {
       id: 'full',
+      zone: 'Completa',
       name: 'Experiencia Completa',
       price: 540,
       blurb: 'El día entero: pasaje, taller de tallado con calabaza incluida y juegos.',

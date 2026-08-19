@@ -211,7 +211,7 @@ function Tickets() {
               </ul>
 
               <Link
-                href={`/checkout?tier=${tier.id}`}
+                href={`/events/${EVENT.slug}${tier.zone ? `?zone=${encodeURIComponent(tier.zone)}` : ''}`}
                 className={tier.featured ? styles.tierCtaPrimary : styles.tierCta}
                 aria-label={`Comprar ${tier.name}`}
               >

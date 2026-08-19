@@ -1,5 +1,7 @@
-export const TOKEN_KEY = 'boletera_token';
-export const USER_KEY = 'boletera_user';
+// Llaves propias del proyecto: compartir origen (localhost:3000) con otra
+// app no debe compartir sesión.
+export const TOKEN_KEY = 'pumpkin_token';
+export const USER_KEY = 'pumpkin_user';
 
 export type AuthUser = {
   id: string;

@@ -65,25 +65,19 @@ function Hero() {
         </h1>
 
         <p className={styles.tagline}>{EVENT.tagline}</p>
-        <p className={styles.intro}>{EVENT.intro}</p>
 
-        <dl className={styles.facts}>
-          <div className={styles.fact}>
-            <dt>Fechas</dt>
-            <dd>{EVENT.scheduleLabel}</dd>
-          </div>
-          <div className={styles.fact}>
-            <dt>Horario</dt>
-            <dd>{EVENT.hoursLabel}</dd>
-          </div>
-          <div className={styles.fact}>
-            <dt>Sede</dt>
-            <dd>{EVENT.venue.name}</dd>
-          </div>
-        </dl>
+        {/* Los tres datos en una línea: ocupan un tercio de lo que ocupaban
+            apilados y se leen de un golpe. */}
+        <p className={styles.facts}>
+          <strong>{EVENT.scheduleLabel}</strong>
+          <span aria-hidden="true">·</span>
+          {EVENT.hoursLabel}
+          <span aria-hidden="true">·</span>
+          {EVENT.venue.name}
+        </p>
 
         <div className={styles.ctaRow}>
-          <Link href={`/events/${EVENT.slug}`} className={styles.ctaPrimary}>
+          <Link href="/boletos" className={styles.ctaPrimary}>
             Comprar boletos
           </Link>
           <a
@@ -94,6 +88,11 @@ function Hero() {
           >
             Cómo llegar
           </a>
+          {/* El contador vive junto a los CTAs, no en su propia fila. */}
+          <div className={styles.countdownWrap}>
+            <p className={styles.countdownLabel}>Abren en</p>
+            <EventCountdown target={EVENT.startsAt} />
+          </div>
         </div>
 
         {/* Accesos con precio dentro del hero: la decisión de compra se toma
@@ -102,7 +101,7 @@ function Hero() {
           {EVENT.tickets.map((tier) => (
             <li key={tier.id}>
               <Link
-                href={`/events/${EVENT.slug}${tier.zone ? `?zone=${encodeURIComponent(tier.zone)}` : ''}`}
+                href="/boletos"
                 className={`${styles.tierPill} ${tier.featured ? styles.tierPillHot : ''}`}
               >
                 <span className={styles.tierPillName}>{tier.name}</span>
@@ -116,10 +115,6 @@ function Hero() {
           </li>
         </ul>
 
-        <div className={styles.countdownWrap}>
-          <p className={styles.countdownLabel}>Las puertas abren en</p>
-          <EventCountdown target={EVENT.startsAt} />
-        </div>
       </div>
 
       <PumpkinMark />
@@ -229,7 +224,7 @@ function Tickets() {
               </ul>
 
               <Link
-                href={`/events/${EVENT.slug}${tier.zone ? `?zone=${encodeURIComponent(tier.zone)}` : ''}`}
+                href="/boletos"
                 className={tier.featured ? styles.tierCtaPrimary : styles.tierCta}
                 aria-label={`Comprar ${tier.name}`}
               >

@@ -34,8 +34,8 @@ export function CartBar() {
         aria-expanded={open}
         aria-label={
           soonest > 0
-            ? `Carrito, ${seats} asientos, expira en ${countdownSpoken(soonest)}`
-            : `Carrito, ${seats} asientos, reserva expirada`
+            ? `Carrito, ${seats} boletos, expira en ${countdownSpoken(soonest)}`
+            : `Carrito, ${seats} boletos, reserva expirada`
         }
       >
         <span className={styles.badge}>{items.length}</span>

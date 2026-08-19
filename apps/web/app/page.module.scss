@@ -60,9 +60,10 @@
   overflow: hidden;
   display: flex;
   align-items: center;
-  /* El hero ES el carrusel: pantalla casi completa, escenas de fondo. */
-  min-height: clamp(560px, 92vh, 900px);
-  padding: clamp(4.5rem, 10vh, 7rem) 0 clamp(4rem, 9vh, 6rem);
+  /* El hero ES el carrusel, pero debe caber completo en pantalla: el
+     contenido entero se ve sin scrollear. */
+  min-height: clamp(480px, 76vh, 720px);
+  padding: clamp(2.5rem, 6vh, 4rem) 0 clamp(2.5rem, 6vh, 4rem);
   background: var(--pz-night);
 }
 
@@ -143,8 +144,8 @@
 .title {
   margin: 0;
   font-family: var(--font-heading), sans-serif;
-  font-size: clamp(3.4rem, 2rem + 9vw, 8.2rem);
-  line-height: 0.92;
+  font-size: clamp(3.2rem, 1.9rem + 8vw, 7.2rem);
+  line-height: 0.9;
   letter-spacing: 0.015em;
   text-transform: uppercase;
   color: var(--pz-bone);
@@ -169,7 +170,7 @@
 .intro {
   margin: var(--space-3) 0 0;
   font-size: var(--text-base);
-  line-height: 1.65;
+  line-height: 1.55;
   color: var(--pz-dim);
   max-width: 52ch;
 }
@@ -177,31 +178,28 @@
 .facts {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
-  margin: var(--space-6) 0 0;
-}
+  align-items: baseline;
+  gap: 0.5rem 0.7rem;
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-md);
+  color: var(--pz-dim);
 
-.fact {
-  dt {
-    font-size: var(--text-xs);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--pz-dim);
+  strong {
+    font-weight: 700;
+    color: var(--pz-bone);
   }
 
-  dd {
-    margin: 0.25rem 0 0;
-    font-size: var(--text-md);
-    font-weight: 600;
-    color: var(--pz-bone);
+  span {
+    color: var(--pz-pumpkin);
   }
 }
 
 .ctaRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: var(--space-6);
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  margin-top: var(--space-5);
 }
 
 .ctaPrimary {
@@ -262,7 +260,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  margin: var(--space-6) 0 0;
+  margin: var(--space-5) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -335,15 +333,18 @@
 }
 
 .countdownWrap {
-  margin-top: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .countdownLabel {
-  margin: 0 0 var(--space-2);
+  margin: 0;
   font-size: var(--text-xs);
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--pz-dim);
+  white-space: nowrap;
 }
 
 /* La calabaza de marca: discreta, arriba a la derecha, sin pelear con las

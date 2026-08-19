@@ -1,0 +1,104 @@
+/* Página de compra propia — mismo lenguaje visual del home (--pz-*). */
+
+.root {
+  --pz-night: #0b0709;
+  --pz-soot: #141013;
+  --pz-panel: #1c1417;
+  --pz-hairline: rgba(255, 214, 170, 0.14);
+  --pz-pumpkin: #ff6a13;
+  --pz-candle: #ffb454;
+  --pz-bone: #f5efe6;
+  --pz-dim: #b3a89e;
+  --pz-moss: #9db85c;
+
+  min-height: 100vh;
+  background:
+    radial-gradient(90% 40% at 50% 0%, rgba(255, 106, 19, 0.1), transparent 65%),
+    var(--pz-night);
+  color: var(--pz-bone);
+  padding-bottom: calc(var(--space-8) + var(--buybar-height));
+}
+
+.shell {
+  max-width: var(--shell-max);
+  margin: 0 auto;
+  padding: 0 var(--shell-pad);
+}
+
+.head {
+  padding: clamp(2rem, 5vh, 3.5rem) 0 clamp(1.5rem, 4vh, 2.5rem);
+  border-bottom: 1px solid var(--pz-hairline);
+  margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--pz-dim);
+  text-decoration: none;
+
+  &:hover { color: var(--pz-candle); }
+}
+
+.kicker {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--pz-pumpkin);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(2.2rem, 1.4rem + 4vw, 4rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--pz-bone);
+}
+
+.sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.7rem;
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-md);
+  color: var(--pz-dim);
+
+  strong { color: var(--pz-bone); }
+  span { color: var(--pz-pumpkin); }
+}
+
+.empty {
+  max-width: 32rem;
+  margin: clamp(2rem, 8vh, 5rem) auto;
+  padding: var(--space-6);
+  border: 1px solid var(--pz-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--pz-panel);
+  text-align: center;
+
+  h2 {
+    margin: 0 0 var(--space-3);
+    font-family: var(--font-heading), sans-serif;
+    font-size: 1.6rem;
+    text-transform: uppercase;
+  }
+
+  p {
+    margin: 0 0 var(--space-4);
+    color: var(--pz-dim);
+    line-height: 1.6;
+  }
+}
+
+.emptyCta {
+  display: inline-flex;
+  padding: 0.8rem 1.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--pz-pumpkin);
+  color: #1a0d05;
+  font-weight: 700;
+  text-decoration: none;
+}

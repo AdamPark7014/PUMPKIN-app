@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { EVENT } from './event-config';
 
 export type CartOfferLine = {
   offerId: string;
@@ -73,6 +74,16 @@ export function cartHoldIds(item: CartItem): string[] {
   return normalized.lines.flatMap((l) => l.holdIds);
 }
 
+/**
+ * Llave de almacenamiento propia del evento.
+ *
+ * Antes era `boletera-cart`, global: al correr dos proyectos distintos en el
+ * mismo origen (localhost:3000) el carrito de uno aparecía en el otro. La
+ * llave lleva ahora el slug del evento, así que carritos ajenos son
+ * invisibles aunque compartan dominio.
+ */
+const CART_STORAGE_KEY = `pumpkin-cart:${EVENT.slug}`;
+
 export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
@@ -88,7 +99,15 @@ export const useCartStore = create<CartState>()(
         set((s) => ({ items: s.items.filter((_, i) => i !== index) })),
       clear: () => set({ items: [] }),
     }),
-    { name: 'boletera-cart' },
+    {
+      name: CART_STORAGE_KEY,
+      // Sistema de un solo evento: un item de otro evento no puede comprarse
+      // ni mostrarse. Se descarta al rehidratar en vez de arrastrar basura.
+      merge: (persisted, current) => {
+        const saved = (persisted as Partial<CartState> | undefined)?.items ?? [];
+        return { ...current, items: saved.filter((i) => Boolean(i?.eventId)) };
+      },
+    },
   ),
 );
 

@@ -16,7 +16,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 const navItems: { href: string; label: string; category?: string }[] = [
   { href: '/#boletos', label: 'Boletos' },
   { href: '/#atracciones', label: 'Atracciones' },
-  { href: '/events/pumpkin-zone-2026', label: 'Comprar' },
+  { href: '/boletos', label: 'Comprar' },
   { href: '/ayuda', label: 'Ayuda' },
 ];
 

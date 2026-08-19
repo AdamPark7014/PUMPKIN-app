@@ -22,7 +22,7 @@ export function SiteFooter({ cities = [] }: { cities?: readonly FooterCity[] }) 
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.brandCol}>
-          <p className={styles.brand}>BOLETERA</p>
+          <p className={styles.brand}>PUMPKIN ZONE</p>
           <p className={styles.tagline}>Boletos oficiales · Pagos Banorte · Acceso con QR</p>
         </div>
 
@@ -82,7 +82,7 @@ export function SiteFooter({ cities = [] }: { cities?: readonly FooterCity[] }) 
         </div>
       </div>
       <p className={styles.copy}>
-        © {new Date().getFullYear()} BOLETERA · Liquidación Banorte
+        © {new Date().getFullYear()} Pumpkin Zone · Ricordi × Murad Producciones
       </p>
     </footer>
   );

@@ -21,7 +21,7 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:30
   '',
 );
 
-export const SITE_NAME = 'BOLETERA';
+export const SITE_NAME = 'Pumpkin Zone';
 
 /** Convierte una ruta relativa en URL absoluta; deja pasar URLs completas. */
 export function absoluteUrl(path?: string | null): string | undefined {

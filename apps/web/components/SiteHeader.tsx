@@ -12,15 +12,12 @@ type SiteHeaderProps = {
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
-const navItems = [
-  { href: '/categoria/MUSIC', label: 'Conciertos', category: 'MUSIC' },
-  { href: '/categoria/SPORTS', label: 'Deportes', category: 'SPORTS' },
-  { href: '/categoria/THEATER', label: 'Artes', category: 'THEATER' },
-  { href: '/categoria/COMEDY', label: 'Comedia', category: 'COMEDY' },
-  { href: '/categoria/FESTIVAL', label: 'Festivales', category: 'FESTIVAL' },
-  { href: '/ciudades', label: 'Ciudades' },
-  { href: '/venues', label: 'Recintos' },
-  { href: '/resale', label: 'Reventa' },
+// Evento único: la navegación son las secciones del evento, no categorías.
+const navItems: { href: string; label: string; category?: string }[] = [
+  { href: '/#boletos', label: 'Boletos' },
+  { href: '/#atracciones', label: 'Atracciones' },
+  { href: '/events/pumpkin-zone-2026', label: 'Comprar' },
+  { href: '/ayuda', label: 'Ayuda' },
 ];
 
 type SuggestHit = {
@@ -182,7 +179,7 @@ function SiteHeaderBar({
               />
             </svg>
           </span>
-          <span className={styles.brandText}>BOLETERA</span>
+          <span className={styles.brandText}>PUMPKIN ZONE</span>
         </Link>
 
         <div className={styles.search} ref={searchRef}>

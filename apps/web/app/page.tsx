@@ -151,7 +151,7 @@ function PumpkinMark() {
 
 function Attractions() {
   return (
-    <section className={styles.attractions} aria-labelledby="atracciones-h">
+    <section id="atracciones" className={styles.attractions} aria-labelledby="atracciones-h">
       <div className={styles.shell}>
         <SectionHead
           id="atracciones-h"

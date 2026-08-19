@@ -35,7 +35,7 @@ export type PrintReceiptOptions = {
 
 export type PrintReceiptResult = {
   ok: boolean;
-  via?: 'serial' | 'popup';
+  via?: 'serial' | 'bridge' | 'popup';
   error?: string;
 };
 

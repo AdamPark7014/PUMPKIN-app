@@ -281,8 +281,81 @@ export async function printBytesViaSerialDetailed(bytes: Uint8Array): Promise<Pr
   }
 }
 
+const BRIDGE_URL_KEY = 'boletera_print_bridge';
+
 /**
- * Imprime un trabajo de bytes con fallback a popup en texto plano.
+ * URL del puente de impresión local (tools/print-bridge). Vacío = deshabilitado.
+ * Se configura desde Ajustes; típicamente http://127.0.0.1:9631.
+ */
+export function getBridgeUrl(): string {
+  if (typeof localStorage === 'undefined') return '';
+  return (localStorage.getItem(BRIDGE_URL_KEY) ?? '').trim().replace(/\/$/, '');
+}
+
+export function setBridgeUrl(url: string): void {
+  if (typeof localStorage === 'undefined') return;
+  const clean = url.trim().replace(/\/$/, '');
+  if (clean) localStorage.setItem(BRIDGE_URL_KEY, clean);
+  else localStorage.removeItem(BRIDGE_URL_KEY);
+}
+
+/**
+ * Manda el trabajo al puente local, que lo reenvía al puerto RAW 9100 de la
+ * impresora Ethernet. Es la vía para las Epson USB/Ethernet que Web Serial
+ * no puede ver.
+ */
+export async function printViaBridgeDetailed(bytes: Uint8Array): Promise<PrintResult> {
+  const base = getBridgeUrl();
+  if (!base) {
+    return { ok: false, code: 'PORT_MISSING', error: 'Puente de impresión no configurado' };
+  }
+  try {
+    const res = await fetch(`${base}/print`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/octet-stream' },
+      // .slice() garantiza un ArrayBuffer exacto y propio (TS: BodyInit).
+      body: bytes.slice().buffer as ArrayBuffer,
+      signal: AbortSignal.timeout(12_000),
+    });
+    const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    if (res.ok && data?.ok) return { ok: true };
+    return {
+      ok: false,
+      code: 'WRITE_FAILED',
+      error: data?.error ?? `Puente respondió ${res.status}`,
+    };
+  } catch (cause) {
+    return {
+      ok: false,
+      code: 'WRITE_FAILED',
+      error:
+        cause instanceof Error
+          ? `Puente inaccesible: ${cause.message}`
+          : 'Puente de impresión inaccesible',
+    };
+  }
+}
+
+/** Prueba de conectividad puente → impresora. Para el botón de Ajustes. */
+export async function probeBridge(): Promise<{ ok: boolean; reachable: boolean; error?: string }> {
+  const base = getBridgeUrl();
+  if (!base) return { ok: false, reachable: false, error: 'Sin URL de puente' };
+  try {
+    const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(4000) });
+    const data = (await res.json()) as { ok?: boolean; reachable?: boolean };
+    return { ok: Boolean(data?.ok), reachable: Boolean(data?.reachable) };
+  } catch (cause) {
+    return {
+      ok: false,
+      reachable: false,
+      error: cause instanceof Error ? cause.message : 'Sin respuesta',
+    };
+  }
+}
+
+/**
+ * Imprime un trabajo de bytes intentando cada transporte en orden:
+ * serial (Web Serial) → puente local (Ethernet 9100) → popup en texto plano.
  * El popup no puede renderizar el QR (es firmware de impresora), así que
  * `fallbackText` debe traer el código en texto — sigue siendo escaneable
  * como entrada manual en puerta.
@@ -290,9 +363,12 @@ export async function printBytesViaSerialDetailed(bytes: Uint8Array): Promise<Pr
 export async function printJobSafe(
   bytes: Uint8Array,
   fallbackText: string,
-): Promise<'serial' | 'popup'> {
+): Promise<'serial' | 'bridge' | 'popup'> {
   const serial = await printBytesViaSerialDetailed(bytes);
   if (serial.ok) return 'serial';
+
+  const bridge = await printViaBridgeDetailed(bytes);
+  if (bridge.ok) return 'bridge';
 
   const soft =
     serial.code === 'SERIAL_UNSUPPORTED' ||

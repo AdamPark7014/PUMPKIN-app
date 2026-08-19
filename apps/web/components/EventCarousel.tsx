@@ -64,7 +64,17 @@ export function EventCarousel({ slides, autoplayMs = 5500 }: Props) {
             // Fuera del orden de tabulación mientras no se ve.
             inert={i !== index || undefined}
           >
-            {slide.src ? (
+            {slide.src?.endsWith('.svg') ? (
+              // Ilustraciones SVG servidas tal cual: next/image las bloquea
+              // por defecto y no hay nada que optimizar en un vector.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={slide.src}
+                alt={slide.title}
+                className={styles.photo}
+                loading={i === 0 ? 'eager' : 'lazy'}
+              />
+            ) : slide.src ? (
               <Image
                 src={slide.src}
                 alt={slide.title}

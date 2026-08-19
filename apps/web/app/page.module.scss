@@ -60,10 +60,12 @@
   overflow: hidden;
   display: flex;
   align-items: center;
-  /* El hero ES el carrusel, pero debe caber completo en pantalla: el
-     contenido entero se ve sin scrollear. */
-  min-height: clamp(480px, 76vh, 720px);
-  padding: clamp(2.5rem, 6vh, 4rem) 0 clamp(2.5rem, 6vh, 4rem);
+  /* El hero ES el carrusel y mide exactamente una pantalla: ni sobra hueco
+     ni hay que scrollear para verlo completo. svh evita el salto de la barra
+     del navegador en móvil. */
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: clamp(2rem, 4vh, 3rem) 0 clamp(3.5rem, 7vh, 5rem);
   background: var(--pz-night);
 }
 

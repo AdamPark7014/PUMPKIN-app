@@ -195,8 +195,8 @@ function Tickets() {
         <SectionHead
           id="boletos-h"
           kicker="Boletos"
-          title="Elige cómo quieres vivirlo"
-          note="Precios en pesos mexicanos, impuestos incluidos. Sin cargos por servicio sorpresa en el checkout."
+          title="Un boleto, todo el festival"
+          note="Entrada general para todas las edades. Pasaje Siniestro, talleres de tallado y juegos mecánicos se pagan dentro del festival."
         />
 
         <ul className={styles.tierGrid}>

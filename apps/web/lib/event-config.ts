@@ -117,36 +117,25 @@ export const EVENT = {
     },
   ] satisfies Attraction[],
 
-  // TODO(confirmar): precios y nombres de acceso 2026.
+  // Un solo tipo de entrada, un solo precio (modelo real del evento: la
+  // entrada da acceso al festival; pasaje, talleres y juegos se pagan dentro).
+  // Precio 2025 verificado: $50. TODO(confirmar): precio 2026.
   tickets: [
     {
       id: 'general',
       zone: 'General',
-      name: 'Acceso General',
-      price: 180,
-      blurb: 'Entrada al campo de calabazas, bazar, zonas de foto y shows nocturnos.',
-      perks: ['Campo de calabazas', 'Bazar y food trucks', 'Shows de fuego', 'Zonas de foto'],
-    },
-    {
-      id: 'terror',
-      zone: 'Pasaje',
-      name: 'General + Pasaje',
-      price: 320,
-      blurb: 'Todo lo del general, más el Pasaje Siniestro sin hacer fila aparte.',
-      perks: ['Todo lo del General', 'Pasaje Siniestro', 'Acceso preferente al pasaje'],
-      featured: true,
-    },
-    {
-      id: 'full',
-      zone: 'Completa',
-      name: 'Experiencia Completa',
-      price: 540,
-      blurb: 'El día entero: pasaje, taller de tallado con calabaza incluida y juegos.',
+      name: 'Entrada General',
+      price: 50,
+      featured: false,
+      blurb:
+        'Acceso a todo el festival: campo de calabazas, escenarios fotográficos, ' +
+        'bazar, corredor gastronómico, cine al aire libre y shows nocturnos.',
       perks: [
-        'Todo lo anterior',
-        'Taller de tallado + calabaza',
-        'Pulsera de juegos mecánicos',
-        'Lanzamiento de hachas',
+        'Campo con cientos de calabazas reales',
+        'Más de 25 escenarios para fotos',
+        'Cine al aire libre y shows de fuego',
+        'Bazar y corredor gastronómico',
+        'Pet friendly (con correa)',
       ],
     },
   ] satisfies TicketTier[],

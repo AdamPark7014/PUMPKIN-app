@@ -57,24 +57,12 @@ const SALES_START = new Date('2026-08-18T09:00:00-06:00');
 const ZONES = [
   {
     zone: 'General',
-    name: 'Acceso General',
-    price: 180,
-    capacity: 4000,
+    name: 'Entrada General',
+    // Precio 2025 verificado: $50 + $8 de cargo por servicio (Black Ticket).
+    // TODO(confirmar): precio y aforo 2026.
+    price: 50,
+    capacity: 8000,
     maxPerOrder: 10,
-  },
-  {
-    zone: 'Pasaje',
-    name: 'General + Pasaje',
-    price: 320,
-    capacity: 2500,
-    maxPerOrder: 8,
-  },
-  {
-    zone: 'Completa',
-    name: 'Experiencia Completa',
-    price: 540,
-    capacity: 800,
-    maxPerOrder: 6,
   },
 ] as const;
 
@@ -291,6 +279,15 @@ async function main(): Promise<void> {
       `Offer         ${z.zone.padEnd(9)} $${z.price} · ${z.capacity} lugares (${created} boletos nuevos)`,
     );
   }
+
+  // 5b. Evento único de UN tipo de entrada: cualquier otra oferta sembrada
+  // antes (Pasaje, Completa) se apaga para que no se venda ni se muestre.
+  const kept = ZONES.map((z) => z.zone);
+  const disabled = await prisma.offer.updateMany({
+    where: { eventId: event.id, zone: { notIn: kept } },
+    data: { isAvailable: false },
+  });
+  if (disabled.count > 0) console.log(`Offers        ${disabled.count} oferta(s) extra desactivada(s)`);
 
   // 6. Terminales de taquilla -------------------------------------------------
   for (const name of ['Taquilla 1', 'Taquilla móvil']) {

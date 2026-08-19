@@ -288,7 +288,7 @@ export default function LoginPage() {
 
       <p className={styles.footer}>
         ¿Eres organizador nuevo?{' '}
-        <a href="mailto:soporte@boletera.app">Solicita acceso al equipo</a>
+        <a href="mailto:admin@pumpkinzone.mx">Solicita acceso al equipo</a>
       </p>
     </AuthShell>
   );

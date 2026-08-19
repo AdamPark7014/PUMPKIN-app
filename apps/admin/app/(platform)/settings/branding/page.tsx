@@ -500,9 +500,9 @@ export default function BrandingSettingsPage() {
               <Input
                 id={`${formId}-subdomain`}
                 label="Subdominio"
-                hint="Portal público: {subdominio}.boletera.app"
+                hint="Portal público: {subdominio}.experiencebt.com.mx"
                 leading={<span aria-hidden="true">https://</span>}
-                trailing={<span aria-hidden="true">.boletera.app</span>}
+                trailing={<span aria-hidden="true">.experiencebt.com.mx</span>}
                 value={draft.subdomain}
                 error={errors.subdomain}
                 requiredMark
@@ -616,7 +616,7 @@ export default function BrandingSettingsPage() {
             Color <code>{palette.primary}</code>
           </li>
           <li>
-            Host <code>{draft.subdomain || 'demo'}.boletera.app</code>
+            Host <code>{draft.subdomain || 'demo'}.experiencebt.com.mx</code>
           </li>
           <li>Logo {draft.logoUrl ? 'incluido' : 'sin logo (iniciales)'}</li>
         </ul>

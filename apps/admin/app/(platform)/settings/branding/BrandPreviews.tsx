@@ -55,7 +55,7 @@ export function BrandPreviews({
   onLogoError,
   customDomain,
 }: BrandPreviewsProps) {
-  const host = customDomain?.trim() || `${(subdomain || 'demo').toLowerCase()}.boletera.app`;
+  const host = customDomain?.trim() || `${(subdomain || 'demo').toLowerCase()}.experiencebt.com.mx`;
   const brandName = subdomain || 'tu-marca';
 
   if (surface === 'ticket') {

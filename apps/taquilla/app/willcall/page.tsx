@@ -81,7 +81,8 @@ export default function WillcallPage() {
 
   async function reprint(orderId: string) {
     const rec = await fetchReceipt(orderId, getTerminalId() || 'terminal');
-    await printReceipt(rec);
+    const print = await printReceipt(rec, { reprint: true });
+    if (!print.ok) setToast(print.error ?? 'No se pudo reimprimir');
   }
 
   return (

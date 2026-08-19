@@ -104,8 +104,8 @@ export default function BuscarPage() {
     }
     try {
       const rec = await fetchReceipt(result.orderId, getTerminalId() || 'terminal');
-      await printReceipt(rec);
-      setToast('Reimprimiendo…');
+      const print = await printReceipt(rec, { reprint: true });
+      setToast(print.ok ? 'Reimprimiendo…' : print.error ?? 'No se pudo reimprimir');
     } catch {
       setToast('No se pudo reimprimir');
     }

@@ -73,6 +73,9 @@ export async function posCheckout(params: {
   managerPin?: string;
   discountCode?: string;
   clientSaleId?: string;
+  /** Voucher de la terminal bancaria física (obligatorios con CARD). */
+  cardLast4?: string;
+  cardAuthCode?: string;
 }): Promise<PosCheckoutResult> {
   const clientSaleId = params.clientSaleId || createClientSaleId();
   beginSaleAttempt({
@@ -102,6 +105,8 @@ export async function posCheckout(params: {
           compReason: params.compReason,
           managerPin: params.managerPin,
           discountCode: params.discountCode,
+          cardLast4: params.cardLast4,
+          cardAuthCode: params.cardAuthCode,
           clientSaleId,
         },
       }),

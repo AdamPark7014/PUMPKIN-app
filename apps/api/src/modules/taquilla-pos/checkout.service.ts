@@ -37,6 +37,9 @@ type CheckoutInput = {
   managerPin?: string;
   clientSaleId?: string;
   holdIds?: string[];
+  /** Terminal bancaria física: liga voucher ↔ orden para conciliación. */
+  cardLast4?: string;
+  cardAuthCode?: string;
 };
 
 @Injectable()
@@ -140,6 +143,16 @@ export class CheckoutService {
       await this.managerPin.assertManagerPin(terminal.organizationId, data.managerPin);
     }
 
+    // Cobro con terminal bancaria no integrada: sin últimos 4 y número de
+    // autorización no hay manera de conciliar el voucher contra la orden.
+    if (data.paymentMethod === 'CARD' && !isComp) {
+      if (!data.cardLast4 || !data.cardAuthCode) {
+        throw new BadRequestException(
+          'Cobro con tarjeta requiere cardLast4 y cardAuthCode del voucher de la terminal',
+        );
+      }
+    }
+
     const clientSaleId = data.clientSaleId?.trim() || randomUUID();
     const claim = await this.idempotency.claimSale(
       terminal.organizationId,
@@ -179,6 +192,9 @@ export class CheckoutService {
           sessionId: session.id,
           seatIds: data.seatIds,
           discountPercent: data.discountPercent,
+          ...(data.paymentMethod === 'CARD' && data.cardLast4
+            ? { cardLast4: data.cardLast4, cardAuthCode: data.cardAuthCode }
+            : {}),
           ...(isComp ? { isComp: true, compReason: data.compReason || 'house' } : {}),
         },
       });

@@ -1,5 +1,6 @@
 import { apiFetch } from '../auth';
-import { buildEscPosReceipt, printEscPos, printViaSerial } from '../thermal';
+import { buildTicketsJob } from '../ticket-print';
+import { printJobSafe } from '../thermal';
 import { LAST_RECEIPT_KEY } from './keys';
 import type { PosReceipt } from './types';
 
@@ -27,25 +28,42 @@ export async function fetchReceipt(orderId: string, terminalId: string): Promise
   return { ...receipt, orderId };
 }
 
-export async function printReceipt(receipt: PosReceipt): Promise<void> {
-  const lines = [
-    receipt.receiptNumber,
-    new Date(receipt.timestamp).toLocaleString('es-MX'),
-    '',
-    receipt.eventName,
-    `Boletos: ${receipt.quantity}`,
-    '',
-    `Subtotal: $${receipt.subtotal.toFixed(2)}`,
-    `Cargos: $${receipt.fees.toFixed(2)}`,
-    `IVA: $${receipt.taxes.toFixed(2)}`,
-    `TOTAL: $${receipt.total.toFixed(2)}`,
-    `Pago: ${receipt.paymentMethod}`,
-    '',
-    ...receipt.ticketCodes.map((ticket) => `${ticket.seatInfo} · ${ticket.barcode}`),
-    '',
-    'Gracias por su compra',
-  ];
-  const payload = buildEscPosReceipt(lines);
-  const serialOk = await printViaSerial(payload);
-  if (!serialOk) printEscPos(payload);
+export type PrintReceiptOptions = {
+  /** Marca todos los boletos como REIMPRESIÓN. Úsalo en todo lo que no sea la primera impresión. */
+  reprint?: boolean;
+};
+
+export type PrintReceiptResult = {
+  ok: boolean;
+  via?: 'serial' | 'popup';
+  error?: string;
+};
+
+/**
+ * Imprime la venta completa: un boleto por asiento (QR nativo, corte entre
+ * cada uno) y el comprobante de pago al final. El cajón sólo se patea en
+ * ventas en efectivo — en tarjeta no hay cambio que dar.
+ *
+ * Nunca lanza: la venta ya está cobrada cuando esto corre, y un error de
+ * impresora no debe leerse como venta fallida. El resultado dice qué pasó
+ * para que la UI avise y ofrezca reimprimir.
+ */
+export async function printReceipt(
+  receipt: PosReceipt,
+  opts: PrintReceiptOptions = {},
+): Promise<PrintReceiptResult> {
+  const job = buildTicketsJob(receipt, {
+    reprint: opts.reprint ?? false,
+    kickDrawer: receipt.paymentMethod === 'CASH',
+    withReceipt: true,
+  });
+  try {
+    const via = await printJobSafe(job.bytes, job.fallbackText);
+    return { ok: true, via };
+  } catch (cause) {
+    return {
+      ok: false,
+      error: cause instanceof Error ? cause.message : 'No se pudo imprimir',
+    };
+  }
 }

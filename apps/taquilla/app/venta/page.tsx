@@ -127,6 +127,9 @@ function VentaForm() {
   const [receipt, setReceipt] = useState<PosReceipt | null>(null);
   const [cardWaiting, setCardWaiting] = useState(false);
   const [cardCancellable, setCardCancellable] = useState(false);
+  // Voucher de la terminal bancaria física. El cobro CARD no procede sin esto.
+  const [cardLast4, setCardLast4] = useState('');
+  const [cardAuthCode, setCardAuthCode] = useState('');
   const [online, setOnline] = useState(true);
   const [toast, setToast] = useState<{ msg: string; kind: ToastKind } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -141,6 +144,7 @@ function VentaForm() {
   const clientSaleIdRef = useRef<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cashInputRef = useRef<HTMLInputElement>(null);
+  const cardLast4Ref = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const showToast = useCallback((msg: string, kind: ToastKind = 'info') => {
@@ -318,6 +322,8 @@ function VentaForm() {
     method === 'CASH' && Number.isFinite(receivedNum) && receivedNum >= subtotal
       ? receivedNum - subtotal
       : 0;
+  const cardOk = /^\d{4}$/.test(cardLast4) && /^[A-Za-z0-9-]{4,20}$/.test(cardAuthCode.trim());
+
   const cashOk =
     method === 'COMP' ||
     method !== 'CASH' ||
@@ -399,6 +405,8 @@ function VentaForm() {
     holdRef.current = [];
     clientSaleIdRef.current = null;
     setManagerPin('');
+    setCardLast4('');
+    setCardAuthCode('');
   }, []);
 
   const sell = useCallback(async (requestedMethod?: PaymentMethod) => {
@@ -444,15 +452,18 @@ function VentaForm() {
       showToast('Tarjeta no disponible offline', 'err');
       return;
     }
+    if (activeMethod === 'CARD' && !cardOk) {
+      // La terminal física ya cobró (o va a cobrar); sin el voucher no hay
+      // manera de conciliar. Se captura ANTES de registrar la venta.
+      showToast('Cobra en la terminal y captura últimos 4 + autorización', 'warn');
+      cardLast4Ref.current?.focus();
+      return;
+    }
 
     submittingRef.current = true;
     setLoading(true);
     setReceipt(null);
     const paymentAttempt = ++paymentAttemptRef.current;
-    if (activeMethod === 'CARD') {
-      setCardCancellable(true);
-      setCardWaiting(true);
-    }
 
     const clientSaleId = clientSaleIdRef.current ?? crypto.randomUUID();
     clientSaleIdRef.current = clientSaleId;
@@ -469,13 +480,9 @@ function VentaForm() {
         }
       }
 
-      if (activeMethod === 'CARD') {
-        await new Promise<void>((r) => setTimeout(r, 800));
-        if (paymentAttempt !== paymentAttemptRef.current) {
-          clientSaleIdRef.current = null;
-          return;
-        }
-        setCardCancellable(false);
+      if (paymentAttempt !== paymentAttemptRef.current) {
+        clientSaleIdRef.current = null;
+        return;
       }
 
       const result = await posCheckout({
@@ -495,6 +502,8 @@ function VentaForm() {
         compReason,
         managerPin: activeMethod === 'COMP' ? managerPin : undefined,
         discountCode: promoCode || undefined,
+        cardLast4: activeMethod === 'CARD' ? cardLast4 : undefined,
+        cardAuthCode: activeMethod === 'CARD' ? cardAuthCode.trim() : undefined,
         clientSaleId,
       });
 
@@ -509,9 +518,17 @@ function VentaForm() {
       const rec = await fetchReceipt(result.orderId, terminalId);
       setReceipt(rec);
       saveLastReceipt(rec);
-      await printReceipt(rec);
+      const print = await printReceipt(rec);
       resetAfterSale();
-      showToast(`Venta OK · ${rec.receiptNumber}`, 'ok');
+      if (print.ok) {
+        showToast(`Venta OK · ${rec.receiptNumber}`, 'ok');
+      } else {
+        // La venta SÍ se cobró; sólo falló el papel. Que se note la diferencia.
+        showToast(
+          `Venta OK · ${rec.receiptNumber} — SIN IMPRIMIR (${print.error ?? 'impresora'}). Usa Reimprimir.`,
+          'warn',
+        );
+      }
     } catch (e: unknown) {
       if (!navigator.onLine && activeMethod !== 'CARD') {
         const qtyNeeded = seatMode ? selectedSeats.length : qty;
@@ -576,6 +593,9 @@ function VentaForm() {
     receivedNum,
     subtotal,
     managerPin,
+    cardOk,
+    cardLast4,
+    cardAuthCode,
     online,
     buyerName,
     buyerEmail,
@@ -625,7 +645,8 @@ function VentaForm() {
       } else if (e.key === 'F9') {
         e.preventDefault();
         setMethod('CARD');
-        void sell('CARD');
+        // Con terminal manual no se vende a ciegas: primero el voucher.
+        setTimeout(() => cardLast4Ref.current?.focus(), 0);
       } else if (e.key === 'F5') {
         e.preventDefault();
         setMethod('COMP');
@@ -707,6 +728,7 @@ function VentaForm() {
     !inventoryShortage &&
     (online || method !== 'CARD') &&
     (method !== 'CASH' || cashOk) &&
+    (method !== 'CARD' || cardOk) &&
     (method !== 'COMP' || Boolean(managerPin));
 
   const onSubmitGuard = (e: FormEvent) => {
@@ -1011,6 +1033,38 @@ function VentaForm() {
             </div>
           )}
 
+          {method === 'CARD' && (
+            <div className={styles.tender}>
+              <p className={styles.focusHint}>
+                Cobra {money(subtotal)} en la terminal bancaria y captura el voucher:
+              </p>
+              <label>
+                <small>Últimos 4 de la tarjeta</small>
+                <input
+                  ref={cardLast4Ref}
+                  aria-label="Últimos cuatro dígitos de la tarjeta"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={4}
+                  placeholder="0000"
+                  value={cardLast4}
+                  onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                />
+              </label>
+              <label>
+                <small>No. de autorización</small>
+                <input
+                  aria-label="Número de autorización del voucher"
+                  autoComplete="off"
+                  maxLength={20}
+                  placeholder="Ej. 123456"
+                  value={cardAuthCode}
+                  onChange={(e) => setCardAuthCode(e.target.value)}
+                />
+              </label>
+            </div>
+          )}
+
           {method === 'COMP' && (
             <div className={styles.buyerFields}>
               <select value={compReason} onChange={(e) => setCompReason(e.target.value)}>
@@ -1077,8 +1131,10 @@ function VentaForm() {
                         ? 'Captura un monto recibido suficiente'
                         : method === 'COMP' && !managerPin
                           ? 'Captura el PIN de gerente'
-                          : !online && method === 'CARD'
-                            ? 'Tarjeta no disponible sin conexión'
+                          : method === 'CARD' && !cardOk
+                            ? 'Captura últimos 4 y autorización del voucher'
+                            : !online && method === 'CARD'
+                              ? 'Tarjeta no disponible sin conexión'
                             : holding
                               ? 'Reservando inventario…'
                               : 'Cobro temporalmente no disponible'}
@@ -1091,7 +1147,7 @@ function VentaForm() {
               <p>
                 {money(receipt.total)} · {receipt.quantity} boletos
               </p>
-              <button type="button" onClick={() => void printReceipt(receipt)}>
+              <button type="button" onClick={() => void printReceipt(receipt, { reprint: true })}>
                 Reimprimir
               </button>
             </div>

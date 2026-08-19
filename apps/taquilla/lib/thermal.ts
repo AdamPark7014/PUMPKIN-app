@@ -232,6 +232,84 @@ export async function printViaSerialSafe(text: string, kickDrawer = true): Promi
 }
 
 /**
+ * Envía ESC/POS crudo (`Uint8Array`) por serial. Es la vía para trabajos
+ * construidos con `escpos.ts` — el QR nativo y los acentos CP850 NO
+ * sobreviven el paso por string + TextEncoder de `printViaSerialDetailed`.
+ */
+export async function printBytesViaSerialDetailed(bytes: Uint8Array): Promise<PrintResult> {
+  if (typeof navigator !== 'undefined' && !navigator.serial) {
+    return {
+      ok: false,
+      code: 'SERIAL_UNSUPPORTED',
+      error: 'Web Serial no está disponible en este navegador',
+    };
+  }
+
+  const port = getSerialPort();
+  if (!port) {
+    return {
+      ok: false,
+      code: 'PORT_MISSING',
+      error: 'No hay impresora serial conectada. Conéctala desde Ajustes.',
+    };
+  }
+  if (!port.writable) {
+    return {
+      ok: false,
+      code: 'PORT_NOT_WRITABLE',
+      error: 'El puerto serial no está listo para escribir. Reconecta la impresora.',
+    };
+  }
+
+  let writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
+  try {
+    writer = port.writable.getWriter();
+    await writer.write(bytes);
+    return { ok: true };
+  } catch (cause) {
+    return {
+      ok: false,
+      code: 'WRITE_FAILED',
+      error: cause instanceof Error ? cause.message : 'Error al escribir en la impresora serial',
+    };
+  } finally {
+    try {
+      writer?.releaseLock();
+    } catch {
+      // El lock puede ya haberse liberado si el stream se cerró.
+    }
+  }
+}
+
+/**
+ * Imprime un trabajo de bytes con fallback a popup en texto plano.
+ * El popup no puede renderizar el QR (es firmware de impresora), así que
+ * `fallbackText` debe traer el código en texto — sigue siendo escaneable
+ * como entrada manual en puerta.
+ */
+export async function printJobSafe(
+  bytes: Uint8Array,
+  fallbackText: string,
+): Promise<'serial' | 'popup'> {
+  const serial = await printBytesViaSerialDetailed(bytes);
+  if (serial.ok) return 'serial';
+
+  const soft =
+    serial.code === 'SERIAL_UNSUPPORTED' ||
+    serial.code === 'PORT_MISSING' ||
+    serial.code === 'PORT_NOT_WRITABLE';
+
+  const popup = printEscPosDetailed(fallbackText);
+  if (popup.ok) return 'popup';
+
+  const primary = soft ? popup : serial;
+  throw new PrintError(
+    primary.code ?? 'WRITE_FAILED',
+    primary.error ?? 'No se pudo imprimir el trabajo',
+  );
+}
+
+/**
  * Intenta serial; si falla por puerto ausente/no writable, cae a popup.
  * Lanza `PrintError` sólo si ambas vías fallan.
  */

@@ -209,9 +209,13 @@ export default function TaquillaHome() {
       showToast('No hay venta reciente para reimprimir', 'danger');
       return;
     }
-    void printReceipt(rec)
-      .then(() => {
-        showToast('Reimprimiendo última venta');
+    void printReceipt(rec, { reprint: true })
+      .then((print) => {
+        if (print.ok) {
+          showToast('Reimprimiendo última venta');
+        } else {
+          showToast(`Error de impresora: ${print.error ?? 'desconocido'}`, 'danger');
+        }
       })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : 'Error de impresora';

@@ -9,6 +9,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -110,6 +111,22 @@ export class CheckoutDataDto {
   @IsString()
   @MaxLength(40)
   buyerPhone?: string;
+
+  /**
+   * Cobro con terminal bancaria física (no integrada): últimos 4 dígitos de
+   * la tarjeta y número de autorización del voucher. Obligatorios cuando
+   * paymentMethod es CARD — son la única liga entre la orden y el voucher
+   * al conciliar el corte contra el estado de cuenta.
+   */
+  @IsOptional()
+  @Matches(/^\d{4}$/, { message: 'cardLast4 debe ser 4 dígitos' })
+  cardLast4?: string;
+
+  @IsOptional()
+  @Matches(/^[A-Za-z0-9-]{4,20}$/, {
+    message: 'cardAuthCode: 4-20 caracteres alfanuméricos',
+  })
+  cardAuthCode?: string;
 
   @IsOptional()
   @IsBoolean()

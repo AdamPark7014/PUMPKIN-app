@@ -122,6 +122,7 @@ export { AvatarGroup } from './components/AvatarGroup';
 export type { AvatarGroupMember, AvatarGroupProps } from './components/AvatarGroup';
 
 export { Skeleton, SkeletonCard, SkeletonText } from './components/Skeleton';
+export { PumpkinMark } from './components/PumpkinMark';
 export type {
   SkeletonCardProps,
   SkeletonProps,

@@ -302,7 +302,7 @@ function PricingConsole() {
         title="Consola de pricing"
         description="Recomendaciones explicables por oferta, cola de aprobación humana y señales reales del motor. Solo se muestra lo que publica la API del evento seleccionado."
         breadcrumbs={[
-          { label: 'TicketOS', href: '/dashboard' },
+          { label: 'Pumpkin Zone', href: '/dashboard' },
           { label: 'Pricing' },
         ]}
         actions={

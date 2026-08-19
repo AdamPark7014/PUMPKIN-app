@@ -517,7 +517,7 @@ export default function BrandingSettingsPage() {
                   <code>{themeMeta.customDomain}</code>
                   <p>
                     Este dominio está vinculado en el tema del tenant. La edición avanzada se
-                    gestiona con soporte TicketOS.
+                    gestiona con el equipo del evento.
                   </p>
                 </div>
               ) : (
@@ -531,7 +531,7 @@ export default function BrandingSettingsPage() {
 
           <Section
             title="Tipografía"
-            description="El storefront TicketOS usa una familia tipográfica fija de plataforma. Aquí ves cómo se lee con tu color."
+            description="El storefront usa una familia tipográfica fija. Aquí ves cómo se lee con tu color."
           >
             <div className={styles.typeSpecimen} style={{ fontFamily: STOREFRONT_FONT }}>
               <p className={styles.typeLabel}>IBM Plex Sans · storefront</p>

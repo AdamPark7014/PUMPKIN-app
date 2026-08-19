@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { PumpkinMark } from '@boletera/ui';
 import { useRouter } from 'next/navigation';
 import { apiFetch, saveTaquillaSession, type TaquillaUser } from '@/lib/auth';
 import { openShift } from '@/lib/pos';
@@ -115,11 +116,7 @@ export default function TaquillaLoginPage() {
       <header className={styles.topbar}>
         <div className={styles.topLeft}>
           <span className={styles.brand}>
-            <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-              <rect width="32" height="32" rx="9" fill="#f4f4f5" />
-              <path d="M9 11h14M9 16h14M9 21h9" stroke="#18181b" strokeWidth="2.4" strokeLinecap="round" />
-              <circle cx="22" cy="21" r="2.5" fill="#18181b" />
-            </svg>
+            <PumpkinMark size={24} aria-hidden="true" />
             PUMPKIN ZONE · TAQUILLA
           </span>
         </div>

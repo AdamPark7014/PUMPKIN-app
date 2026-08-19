@@ -311,7 +311,7 @@ function AdminSidebar({
           </div>
           {!prefs.compact ? (
             <div>
-              <p className={styles.logoText}>TicketOS</p>
+              <p className={styles.logoText}>Pumpkin Zone</p>
               <p className={styles.logoSub}>Administración</p>
             </div>
           ) : null}

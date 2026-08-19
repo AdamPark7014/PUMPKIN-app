@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { PumpkinMark } from '@boletera/ui';
 import { Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getStoredUser, getToken } from '@/lib/auth';
@@ -163,21 +164,7 @@ function SiteHeaderBar({
       <div className={styles.inner}>
         <Link href="/" className={styles.brand} aria-label="Pumpkin Zone inicio">
           <span className={styles.logo}>
-            <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
-              <rect width="32" height="32" rx="9" fill="currentColor" />
-              <path
-                d="M9 11h14M9 16h14M9 21h9"
-                stroke={effectiveTheme === 'dark' ? '#0a0a0a' : '#fafafa'}
-                strokeWidth="2.4"
-                strokeLinecap="round"
-              />
-              <circle
-                cx="22"
-                cy="21"
-                r="2.5"
-                fill={effectiveTheme === 'dark' ? '#0a0a0a' : '#fafafa'}
-              />
-            </svg>
+            <PumpkinMark size={30} aria-hidden="true" />
           </span>
           <span className={styles.brandText}>PUMPKIN ZONE</span>
         </Link>

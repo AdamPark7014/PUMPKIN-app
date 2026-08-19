@@ -1,3 +1,4 @@
+import { PumpkinMark } from '@boletera/ui';
 import type { SVGProps } from 'react';
 
 export type IconName =
@@ -130,17 +131,7 @@ export function ShellIcon({ name, size = 18, ...rest }: IconProps) {
   );
 }
 
+/** Marca del sistema: la calabaza de Pumpkin Zone (desde @boletera/ui). */
 export function LogoMark({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <rect width="32" height="32" rx="9" fill="currentColor" className="logo-fill" />
-      <path
-        d="M9 11h14M9 16h14M9 21h9"
-        stroke="var(--shell-logo-ink, #0a0a0a)"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-      />
-      <circle cx="22" cy="21" r="2.5" fill="var(--shell-logo-ink, #0a0a0a)" />
-    </svg>
-  );
+  return <PumpkinMark size={size} aria-hidden="true" />;
 }

@@ -9,11 +9,12 @@
   background: var(--bl-surface, #f4f5f7);
   color: var(--bl-text-primary, #0b0d11);
   --shell-logo-ink: #0f0b0a;
-  --shell-sidebar-bg: #14151a;
-  --shell-sidebar-text: rgba(250, 250, 250, 0.92);
-  --shell-sidebar-muted: rgba(250, 250, 250, 0.45);
-  --shell-sidebar-hover: rgba(255, 255, 255, 0.05);
-  --shell-sidebar-border: rgba(255, 255, 255, 0.08);
+  /* Sidebar: la noche del evento (misma base que storefront y taquilla). */
+  --shell-sidebar-bg: #0f0b0d;
+  --shell-sidebar-text: rgba(245, 239, 230, 0.92);
+  --shell-sidebar-muted: rgba(245, 239, 230, 0.48);
+  --shell-sidebar-hover: rgba(255, 180, 84, 0.07);
+  --shell-sidebar-border: rgba(255, 214, 170, 0.12);
   --shell-accent: var(--bl-accent, #ff6a13);
   --shell-accent-soft: rgba(255, 106, 19, 0.14);
   --shell-focus: var(--bl-focus-ring, #ff6a13);
@@ -50,7 +51,9 @@
 .sidebar {
   width: 268px;
   flex-shrink: 0;
-  background: var(--shell-sidebar-bg);
+  background:
+    radial-gradient(120% 22% at 0% 0%, rgba(255, 106, 19, 0.16), transparent 70%),
+    var(--shell-sidebar-bg);
   color: var(--shell-sidebar-text);
   padding: 1rem 0.75rem;
   display: flex;
@@ -140,7 +143,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fbf7f1;
+  color: #f5efe6;
   flex-shrink: 0;
 
   svg {
@@ -154,7 +157,7 @@
   font-size: 0.8125rem;
   font-weight: 650;
   letter-spacing: 0.04em;
-  color: #fbf7f1;
+  color: #f5efe6;
 }
 
 .logoSub {
@@ -200,7 +203,7 @@
   cursor: pointer;
 
   &:hover {
-    color: #fbf7f1;
+    color: #f5efe6;
     background: var(--shell-sidebar-hover);
   }
 
@@ -237,7 +240,7 @@
   &:hover {
     border-color: rgba(255, 255, 255, 0.16);
     background: rgba(255, 255, 255, 0.06);
-    color: #fbf7f1;
+    color: #f5efe6;
   }
 
   &:focus-visible {
@@ -359,7 +362,7 @@
   padding: 0.4375rem 0.625rem;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: rgba(250, 250, 250, 0.72);
+  color: rgba(245, 239, 230, 0.72);
   text-decoration: none;
   border-radius: 7px;
   transition: background 0.15s, color 0.15s;
@@ -378,12 +381,12 @@
 
 .navItem:hover {
   background: var(--shell-sidebar-hover);
-  color: #fbf7f1;
+  color: #f5efe6;
 }
 
 .active {
   background: var(--shell-accent-soft);
-  color: #fbf7f1;
+  color: #f5efe6;
 
   &::before {
     content: '';
@@ -415,7 +418,7 @@
   height: 26px;
   border: none;
   background: transparent;
-  color: rgba(250, 250, 250, 0.28);
+  color: rgba(245, 239, 230, 0.3);
   border-radius: 6px;
   cursor: pointer;
   opacity: 0;
@@ -472,12 +475,12 @@
 
 .navSubItem:hover {
   background: var(--shell-sidebar-hover);
-  color: #fbf7f1;
+  color: #f5efe6;
 }
 
 .navSubActive {
   background: var(--shell-accent-soft);
-  color: #fbf7f1;
+  color: #f5efe6;
 }
 
 .navSubTag,
@@ -500,7 +503,7 @@
 }
 
 .navSubTag:hover {
-  color: #fbf7f1;
+  color: #f5efe6;
   border-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -551,7 +554,7 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
-  color: #fbf7f1;
+  color: #f5efe6;
   cursor: pointer;
   text-align: left;
 

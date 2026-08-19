@@ -398,7 +398,7 @@ export default function PaymentsSettingsPage() {
                 <div className={styles.feeCard}>
                   <span>Comisión</span>
                   <strong>{fees.commissionLabel}</strong>
-                  <em>Retención TicketOS</em>
+                  <em>Retención de plataforma</em>
                 </div>
                 <div className={styles.feeCard}>
                   <span>Neto estimado</span>

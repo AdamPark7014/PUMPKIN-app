@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import styles from '../legal.module.scss';
 
-export const metadata: Metadata = { title: 'Privacidad — Boletera' };
+export const metadata: Metadata = { title: 'Privacidad' };
 
 export default function PrivacidadPage() {
   return (

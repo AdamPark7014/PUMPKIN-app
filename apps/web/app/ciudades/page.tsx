@@ -11,7 +11,7 @@ import styles from '../hub.module.scss';
 
 const TITLE = 'Eventos por ciudad';
 const DESCRIPTION =
-  'Explora la cartelera de BOLETERA por ciudad en México. Boletos oficiales con inventario real.';
+  'Boletos oficiales de Pumpkin Zone.';
 const PATH = '/ciudades';
 
 export const metadata: Metadata = {

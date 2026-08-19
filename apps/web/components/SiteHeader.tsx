@@ -161,7 +161,7 @@ function SiteHeaderBar({
       } ${theme === 'dark' && !scrolled ? styles.overHero : ''}`}
     >
       <div className={styles.inner}>
-        <Link href="/" className={styles.brand} aria-label="Boletera inicio">
+        <Link href="/" className={styles.brand} aria-label="Pumpkin Zone inicio">
           <span className={styles.logo}>
             <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
               <rect width="32" height="32" rx="9" fill="currentColor" />

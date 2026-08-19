@@ -200,7 +200,7 @@ function LoginForm() {
 
         <div className={styles.shell}>
           <aside className={styles.left}>
-            <p className={styles.kicker}>Tu cuenta Boletera</p>
+            <p className={styles.kicker}>Tu cuenta</p>
             <h1>
               Compra rápido,
               <br />
@@ -258,7 +258,7 @@ function LoginForm() {
               </div>
 
               <header className={styles.cardHead}>
-                <h2>{mode === 'login' ? '¡Hola de nuevo!' : 'Únete a Boletera'}</h2>
+                <h2>{mode === 'login' ? '¡Hola de nuevo!' : 'Crea tu cuenta'}</h2>
                 <p>
                   {mode === 'login'
                     ? 'Entra para ver tus boletos y comprar más rápido.'

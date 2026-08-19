@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import styles from '../legal.module.scss';
 
-export const metadata: Metadata = { title: 'Términos — Boletera' };
+export const metadata: Metadata = { title: 'Términos' };
 
 export default function TerminosPage() {
   return (
@@ -13,7 +13,7 @@ export default function TerminosPage() {
         <h1>Términos de uso</h1>
         <p className={styles.updated}>Última actualización: julio 2026</p>
         <p>
-          Boletera es una plataforma de boletera para promotores en México. Al usar el sitio web, el
+          Pumpkin Zone es el sitio oficial de boletos del evento. Al usar el sitio web, el
           panel admin o la taquilla aceptas estos términos.
         </p>
         <h2>Compras</h2>

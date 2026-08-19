@@ -576,7 +576,7 @@ export function EventDiscoveryPanel({
           </div>
           <div className={styles.heroShade} aria-hidden />
           <div className={styles.heroCopy}>
-            <p className={styles.brandMark}>BOLETERA</p>
+            <p className={styles.brandMark}>PUMPKIN ZONE</p>
             <p className={styles.heroEyebrow}>{categoryLabel(featured.category)}</p>
             <h1>{featured.title}</h1>
             <p className={styles.heroSupport}>
@@ -595,7 +595,7 @@ export function EventDiscoveryPanel({
       <div className={styles.shell}>
         {!featured && !compact && (
           <header className={styles.intro}>
-            <p className={styles.brandMarkDark}>BOLETERA</p>
+            <p className={styles.brandMarkDark}>PUMPKIN ZONE</p>
             <h1 className={styles.introTitle}>Descubre eventos</h1>
             <p className={styles.introLead}>
               Cartelera en vivo con búsqueda, ciudades y categorías según inventario disponible.

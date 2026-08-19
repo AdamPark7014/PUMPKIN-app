@@ -11,7 +11,7 @@ import styles from '../hub.module.scss';
 
 const TITLE = 'Recintos y arenas';
 const DESCRIPTION =
-  'Inmuebles con cartelera activa en BOLETERA. Encuentra tu recinto y compra boletos oficiales.';
+  'Sede oficial de Pumpkin Zone.';
 const PATH = '/venues';
 
 export const metadata: Metadata = {

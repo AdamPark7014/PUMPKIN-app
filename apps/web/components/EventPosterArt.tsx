@@ -146,7 +146,7 @@ export function EventPosterArt({
             />
           </svg>
           <span className={styles.mark}>{initials(event.title)}</span>
-          <span className={styles.brand}>BOLETERA</span>
+          <span className={styles.brand}>PUMPKIN ZONE</span>
         </div>
       )}
       {parts && (

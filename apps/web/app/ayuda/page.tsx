@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import styles from '../legal.module.scss';
 
-export const metadata: Metadata = { title: 'Ayuda — Boletera' };
+export const metadata: Metadata = { title: 'Ayuda' };
 
 export default function AyudaPage() {
   return (

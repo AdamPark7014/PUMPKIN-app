@@ -65,6 +65,11 @@ export class TenantService {
     const hostname = this.normalizeHost(host);
     if (!LOOPBACK_HOSTS.has(hostname)) return [primary.id];
 
+    // Modo tenant fijo (evento único): con DEMO_TENANT_SLUG explícito, el
+    // marketplace local se limita a ese tenant en vez de mezclar las orgs de
+    // demo. Sin la variable, el comportamiento demo queda intacto.
+    if (process.env.DEMO_TENANT_SLUG?.trim()) return [primary.id];
+
     const rows = await this.prisma.organization.findMany({
       where: { slug: { in: [...LOCAL_MARKETPLACE_SLUGS] } },
       select: { id: true },

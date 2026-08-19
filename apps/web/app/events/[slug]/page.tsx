@@ -116,7 +116,7 @@ export async function generateMetadata({
     const title = `${event.title} | Boletos oficiales`;
     const description =
       event.description?.slice(0, 155) ||
-      `Compra boletos oficiales para ${event.title}${venue ? ` en ${venue}` : ''} · ${longDateTime(event.startsAt)}. Pago Banorte.`;
+      `Compra boletos oficiales para ${event.title}${venue ? ` en ${venue}` : ''} · ${longDateTime(event.startsAt)}.`;
     const image = absoluteUrl(event.bannerImage || event.image);
     const url = canonical(`/events/${slug}`);
     return {

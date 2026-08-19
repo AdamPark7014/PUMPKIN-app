@@ -71,7 +71,7 @@ function nextStepCopy(order: OrderDetail, completed: boolean, isDemoFlow: boolea
   }
   if (order.paymentMethod === 'SPEI') {
     return isDemoFlow
-      ? 'Modo demo: simula el acreditamiento Banorte para liberar tus boletos.'
+      ? 'Modo demo: simula el acreditamiento del pago para liberar tus boletos.'
       : 'Transfiere el monto exacto con la referencia indicada. Actualizamos el estado al acreditar.';
   }
   if (order.paymentMethod === 'OXXO') {
@@ -81,7 +81,7 @@ function nextStepCopy(order: OrderDetail, completed: boolean, isDemoFlow: boolea
   }
   return isDemoFlow
     ? 'Si el pago demo no se confirmó, reintenta desde la pantalla de pago.'
-    : 'Si saliste de Banorte, reintenta el pago. No se cobra dos veces por la misma orden.';
+    : 'Si no completaste el pago, reinténtalo. No se cobra dos veces por la misma orden.';
 }
 
 export async function generateMetadata({
@@ -281,7 +281,7 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
                 <p>
                   {isDemoFlow
                     ? 'Datos SPEI de prueba (no uses en banca real):'
-                    : 'Transfiere por SPEI a la CLABE Banorte del promotor:'}
+                    : 'Transfiere por SPEI a la siguiente cuenta:'}
                 </p>
                 {pendingMeta?.clabe && (
                   <p>

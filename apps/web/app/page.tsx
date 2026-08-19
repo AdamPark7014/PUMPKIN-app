@@ -83,7 +83,7 @@ function Hero() {
         </dl>
 
         <div className={styles.ctaRow}>
-          <Link href="#boletos" className={styles.ctaPrimary}>
+          <Link href={`/events/${EVENT.slug}`} className={styles.ctaPrimary}>
             Comprar boletos
           </Link>
           <a
@@ -96,8 +96,28 @@ function Hero() {
           </a>
         </div>
 
+        {/* Accesos con precio dentro del hero: la decisión de compra se toma
+            aquí, sin obligar a nadie a desplazarse. */}
+        <ul className={styles.tierStrip} aria-label="Tipos de acceso">
+          {EVENT.tickets.map((tier) => (
+            <li key={tier.id}>
+              <Link
+                href={`/events/${EVENT.slug}${tier.zone ? `?zone=${encodeURIComponent(tier.zone)}` : ''}`}
+                className={`${styles.tierPill} ${tier.featured ? styles.tierPillHot : ''}`}
+              >
+                <span className={styles.tierPillName}>{tier.name}</span>
+                <span className={styles.tierPillPrice}>{formatPrice(tier.price)}</span>
+                {tier.featured && <span className={styles.tierPillTag}>Popular</span>}
+              </Link>
+            </li>
+          ))}
+          <li className={styles.tierStripNote}>
+            Impuestos incluidos · Sin cargos ocultos · Acceso con código QR
+          </li>
+        </ul>
+
         <div className={styles.countdownWrap}>
-          <p className={styles.countdownLabel}>Faltan</p>
+          <p className={styles.countdownLabel}>Las puertas abren en</p>
           <EventCountdown target={EVENT.startsAt} />
         </div>
       </div>

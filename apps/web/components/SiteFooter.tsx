@@ -23,7 +23,7 @@ export function SiteFooter({ cities = [] }: { cities?: readonly FooterCity[] }) 
       <div className={styles.inner}>
         <div className={styles.brandCol}>
           <p className={styles.brand}>PUMPKIN ZONE</p>
-          <p className={styles.tagline}>Boletos oficiales · Pagos Banorte · Acceso con QR</p>
+          <p className={styles.tagline}>Boletos oficiales · Pago seguro · Acceso con código QR</p>
         </div>
 
         <div className={styles.col}>

@@ -255,8 +255,87 @@
   }
 }
 
+/* ---- Tira de accesos del hero ---- */
+
+.tierStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tierPill {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 10.5rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--pz-hairline);
+  border-radius: var(--radius-lg);
+  background: rgba(20, 12, 10, 0.55);
+  backdrop-filter: blur(10px);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: var(--pz-pumpkin);
+    background: rgba(255, 106, 19, 0.14);
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--pz-pumpkin);
+    outline-offset: 3px;
+  }
+}
+
+.tierPillHot {
+  border-color: rgba(255, 106, 19, 0.6);
+  box-shadow: 0 8px 30px rgba(255, 106, 19, 0.22);
+}
+
+.tierPillName {
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pz-dim);
+}
+
+.tierPillPrice {
+  font-family: var(--font-heading), sans-serif;
+  font-size: 1.55rem;
+  line-height: 1;
+  color: var(--pz-candle);
+}
+
+.tierPillTag {
+  position: absolute;
+  top: -0.55rem;
+  right: 0.8rem;
+  padding: 0.14rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--pz-pumpkin);
+  color: #1a0d05;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tierStripNote {
+  flex-basis: 100%;
+  margin-top: 0.15rem;
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  color: var(--pz-dim);
+}
+
 .countdownWrap {
-  margin-top: var(--space-7);
+  margin-top: var(--space-6);
 }
 
 .countdownLabel {

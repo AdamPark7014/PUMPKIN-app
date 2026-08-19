@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME}`,
   },
   description:
-    'Compra boletos oficiales con inventario real, mapa de asientos y pagos Banorte. México.',
+    'Boletos oficiales para Pumpkin Zone en Puebla. Compra segura y acceso con código QR.',
   applicationName: SITE_NAME,
   openGraph: {
     type: 'website',
@@ -33,13 +33,13 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: `${SITE_NAME} | Boletos oficiales`,
     description:
-      'Cartelera oficial con inventario real, selección de asientos y liquidación Banorte.',
+      'El festival de otoño y Halloween más grande de Puebla. Boletos oficiales.',
     url: SITE_URL,
   },
   twitter: {
     card: 'summary_large_image',
     title: `${SITE_NAME} | Boletos oficiales`,
-    description: 'Boletos oficiales · Inventario real · Pago Banorte.',
+    description: 'Boletos oficiales · Compra segura · Acceso con QR.',
   },
   alternates: { canonical: SITE_URL },
   icons: {

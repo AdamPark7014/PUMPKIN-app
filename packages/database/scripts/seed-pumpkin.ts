@@ -134,6 +134,24 @@ async function main(): Promise<void> {
     console.log('  · managerPinHash restaurado');
   }
 
+  // 1b. Tema de tenant: resolución por dominio en producción ------------------
+  // TenantService busca subdomain/customDomain ANTES que el slug de la org.
+  await prisma.tenantTheme.upsert({
+    where: { organizationId: org.id },
+    update: {
+      subdomain: 'pumpkin',
+      customDomain: 'pumpkin.experiencebt.com.mx',
+    },
+    create: {
+      organizationId: org.id,
+      subdomain: 'pumpkin',
+      customDomain: 'pumpkin.experiencebt.com.mx',
+      primaryColor: '#ff6a13',
+      secondaryColor: '#ffb454',
+    },
+  });
+  console.log('TenantTheme  pumpkin / pumpkin.experiencebt.com.mx');
+
   // 2. Usuarios ---------------------------------------------------------------
   const admin = await prisma.user.upsert({
     where: { email: ADMIN_EMAIL },

@@ -52,12 +52,12 @@ const METHODS: readonly {
   {
     id: 'CARD',
     label: 'Tarjeta',
-    detail: 'Visa / Mastercard · Payworks 3-D Secure',
+    detail: 'Visa / Mastercard · Pago seguro',
   },
   {
     id: 'SPEI',
     label: 'SPEI',
-    detail: 'Transferencia a CLABE Banorte del promotor',
+    detail: 'Transferencia bancaria (CLABE)',
   },
   {
     id: 'OXXO',
@@ -309,11 +309,11 @@ function CheckoutForm() {
         ? 'Recibirás una referencia para pagar en tienda.'
         : demo
           ? 'Simulación local sin cargo real ni datos de tarjeta.'
-          : 'Serás redirigido a Banorte Payworks con 3-D Secure.';
+          : 'Serás redirigido a nuestra plataforma de pago seguro.';
   const recoverHref = cartItem?.slug ? `/events/${cartItem.slug}` : '/events';
   const payLabel = demo
     ? `Simular pago${pricing ? ` ${moneyExact(pricing.total, currency)}` : ''}`
-    : `Pagar${pricing ? ` ${moneyExact(pricing.total, currency)}` : ''} con Banorte`;
+    : `Pagar${pricing ? ` ${moneyExact(pricing.total, currency)}` : ''}`;
 
   return (
     <div className={styles.shell}>
@@ -570,7 +570,7 @@ function CheckoutForm() {
 
             <ol className={styles.nextSteps}>
               <li>Revisa total y método</li>
-              <li>{demo ? 'Simula el pago (sin cargo)' : 'Confirma con Banorte'}</li>
+              <li>{demo ? 'Simula el pago (sin cargo)' : 'Confirma tu pago'}</li>
               <li>Recibe QR de acceso</li>
             </ol>
 

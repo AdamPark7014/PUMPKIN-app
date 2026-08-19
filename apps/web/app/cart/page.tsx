@@ -117,7 +117,7 @@ function CartCard({
           </p>
           <h2>
             {item.slug ? (
-              <Link href={`/events/${item.slug}`}>{item.eventTitle}</Link>
+              <Link href={'/boletos'}>{item.eventTitle}</Link>
             ) : (
               item.eventTitle
             )}
@@ -133,7 +133,7 @@ function CartCard({
         <div>
           <dt>Boletos</dt>
           <dd>
-            {item.seatCount} asiento{item.seatCount === 1 ? '' : 's'}
+            {item.seatCount} boleto{item.seatCount === 1 ? '' : 's'}
           </dd>
         </div>
         {zones && (
@@ -162,8 +162,8 @@ function CartCard({
             Ir a pagar
           </button>
         ) : item.slug ? (
-          <Link href={`/events/${item.slug}`} className={styles.primary}>
-            Reelegir asientos
+          <Link href={'/boletos'} className={styles.primary}>
+            Elegir de nuevo
           </Link>
         ) : (
           <Link href="/events" className={styles.primary}>
@@ -171,7 +171,7 @@ function CartCard({
           </Link>
         )}
         {item.slug && !expired && (
-          <Link href={`/events/${item.slug}`} className={styles.ghost}>
+          <Link href={'/boletos'} className={styles.ghost}>
             Ver evento
           </Link>
         )}
@@ -252,7 +252,7 @@ export default function CartPage() {
 
   return (
     <div className={styles.shell}>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <PurchaseSteps current="cart" />
 
@@ -261,8 +261,8 @@ export default function CartPage() {
           <h1>Tu carrito</h1>
           <p className={styles.lead}>
             {items.length
-              ? 'Tus asientos están en hold. Completa el pago antes de que expire el tiempo.'
-              : 'Cuando elijas asientos, aparecerán aquí listos para pagar.'}
+              ? 'Tus boletos están apartados. Completa el pago antes de que expire el tiempo.'
+              : 'Cuando elijas tus boletos, aparecerán aquí listos para pagar.'}
           </p>
         </header>
 
@@ -314,7 +314,7 @@ export default function CartPage() {
                           <span>{item.eventTitle}</span>
                           <div>
                             {item.slug ? (
-                              <Link href={`/events/${item.slug}`}>Reelegir asientos</Link>
+                              <Link href={'/boletos'}>Elegir de nuevo</Link>
                             ) : (
                               <Link href="/events">Ver eventos</Link>
                             )}
@@ -370,7 +370,7 @@ export default function CartPage() {
                 </p>
               ) : (
                 <p className={styles.multiNote} role="status">
-                  No hay holds activos. Reelige asientos para continuar.
+                  Tu reserva expiró. Elige tus boletos de nuevo para continuar.
                 </p>
               )}
 

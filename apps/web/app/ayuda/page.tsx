@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Ayuda — Boletera' };
 export default function AyudaPage() {
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <h1>Ayuda</h1>
         <p className={styles.updated}>Guía rápida del producto actual</p>

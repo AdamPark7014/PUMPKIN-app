@@ -317,7 +317,7 @@ function CheckoutForm() {
 
   return (
     <div className={styles.shell}>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <PurchaseSteps current="checkout" />
 
@@ -589,7 +589,7 @@ export default function CheckoutPage() {
     <Suspense
       fallback={
         <div className={styles.shell}>
-          <SiteHeader />
+          <SiteHeader theme="dark" />
           <main className={styles.page}>
             <p role="status">Cargando checkout…</p>
           </main>

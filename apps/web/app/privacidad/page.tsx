@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Privacidad — Boletera' };
 export default function PrivacidadPage() {
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <h1>Aviso de privacidad</h1>
         <p className={styles.updated}>Última actualización: julio 2026</p>

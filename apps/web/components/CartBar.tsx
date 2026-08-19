@@ -40,7 +40,7 @@ export function CartBar() {
       >
         <span className={styles.badge}>{items.length}</span>
         <span className={styles.toggleText}>
-          Carrito · {seats} asiento{seats === 1 ? '' : 's'}
+          Carrito · {seats} boleto{seats === 1 ? '' : 's'}
         </span>
         <span
           className={`${styles.clock} ${urgent || soonest <= 0 ? styles.urgent : ''}`}

@@ -9,7 +9,7 @@ const heading = Bebas_Neue({ subsets: ['latin'], variable: '--font-heading', wei
 const body = Space_Grotesk({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {
-  title: 'Boletera Admin',
+  title: 'Pumpkin Zone · Panel',
   description: 'Backoffice de boletería',
   manifest: '/manifest.json',
   themeColor: '#171717',

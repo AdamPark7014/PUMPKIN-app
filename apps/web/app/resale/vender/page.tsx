@@ -45,7 +45,7 @@ export default function ResaleSellPage() {
 
   return (
     <div className={styles.shell}>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <p className={styles.eyebrow}>Reventa oficial</p>
         <h1>Vender boleto</h1>

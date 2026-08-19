@@ -109,7 +109,7 @@ export default async function VenuePage({
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <Breadcrumbs trail={trail} />
         <JsonLd

@@ -69,7 +69,7 @@ export default async function VenuesPage() {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <Breadcrumbs trail={trail} />
         {venues.length > 0 && <JsonLd data={venuesListJsonLd(venues)} />}

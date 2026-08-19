@@ -120,7 +120,7 @@ export default function TaquillaLoginPage() {
               <path d="M9 11h14M9 16h14M9 21h9" stroke="#18181b" strokeWidth="2.4" strokeLinecap="round" />
               <circle cx="22" cy="21" r="2.5" fill="#18181b" />
             </svg>
-            BOLETERA · TAQUILLA
+            PUMPKIN ZONE · TAQUILLA
           </span>
         </div>
         <div className={styles.topRight}>

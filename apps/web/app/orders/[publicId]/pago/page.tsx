@@ -277,7 +277,7 @@ function PagoContent() {
   if (result === 'cancel') {
     return (
       <div className={styles.shell}>
-        <SiteHeader />
+        <SiteHeader theme="dark" />
         <main className={styles.page}>
           <PurchaseSteps current="checkout" />
           <header className={styles.hero}>
@@ -329,7 +329,7 @@ function PagoContent() {
   if (method === 'SPEI' || method === 'OXXO') {
     return (
       <div className={styles.shell}>
-        <SiteHeader />
+        <SiteHeader theme="dark" />
         <main className={styles.page}>
           <PurchaseSteps current="checkout" />
 
@@ -501,7 +501,7 @@ function PagoContent() {
 
   return (
     <div className={styles.shell}>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <PurchaseSteps current="checkout" />
 
@@ -622,7 +622,7 @@ export default function PagoPage() {
     <Suspense
       fallback={
         <div className={styles.shell}>
-          <SiteHeader />
+          <SiteHeader theme="dark" />
           <main className={styles.page}>
             <PurchaseSteps current="checkout" />
             <p className={styles.statusLive} role="status">

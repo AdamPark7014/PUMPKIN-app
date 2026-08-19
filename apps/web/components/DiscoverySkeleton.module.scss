@@ -1,5 +1,5 @@
-$line: #e5e5e5;
-$paper: #f4f4f5;
+$line: rgba(255, 214, 170, 0.14);
+$paper: #141013;
 $white: #fff;
 
 @keyframes shimmer {
@@ -26,7 +26,7 @@ $white: #fff;
   width: 100vw;
   margin-left: calc(50% - 50vw);
   min-height: min(72vh, 620px);
-  background: #171717;
+  background: #f5efe6;
   display: flex;
   align-items: flex-end;
 }

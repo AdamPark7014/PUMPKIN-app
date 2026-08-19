@@ -168,7 +168,7 @@ export default function CortePage() {
     (data: SessionSummary | ClosedSessionReport) => {
       const printable = asPrintable(data);
       const lines = [
-        'CORTE DE CAJA — BOLETERA',
+        'CORTE DE CAJA — PUMPKIN ZONE',
         `Terminal: ${getTerminalLabel()}`,
         `Cajero: ${getCashierId()}`,
         `Inicio: ${formatDateTimeMx(printable.startTime)}`,

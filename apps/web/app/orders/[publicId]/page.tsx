@@ -116,7 +116,7 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
   if (!order) {
     return (
       <div className={styles.shell}>
-        <SiteHeader />
+        <SiteHeader theme="dark" />
         <main className={styles.page}>
           <PurchaseSteps current="tickets" />
           <div className={styles.empty}>
@@ -188,7 +188,7 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
 
   return (
     <div className={styles.shell}>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <PurchaseSteps current={completed ? 'tickets' : 'checkout'} />
 

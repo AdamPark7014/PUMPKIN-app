@@ -4,14 +4,14 @@
   padding: 1.25rem clamp(1.25rem, 4vw, 2rem) 3rem;
   min-height: 70vh;
   background:
-    radial-gradient(ellipse 60% 30% at 90% 0%, rgba(225, 29, 72, 0.06), transparent 50%),
-    #fafafa;
+    radial-gradient(ellipse 60% 30% at 90% 0%, rgba(255, 106, 19, 0.06), transparent 50%),
+    #0b0709;
 }
 
 .head {
   margin-bottom: 0.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid rgba(255, 214, 170, 0.14);
 }
 
 .kicker {
@@ -19,7 +19,7 @@
   font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #e11d48;
+  color: #ff6a13;
   font-weight: 600;
 }
 
@@ -29,11 +29,11 @@
   font-size: clamp(2.25rem, 5vw, 3rem);
   letter-spacing: 0.03em;
   line-height: 1;
-  color: #171717;
+  color: #f5efe6;
 }
 
 .lead {
   margin: 0.5rem 0 0;
-  color: #737373;
+  color: #b3a89e;
   font-size: 0.9375rem;
 }

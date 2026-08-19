@@ -90,7 +90,7 @@ export default async function CategoriaPage({
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <Breadcrumbs trail={trail} />
         {events.length > 0 && (

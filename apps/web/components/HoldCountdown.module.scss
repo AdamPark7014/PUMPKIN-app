@@ -7,7 +7,7 @@
   gap: 0.15rem 1rem;
   margin-bottom: 1.25rem;
   padding: 0.85rem 1rem;
-  background: #fff;
+  background: #1c1417;
   border: 1px solid #e4e4e7;
 }
 
@@ -40,14 +40,14 @@
 
 .urgent {
   border-color: #fda4af;
-  background: #fff1f2;
+  background: rgba(255, 106, 19, 0.12);
 
   .time {
-    color: #e11d48;
+    color: #ff6a13;
   }
 
   .label {
-    color: #be123c;
+    color: #e05a0e;
   }
 }
 

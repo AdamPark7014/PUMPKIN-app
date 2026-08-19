@@ -1,10 +1,10 @@
-$ink: #0a0a0a;
-$ink-2: #171717;
-$mute: #737373;
-$line: #e5e5e5;
-$paper: #f4f4f5;
-$white: #ffffff;
-$accent: #e11d48;
+$ink: #f5efe6;
+$ink-2: #f5efe6;
+$mute: #b3a89e;
+$line: rgba(255, 214, 170, 0.14);
+$paper: #141013;
+$white: #1c1417;
+$accent: #ff6a13;
 
 .wrap {
   display: flex;
@@ -79,11 +79,11 @@ $accent: #e11d48;
   min-height: min(78vh, 680px);
   overflow: hidden;
   text-decoration: none;
-  color: #fafafa;
+  color: #0b0709;
   animation: heroIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 
   &:hover .cta {
-    background: #be123c;
+    background: #e05a0e;
   }
 
   &:hover .heroMedia {
@@ -153,7 +153,7 @@ $accent: #e11d48;
   font-family: var(--font-heading), 'Bebas Neue', sans-serif;
   font-size: clamp(1.35rem, 2.5vw, 1.75rem);
   letter-spacing: 0.28em;
-  color: #fff;
+  color: #1a0d05;
 }
 
 .heroEyebrow {
@@ -191,7 +191,7 @@ $accent: #e11d48;
   display: inline-flex;
   padding: 0.85rem 1.35rem;
   background: $accent;
-  color: #fff;
+  color: #1a0d05;
   font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -232,7 +232,7 @@ $accent: #e11d48;
 .searchSubmit {
   border: none;
   background: $accent;
-  color: #fff;
+  color: #1a0d05;
   font: inherit;
   font-size: 0.875rem;
   font-weight: 700;
@@ -241,7 +241,7 @@ $accent: #e11d48;
   transition: background 0.15s;
 
   &:hover {
-    background: #be123c;
+    background: #e05a0e;
   }
 
   &:focus-visible {
@@ -292,7 +292,7 @@ $accent: #e11d48;
 }
 
 .suggestActive {
-  background: #fafafa;
+  background: #0b0709;
 }
 
 .fieldGrow {
@@ -322,7 +322,7 @@ $accent: #e11d48;
     min-width: 0;
 
     &::placeholder {
-      color: #a3a3a3;
+      color: #8a7f74;
     }
   }
 }
@@ -390,7 +390,7 @@ $accent: #e11d48;
 
 .hubActive {
   background: $accent;
-  color: #fff;
+  color: #1a0d05;
 
   em {
     background: rgba(255, 255, 255, 0.18);
@@ -420,7 +420,7 @@ $accent: #e11d48;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 
   &:hover {
-    border-color: #d4d4d4;
+    border-color: rgba(255, 214, 170, 0.22);
   }
 
   &:focus-visible {
@@ -432,7 +432,7 @@ $accent: #e11d48;
 .catActive {
   background: $ink;
   border-color: $ink;
-  color: #fff;
+  color: #1a0d05;
 
   .catCount {
     background: rgba(255, 255, 255, 0.16);
@@ -507,7 +507,7 @@ $accent: #e11d48;
   transition: border-color 0.15s, transform 0.2s;
 
   &:hover {
-    border-color: #d4d4d4;
+    border-color: rgba(255, 214, 170, 0.22);
     transform: translateY(-1px);
   }
 
@@ -639,7 +639,7 @@ $accent: #e11d48;
 .lazyPosterMd {
   width: 100%;
   height: auto;
-  background: linear-gradient(155deg, #171717, #404040);
+  background: linear-gradient(155deg, #f5efe6, #d5c8b8);
   overflow: hidden;
 
   > * {
@@ -842,7 +842,7 @@ $accent: #e11d48;
 
     .rowCta {
       background: $accent;
-      color: #fff;
+      color: #1a0d05;
       border-color: $accent;
     }
 
@@ -884,7 +884,7 @@ $accent: #e11d48;
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #a3a3a3;
+  color: #8a7f74;
 }
 
 .rowMonth {
@@ -969,7 +969,7 @@ $accent: #e11d48;
   align-items: center;
   gap: 0.65rem;
   border: 1px dashed $line;
-  background: #fff;
+  background: #1c1417;
 }
 
 .error {

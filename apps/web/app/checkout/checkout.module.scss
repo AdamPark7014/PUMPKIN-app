@@ -1,9 +1,9 @@
 .shell {
   min-height: 100vh;
   background:
-    radial-gradient(110% 70% at 100% -5%, rgba(225, 29, 72, 0.06), transparent 55%),
-    linear-gradient(180deg, #fafafa 0%, #f4f4f5 50%, #fafafa 100%);
-  color: #0a0a0a;
+    radial-gradient(110% 70% at 100% -5%, rgba(255, 106, 19, 0.06), transparent 55%),
+    linear-gradient(180deg, #0b0709 0%, #141013 50%, #0b0709 100%);
+  color: #f5efe6;
 }
 
 .page {
@@ -25,7 +25,7 @@
 
   p {
     margin: 0;
-    color: #737373;
+    color: #b3a89e;
     font-size: 0.95rem;
   }
 }
@@ -43,8 +43,8 @@
 }
 
 .formCol {
-  background: #fff;
-  border: 1px solid #e5e5e5;
+  background: #1c1417;
+  border: 1px solid rgba(255, 214, 170, 0.14);
   padding: 1.2rem 1.25rem 1.35rem;
 }
 
@@ -55,15 +55,15 @@
 .banorteNote {
   margin: 0 0 1.1rem;
   padding: 0.7rem 0.8rem;
-  background: #fafafa;
-  border: 1px solid #e5e5e5;
-  color: #404040;
+  background: #0b0709;
+  border: 1px solid rgba(255, 214, 170, 0.14);
+  color: #d5c8b8;
   font-size: 0.86rem;
   line-height: 1.4;
 }
 
 .banorteDemo {
-  background: #fff7ed;
+  background: rgba(255, 180, 84, 0.08);
   border-color: #fdba74;
   color: #9a3412;
 }
@@ -85,22 +85,22 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #737373;
+    color: #b3a89e;
   }
 
   input {
     width: 100%;
     padding: 0.75rem 0.85rem;
-    border: 1px solid #e5e5e5;
-    background: #fff;
+    border: 1px solid rgba(255, 214, 170, 0.14);
+    background: #1c1417;
     font-size: 0.95rem;
     font-weight: 500;
-    color: #171717;
+    color: #f5efe6;
 
     &:focus {
-      outline: 2px solid rgba(225, 29, 72, 0.35);
+      outline: 2px solid rgba(255, 106, 19, 0.35);
       outline-offset: -1px;
-      border-color: #e11d48;
+      border-color: #ff6a13;
     }
   }
 }
@@ -116,7 +116,7 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #737373;
+    color: #b3a89e;
   }
 
   input {
@@ -124,19 +124,19 @@
     width: 100%;
     margin-top: 0.4rem;
     padding: 0.75rem 0.85rem;
-    border: 1px solid #e5e5e5;
-    background: #fff;
+    border: 1px solid rgba(255, 214, 170, 0.14);
+    background: #1c1417;
     font: inherit;
     font-size: 0.95rem;
     font-weight: 500;
     letter-spacing: 0;
     text-transform: none;
-    color: #171717;
+    color: #f5efe6;
 
     &:focus {
-      outline: 2px solid rgba(225, 29, 72, 0.35);
+      outline: 2px solid rgba(255, 106, 19, 0.35);
       outline-offset: -1px;
-      border-color: #e11d48;
+      border-color: #ff6a13;
     }
 
     &:disabled {
@@ -156,7 +156,7 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #737373;
+    color: #b3a89e;
     margin-bottom: 0.55rem;
   }
 }
@@ -173,37 +173,37 @@
   gap: 0.15rem;
   width: 100%;
   padding: 0.8rem 0.9rem;
-  border: 1px solid #e5e5e5;
-  background: #fff;
+  border: 1px solid rgba(255, 214, 170, 0.14);
+  background: #1c1417;
   text-align: left;
   cursor: pointer;
   font: inherit;
 
   strong {
     font-size: 0.95rem;
-    color: #0a0a0a;
+    color: #f5efe6;
   }
 
   span {
     font-size: 0.8rem;
-    color: #737373;
+    color: #b3a89e;
   }
 
   &:hover {
-    border-color: #a3a3a3;
+    border-color: #8a7f74;
   }
 }
 
 .methodOn {
-  border-color: #e11d48;
-  box-shadow: inset 3px 0 0 #e11d48;
-  background: #fff1f2;
+  border-color: #ff6a13;
+  box-shadow: inset 3px 0 0 #ff6a13;
+  background: rgba(255, 106, 19, 0.12);
 }
 
 .methodHint {
   margin: 0.55rem 0 0;
   font-size: 0.78rem;
-  color: #737373;
+  color: #b3a89e;
   line-height: 1.4;
 }
 
@@ -218,8 +218,8 @@
 
   button {
     padding: 0.65rem 0.9rem;
-    border: 1px solid #e5e5e5;
-    background: #fff;
+    border: 1px solid rgba(255, 214, 170, 0.14);
+    background: #1c1417;
     cursor: pointer;
     font-size: 0.8125rem;
     font-weight: 700;
@@ -302,8 +302,8 @@
 .pay {
   width: 100%;
   padding: 0.95rem 1.25rem;
-  background: #e11d48;
-  color: #fff;
+  background: #ff6a13;
+  color: #1a0d05;
   border: none;
   font-size: 0.95rem;
   font-weight: 700;
@@ -315,18 +315,18 @@
   }
 
   &:not(:disabled):hover {
-    background: #be123c;
+    background: #e05a0e;
   }
 }
 
 .fine {
   margin: 0.85rem 0 0;
   font-size: 0.75rem;
-  color: #a3a3a3;
+  color: #8a7f74;
   line-height: 1.45;
 
   a {
-    color: #737373;
+    color: #b3a89e;
     text-decoration: underline;
     text-underline-offset: 0.15em;
   }
@@ -347,8 +347,8 @@
 
 .lineItems {
   padding: 1rem 1.1rem;
-  background: #fff;
-  border: 1px solid #e5e5e5;
+  background: #1c1417;
+  border: 1px solid rgba(255, 214, 170, 0.14);
 }
 
 .summaryKicker {
@@ -357,20 +357,20 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #737373;
+  color: #b3a89e;
 }
 
 .lineItems h2 {
   margin: 0 0 0.35rem;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #0a0a0a;
+  color: #f5efe6;
 }
 
 .lineMeta {
   margin: 0;
   font-size: 0.8125rem;
-  color: #737373;
+  color: #b3a89e;
   line-height: 1.4;
 }
 
@@ -388,12 +388,12 @@
   gap: 0.75rem;
   padding: 0.25rem 0;
   font-size: 0.875rem;
-  color: #404040;
+  color: #d5c8b8;
 
   em {
     font-style: normal;
     font-weight: 700;
-    color: #0a0a0a;
+    color: #f5efe6;
   }
 }
 
@@ -406,9 +406,9 @@
     font-size: 0.72rem;
     font-weight: 600;
     padding: 0.25rem 0.45rem;
-    background: #fafafa;
-    border: 1px solid #e5e5e5;
-    color: #404040;
+    background: #0b0709;
+    border: 1px solid rgba(255, 214, 170, 0.14);
+    color: #d5c8b8;
   }
 }
 
@@ -421,20 +421,20 @@
 .summaryStatus {
   margin: 0 0 0.65rem;
   padding: 0.85rem 1rem;
-  background: #fff;
-  border: 1px solid #e5e5e5;
+  background: #1c1417;
+  border: 1px solid rgba(255, 214, 170, 0.14);
   font-size: 0.82rem;
-  color: #737373;
+  color: #b3a89e;
   line-height: 1.4;
 }
 
 .nextSteps {
   margin: 0;
   padding: 0.85rem 1rem 0.85rem 1.8rem;
-  background: #fff;
-  border: 1px solid #e5e5e5;
+  background: #1c1417;
+  border: 1px solid rgba(255, 214, 170, 0.14);
   font-size: 0.8rem;
-  color: #525252;
+  color: #b3a89e;
   line-height: 1.45;
 
   li + li {
@@ -445,11 +445,11 @@
 .backCart {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #737373;
+  color: #b3a89e;
   text-decoration: none;
 
   &:hover {
-    color: #e11d48;
+    color: #ff6a13;
   }
 }
 

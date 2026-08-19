@@ -1,9 +1,9 @@
 .shell {
   min-height: 100vh;
-  color: #0a0a0a;
+  color: #f5efe6;
   background:
-    radial-gradient(100% 60% at 0% -5%, rgba(225, 29, 72, 0.05), transparent 50%),
-    linear-gradient(180deg, #fafafa 0%, #f4f4f5 55%, #fafafa 100%);
+    radial-gradient(100% 60% at 0% -5%, rgba(255, 106, 19, 0.05), transparent 50%),
+    linear-gradient(180deg, #0b0709 0%, #141013 55%, #0b0709 100%);
 }
 
 .page {
@@ -18,7 +18,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #737373;
+  color: #b3a89e;
 }
 
 .page h1 {
@@ -31,7 +31,7 @@
 
 .lead {
   margin: 0 0 1.25rem;
-  color: #737373;
+  color: #b3a89e;
   font-size: 0.92rem;
   line-height: 1.45;
 }
@@ -41,8 +41,8 @@
   flex-direction: column;
   gap: 0.95rem;
   padding: 1.15rem 1.2rem;
-  background: #fff;
-  border: 1px solid #e5e5e5;
+  background: #1c1417;
+  border: 1px solid rgba(255, 214, 170, 0.14);
 
   label {
     display: flex;
@@ -52,23 +52,23 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #737373;
+    color: #b3a89e;
   }
 
   input {
     padding: 0.7rem 0.8rem;
-    border: 1px solid #e5e5e5;
+    border: 1px solid rgba(255, 214, 170, 0.14);
     font: inherit;
     font-size: 0.95rem;
     font-weight: 500;
     letter-spacing: 0;
     text-transform: none;
-    color: #171717;
+    color: #f5efe6;
 
     &:focus {
-      outline: 2px solid rgba(225, 29, 72, 0.35);
+      outline: 2px solid rgba(255, 106, 19, 0.35);
       outline-offset: -1px;
-      border-color: #e11d48;
+      border-color: #ff6a13;
     }
   }
 
@@ -76,8 +76,8 @@
     margin-top: 0.25rem;
     padding: 0.85rem 1rem;
     border: none;
-    background: #e11d48;
-    color: #fff;
+    background: #ff6a13;
+    color: #1a0d05;
     font: inherit;
     font-weight: 700;
     cursor: pointer;
@@ -88,7 +88,7 @@
     }
 
     &:not(:disabled):hover {
-      background: #be123c;
+      background: #e05a0e;
     }
   }
 }
@@ -105,9 +105,9 @@
   margin-top: 1rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #737373;
+  color: #b3a89e;
 
   &:hover {
-    color: #e11d48;
+    color: #ff6a13;
   }
 }

@@ -66,7 +66,7 @@ export function AuthShell({ children, compact = false }: AuthShellProps) {
                 <LogoMark />
               </div>
               <div>
-                <p className={styles.logoText}>BOLETERA</p>
+                <p className={styles.logoText}>PUMPKIN ZONE</p>
                 <p className={styles.logoSub}>Administración</p>
               </div>
             </div>
@@ -127,7 +127,7 @@ export function AuthShell({ children, compact = false }: AuthShellProps) {
           </ul>
 
           <p className={styles.brandFooter}>
-            © {new Date().getFullYear()} Boletera · SOC 2 Type II · PCI-DSS L1
+            © {new Date().getFullYear()} Pumpkin Zone · Ricordi × Murad
           </p>
         </aside>
 
@@ -146,7 +146,7 @@ export function MobileBrand() {
         <LogoMark inverted />
       </div>
       <div>
-        <p className={styles.logoTextDark}>BOLETERA</p>
+        <p className={styles.logoTextDark}>PUMPKIN ZONE</p>
         <p className={styles.logoSubDark}>Administración</p>
       </div>
     </div>

@@ -66,7 +66,7 @@ export default async function CiudadesPage() {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <Breadcrumbs trail={trail} />
         {cities.length > 0 && <JsonLd data={citiesListJsonLd(cities)} />}

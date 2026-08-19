@@ -1,9 +1,9 @@
 .shell {
   min-height: 100vh;
-  color: #0a0a0a;
+  color: #f5efe6;
   background:
-    radial-gradient(100% 60% at 100% -5%, rgba(225, 29, 72, 0.06), transparent 55%),
-    linear-gradient(180deg, #fafafa 0%, #f4f4f5 50%, #fafafa 100%);
+    radial-gradient(100% 60% at 100% -5%, rgba(255, 106, 19, 0.06), transparent 55%),
+    linear-gradient(180deg, #0b0709 0%, #141013 50%, #0b0709 100%);
 }
 
 .page {
@@ -22,7 +22,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #737373;
+  color: #b3a89e;
 }
 
 .hero h1 {
@@ -36,7 +36,7 @@
 .lead {
   margin: 0;
   max-width: 36rem;
-  color: #737373;
+  color: #b3a89e;
   font-size: 0.98rem;
   line-height: 1.5;
 }
@@ -60,18 +60,18 @@
 }
 
 .primary {
-  background: #e11d48;
-  color: #fff;
+  background: #ff6a13;
+  color: #1a0d05;
 
   &:hover {
-    background: #be123c;
+    background: #e05a0e;
   }
 }
 
 .ghost {
-  border: 1px solid #e5e5e5;
-  background: #fff;
-  color: #0a0a0a;
+  border: 1px solid rgba(255, 214, 170, 0.14);
+  background: #1c1417;
+  color: #f5efe6;
 }
 
 .trust {
@@ -88,8 +88,8 @@
 
   li {
     padding: 0.85rem 0.95rem;
-    background: #fff;
-    border: 1px solid #e5e5e5;
+    background: #1c1417;
+    border: 1px solid rgba(255, 214, 170, 0.14);
   }
 
   strong {
@@ -100,7 +100,7 @@
 
   span {
     font-size: 0.78rem;
-    color: #737373;
+    color: #b3a89e;
     line-height: 1.35;
   }
 }
@@ -121,7 +121,7 @@
 
   span {
     font-size: 0.8rem;
-    color: #737373;
+    color: #b3a89e;
     font-weight: 600;
   }
 }
@@ -129,8 +129,8 @@
 .empty {
   padding: 1.5rem 1.2rem;
   text-align: center;
-  background: #fff;
-  border: 1px dashed #d4d4d4;
+  background: #1c1417;
+  border: 1px dashed rgba(255, 214, 170, 0.22);
 
   strong {
     display: block;
@@ -139,12 +139,12 @@
 
   p {
     margin: 0 0 0.85rem;
-    color: #737373;
+    color: #b3a89e;
     font-size: 0.9rem;
   }
 
   a {
-    color: #e11d48;
+    color: #ff6a13;
     font-weight: 700;
   }
 }
@@ -163,8 +163,8 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.1rem;
-  background: #fff;
-  border: 1px solid #e5e5e5;
+  background: #1c1417;
+  border: 1px solid rgba(255, 214, 170, 0.14);
 
   h3 {
     margin: 0;
@@ -189,12 +189,12 @@
 .compare {
   margin: 0.25rem 0 0;
   font-size: 0.82rem;
-  color: #737373;
+  color: #b3a89e;
 }
 
 .compare {
   font-weight: 600;
-  color: #525252;
+  color: #b3a89e;
 }
 
 .side {
@@ -211,7 +211,7 @@
 
     span {
       font-size: 0.7rem;
-      color: #737373;
+      color: #b3a89e;
       font-weight: 600;
     }
   }
@@ -219,12 +219,12 @@
   a {
     font-size: 0.8rem;
     font-weight: 700;
-    color: #e11d48;
+    color: #ff6a13;
   }
 }
 
 .id {
   font-size: 0.75rem;
-  color: #a3a3a3;
+  color: #8a7f74;
   font-family: ui-monospace, monospace;
 }

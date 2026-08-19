@@ -73,7 +73,7 @@ function ForgotForm() {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <div className={styles.glow} aria-hidden="true" />
         <div className={styles.right}>
@@ -151,7 +151,7 @@ function ForgotForm() {
 function AuthFallback() {
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <div className={styles.loadingCard} role="status">
           <span className={styles.spinnerDark} aria-hidden="true" />

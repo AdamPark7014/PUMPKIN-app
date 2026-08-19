@@ -1,12 +1,12 @@
-$ink: #0a0a0a;
-$mute: #737373;
-$line: #e5e5e5;
-$paper: #fafafa;
-$accent: #e11d48;
+$ink: #f5efe6;
+$mute: #b3a89e;
+$line: rgba(255, 214, 170, 0.14);
+$paper: #0b0709;
+$accent: #ff6a13;
 
 .footer {
   margin-top: auto;
-  background: #fff;
+  background: #1c1417;
   border-top: 1px solid $line;
   color: $ink;
 }
@@ -68,7 +68,7 @@ $accent: #e11d48;
   }
 
   a {
-    color: #404040;
+    color: #d5c8b8;
     text-decoration: none;
     font-size: 0.875rem;
 

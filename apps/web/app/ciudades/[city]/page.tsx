@@ -88,7 +88,7 @@ export default async function CiudadPage({
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <Breadcrumbs trail={trail} />
         {events.length > 0 && (

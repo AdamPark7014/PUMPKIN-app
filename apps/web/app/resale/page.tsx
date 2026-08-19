@@ -41,7 +41,7 @@ export default async function ResalePage() {
 
   return (
     <div className={styles.shell}>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <header className={styles.hero}>
           <p className={styles.eyebrow}>Mercado secundario</p>

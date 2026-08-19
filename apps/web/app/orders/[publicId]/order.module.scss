@@ -4,7 +4,7 @@
   min-height: 100%;
   color: var(--ink-950);
   background:
-    radial-gradient(100% 55% at 50% -12%, rgba(225, 29, 72, 0.06), transparent 58%),
+    radial-gradient(100% 55% at 50% -12%, rgba(255, 106, 19, 0.06), transparent 58%),
     linear-gradient(180deg, var(--paper-50) 0%, var(--paper-100) 48%, var(--paper-50) 100%);
 }
 
@@ -115,7 +115,7 @@
 .tlCurrent {
   color: #9a3412 !important;
   border-color: #fdba74 !important;
-  background: #fff7ed !important;
+  background: rgba(255, 180, 84, 0.08) !important;
 
   &::before {
     background: #ea580c !important;

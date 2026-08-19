@@ -38,7 +38,7 @@ export function buildEscPosReceipt(lines: string[]): string {
   const boldOff = `${ESC}E\x00`;
   const cut = `${GS}V\x00`;
   const body = lines.join('\n');
-  return `${init}${center}${boldOn}BOLETERA TAQUILLA${boldOff}\n${left}${body}\n\n${cut}`;
+  return `${init}${center}${boldOn}PUMPKIN ZONE${boldOff}\n${left}${body}\n\n${cut}`;
 }
 
 /** Cash drawer kick (pin 2, 50ms on / 50ms off) */

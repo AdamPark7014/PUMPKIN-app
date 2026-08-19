@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Términos — Boletera' };
 export default function TerminosPage() {
   return (
     <>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <h1>Términos de uso</h1>
         <p className={styles.updated}>Última actualización: julio 2026</p>

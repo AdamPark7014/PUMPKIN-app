@@ -1,15 +1,15 @@
-$ink: #0a0a0a;
-$mute: #737373;
-$line: #e5e5e5;
-$accent: #e11d48;
-$paper: #fafafa;
+$ink: #f5efe6;
+$mute: #b3a89e;
+$line: rgba(255, 214, 170, 0.14);
+$accent: #ff6a13;
+$paper: #0b0709;
 
 .shell {
   min-height: 100vh;
   color: $ink;
   background:
-    radial-gradient(110% 70% at 100% -5%, rgba(225, 29, 72, 0.06), transparent 55%),
-    linear-gradient(180deg, #fafafa 0%, #f4f4f5 50%, #fafafa 100%);
+    radial-gradient(110% 70% at 100% -5%, rgba(255, 106, 19, 0.06), transparent 55%),
+    linear-gradient(180deg, #0b0709 0%, #141013 50%, #0b0709 100%);
 }
 
 .page {
@@ -65,14 +65,14 @@ $paper: #fafafa;
 }
 
 .card {
-  background: #fff;
+  background: #1c1417;
   border: 1px solid $line;
   padding: 1.15rem 1.2rem 1.1rem;
 }
 
 .cardExpired {
   opacity: 0.92;
-  background: #fafafa;
+  background: #0b0709;
 }
 
 .cardTop {
@@ -185,7 +185,7 @@ $paper: #fafafa;
   padding: 0.7rem 1.15rem;
   border: none;
   background: $accent;
-  color: #fff;
+  color: #1a0d05;
   font: inherit;
   font-size: 0.88rem;
   font-weight: 700;
@@ -194,7 +194,7 @@ $paper: #fafafa;
   text-decoration: none;
 
   &:hover {
-    background: #be123c;
+    background: #e05a0e;
   }
 }
 
@@ -210,7 +210,7 @@ $paper: #fafafa;
   justify-content: center;
   padding: 0.65rem 0.95rem;
   border: 1px solid $line;
-  background: #fff;
+  background: #1c1417;
   color: $ink;
   font: inherit;
   font-size: 0.86rem;
@@ -219,7 +219,7 @@ $paper: #fafafa;
   text-decoration: none;
 
   &:hover {
-    border-color: #a3a3a3;
+    border-color: #8a7f74;
   }
 }
 
@@ -245,7 +245,7 @@ $paper: #fafafa;
 
 .expiredBlock {
   padding: 1rem 1.1rem;
-  border: 1px dashed #d4d4d4;
+  border: 1px dashed rgba(255, 214, 170, 0.22);
   background: rgba(255, 255, 255, 0.65);
 
   h3 {
@@ -293,7 +293,7 @@ $paper: #fafafa;
 .summary {
   position: sticky;
   top: 5rem;
-  background: #fff;
+  background: #1c1417;
   border: 1px solid $line;
   padding: 1.15rem 1.2rem 1.2rem;
 
@@ -360,7 +360,7 @@ $paper: #fafafa;
   background: $paper;
   border: 1px solid $line;
   font-size: 0.82rem;
-  color: #525252;
+  color: #b3a89e;
   line-height: 1.4;
 }
 
@@ -395,7 +395,7 @@ $paper: #fafafa;
   margin: 1rem auto 0;
   text-align: center;
   padding: 2.5rem 1.25rem;
-  background: #fff;
+  background: #1c1417;
   border: 1px solid $line;
 
   h2 {
@@ -420,8 +420,8 @@ $paper: #fafafa;
   span {
     width: 2.4rem;
     height: 3.2rem;
-    border: 2px solid rgba(225, 29, 72, 0.35);
-    background: linear-gradient(160deg, rgba(225, 29, 72, 0.12), transparent);
+    border: 2px solid rgba(255, 106, 19, 0.35);
+    background: linear-gradient(160deg, rgba(255, 106, 19, 0.12), transparent);
   }
 }
 

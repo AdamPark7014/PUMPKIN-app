@@ -6,7 +6,7 @@ import './globals.scss';
 const body = Space_Grotesk({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {
-  title: 'Boletera Taquilla',
+  title: 'Pumpkin Zone · Taquilla',
   description: 'POS de taquilla',
   manifest: '/manifest.json',
 };

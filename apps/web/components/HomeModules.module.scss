@@ -1,7 +1,7 @@
-$ink: #0a0a0a;
-$mute: #737373;
-$line: #e5e5e5;
-$accent: #e11d48;
+$ink: #f5efe6;
+$mute: #b3a89e;
+$line: rgba(255, 214, 170, 0.14);
+$accent: #ff6a13;
 
 .wrap {
   max-width: 72rem;
@@ -114,11 +114,11 @@ $accent: #e11d48;
   min-height: 8.5rem;
   padding: 1.15rem 1.05rem;
   overflow: hidden;
-  color: #fafafa;
+  color: #0b0709;
   text-decoration: none;
   background:
     linear-gradient(160deg, rgba(10, 10, 10, 0.2), rgba(10, 10, 10, 0.85)),
-    linear-gradient(135deg, #1c1917, #404040 55%, #e11d48);
+    linear-gradient(135deg, #1c1917, #d5c8b8 55%, #ff6a13);
 
   &::before {
     content: '';
@@ -126,7 +126,7 @@ $accent: #e11d48;
     inset: -40% -20% auto auto;
     width: 70%;
     height: 90%;
-    background: radial-gradient(circle, rgba(225, 29, 72, 0.35), transparent 65%);
+    background: radial-gradient(circle, rgba(255, 106, 19, 0.35), transparent 65%);
     pointer-events: none;
   }
 
@@ -155,19 +155,19 @@ $accent: #e11d48;
   &:nth-child(2) {
     background:
       linear-gradient(160deg, rgba(10, 10, 10, 0.25), rgba(10, 10, 10, 0.88)),
-      linear-gradient(135deg, #0c4a6e, #0284c7 60%, #0a0a0a);
+      linear-gradient(135deg, #0c4a6e, #0284c7 60%, #f5efe6);
   }
 
   &:nth-child(3) {
     background:
       linear-gradient(160deg, rgba(10, 10, 10, 0.2), rgba(10, 10, 10, 0.88)),
-      linear-gradient(135deg, #431407, #c2410c 55%, #0a0a0a);
+      linear-gradient(135deg, #431407, #c2410c 55%, #f5efe6);
   }
 
   &:nth-child(4) {
     background:
       linear-gradient(160deg, rgba(10, 10, 10, 0.25), rgba(10, 10, 10, 0.9)),
-      linear-gradient(135deg, #14532d, #166534 50%, #0a0a0a);
+      linear-gradient(135deg, #14532d, #166534 50%, #f5efe6);
   }
 }
 
@@ -219,7 +219,7 @@ $accent: #e11d48;
 
 .venueArt {
   height: 9rem;
-  background: linear-gradient(135deg, #171717, #525252);
+  background: linear-gradient(135deg, #f5efe6, #b3a89e);
   background-size: cover;
   background-position: center;
   transition: transform 0.45s ease;

@@ -17,7 +17,7 @@
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 50% 50% at 20% 30%, rgba(225, 29, 72, 0.08), transparent 60%),
+    radial-gradient(ellipse 50% 50% at 20% 30%, rgba(255, 106, 19, 0.08), transparent 60%),
     radial-gradient(ellipse 60% 50% at 80% 70%, rgba(190, 18, 60, 0.06), transparent 60%);
 }
 
@@ -408,12 +408,12 @@
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.28);
+  box-shadow: 0 4px 14px rgba(255, 106, 19, 0.28);
   transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
 
   &:hover:not(:disabled) {
     filter: brightness(1.05);
-    box-shadow: 0 6px 18px rgba(225, 29, 72, 0.38);
+    box-shadow: 0 6px 18px rgba(255, 106, 19, 0.38);
   }
 
   &:active:not(:disabled) {
@@ -430,7 +430,7 @@
   width: 1rem;
   height: 1rem;
   border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
+  border-top-color: #1a0d05;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }

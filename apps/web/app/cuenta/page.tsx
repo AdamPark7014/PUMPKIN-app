@@ -296,7 +296,7 @@ export default function CuentaPage() {
   if (!ready) {
     return (
       <div className={styles.shell}>
-        <SiteHeader />
+        <SiteHeader theme="dark" />
         <main className={styles.page} aria-busy="true">
           <p className={styles.loading}>Verificando sesión…</p>
         </main>
@@ -306,7 +306,7 @@ export default function CuentaPage() {
 
   return (
     <div className={styles.shell}>
-      <SiteHeader />
+      <SiteHeader theme="dark" />
       <main className={styles.page}>
         <div
           className={styles.toastRegion}

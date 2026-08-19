@@ -23,6 +23,7 @@ export type SalesChannelType = SalesChannelValue;
 export type PaymentProviderId =
   | 'stripe'
   | 'banorte'
+  | 'mercadopago'
   | 'cash'
   | 'oxxo'
   | 'clip'

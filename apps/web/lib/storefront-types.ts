@@ -311,6 +311,8 @@ export type OrderDetail = {
       type?: string;
       reference?: string;
       demo?: boolean;
+      /** Mercado Pago: init_point para retomar el pago. */
+      redirectUrl?: string;
     } | null;
   } | null;
 };

@@ -16,7 +16,12 @@ import {
   TicketStatus,
 } from '@prisma/client';
 import { buildQrPayload, generateTicketCode } from '@boletera/crypto';
-import { initDefaultProviders, getProvider, BanorteProvider } from '@boletera/payments';
+import {
+  initDefaultProviders,
+  getProvider,
+  onlinePaymentProviderId,
+  BanorteProvider,
+} from '@boletera/payments';
 import QRCode from 'qrcode';
 import { AuditService } from '../../common/audit.service';
 import { TenantContextService } from '../../common/tenant-context.service';
@@ -172,9 +177,16 @@ export class OrdersService {
     await this.quotas.assertAvailable(dto.eventId, channel, holds.length);
 
     const method = isComp ? 'CASH' : (dto.paymentMethod ?? 'CARD').toUpperCase();
-    const providerId = method === 'CASH' ? 'cash' : 'banorte';
+    // Efectivo (taquilla/cortesía) va a 'cash'; lo online lo decide el registro
+    // de pasarelas (Mercado Pago si está configurado, Banorte si no).
+    const providerId = method === 'CASH' ? 'cash' : onlinePaymentProviderId();
     const provider = getProvider(providerId);
-    const banorte = provider as BanorteProvider;
+    const gatewayEnum =
+      providerId === 'mercadopago'
+        ? PaymentGateway.MERCADOPAGO
+        : providerId === 'banorte'
+          ? PaymentGateway.BANORTE
+          : PaymentGateway.CASH;
     const payMethodEnum = this.toPaymentMethod(method);
 
     const posOps = {
@@ -183,8 +195,9 @@ export class OrdersService {
     };
 
     const asyncBanorte =
-      providerId === 'banorte' &&
-      banorte.requiresAsyncCapture({
+      providerId === 'mercadopago' ||
+      (providerId === 'banorte' &&
+      (provider as BanorteProvider).requiresAsyncCapture({
         amount: totalAmount,
         currency: event.currency,
         orderId: 'pending',
@@ -192,14 +205,14 @@ export class OrdersService {
         buyerEmail: dto.buyerEmail,
         buyerName: dto.buyerName,
         paymentMethod: method as 'CARD' | 'SPEI' | 'OXXO',
-      });
+      }));
 
     // Claim idempotency key before mutating holds so concurrent retries share one order.
     if (dto.idempotencyKey) {
       try {
         await this.prisma.paymentIntent.create({
           data: {
-            provider: providerId === 'banorte' ? PaymentGateway.BANORTE : PaymentGateway.CASH,
+            provider: gatewayEnum,
             externalId: `pending_${dto.idempotencyKey}`,
             amount: totalAmount,
             currency: event.currency,
@@ -334,8 +347,7 @@ export class OrdersService {
 
           const payment = await tx.payment.create({
             data: {
-              gateway:
-                providerId === 'banorte' ? PaymentGateway.BANORTE : PaymentGateway.CASH,
+              gateway: gatewayEnum,
               externalId: capture.externalId,
               status: PaymentStatus.COMPLETED,
               amount: totalAmount,
@@ -411,7 +423,9 @@ export class OrdersService {
     await this.quotas.consume(dto.eventId, channel, holds.length);
 
     if (asyncBanorte) {
-      const intent = await banorte.createIntent({
+      // `provider` es la pasarela online activa (MP o Banorte): ambas
+      // devuelven redirectUrl en este camino.
+      const intent = await provider.createIntent({
         amount: totalAmount,
         currency: event.currency,
         orderId: order.id,
@@ -430,7 +444,7 @@ export class OrdersService {
             idempotencyKey: dto.idempotencyKey,
           },
           data: {
-            provider: PaymentGateway.BANORTE,
+            provider: gatewayEnum,
             externalId: intent.externalId ?? intent.intentId,
             status: PaymentStatus.PENDING,
             metadata: {
@@ -445,7 +459,7 @@ export class OrdersService {
         await this.prisma.paymentIntent.create({
           data: {
             orderId: order.id,
-            provider: PaymentGateway.BANORTE,
+            provider: gatewayEnum,
             externalId: intent.externalId ?? intent.intentId,
             amount: totalAmount,
             currency: event.currency,
@@ -469,7 +483,7 @@ export class OrdersService {
       return {
         ...full,
         paymentAction: {
-          gateway: 'BANORTE',
+          gateway: providerId.toUpperCase(),
           intentId: intent.intentId,
           redirectUrl: intent.redirectUrl,
           reference: intent.reference,

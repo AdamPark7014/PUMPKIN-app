@@ -22,6 +22,11 @@ import {
   getBanorteConfig,
   getBanorteIpnEndpoints,
   validateBanorteProductionConfig,
+  getMercadoPagoConfig,
+  isMercadoPagoConfigured,
+  validateMercadoPagoProductionConfig,
+  type MercadoPagoProvider,
+  type MercadoPagoWebhookPayload,
 } from '@boletera/payments';
 import { generateTicketCode } from '@boletera/crypto';
 import { AuditService } from '../../common/audit.service';
@@ -748,6 +753,20 @@ export class PaymentService {
     });
   }
 
+  async handleMercadoPagoWebhook(payload: MercadoPagoWebhookPayload) {
+    const mp = getProvider('mercadopago') as MercadoPagoProvider;
+    let result;
+    try {
+      result = await mp.handleWebhook(payload);
+    } catch (error) {
+      this.logger.warn(
+        `Mercado Pago webhook rejected: ${error instanceof Error ? error.message : error}`,
+      );
+      throw new BadRequestException('Invalid Mercado Pago webhook');
+    }
+    return this.applyWebhookResult(result, 'mercadopago');
+  }
+
   async handleBanorteWebhook(payload: unknown, signature?: string) {
     let result;
     try {
@@ -756,9 +775,21 @@ export class PaymentService {
       this.logger.warn(`Banorte webhook rejected: ${error instanceof Error ? error.message : error}`);
       throw new BadRequestException('Invalid Banorte webhook');
     }
+    return this.applyWebhookResult(result, 'banorte');
+  }
+
+  /**
+   * Aplica el resultado normalizado de un webhook a la orden. Compartido por
+   * todas las pasarelas: la lógica de "completar" o "fallar" no depende de
+   * quién cobró.
+   */
+  private async applyWebhookResult(
+    result: { orderId?: string; intentId?: string; status: string },
+    source: 'banorte' | 'mercadopago',
+  ) {
 
     if (!result.orderId) {
-      this.logger.warn('Banorte webhook without orderId');
+      this.logger.warn(`${source} webhook without orderId`);
       return { received: true };
     }
 
@@ -775,12 +806,12 @@ export class PaymentService {
     }
 
     if (!order) {
-      this.logger.warn(`Banorte webhook: order not found ${result.orderId}`);
+      this.logger.warn(`${source} webhook: order not found ${result.orderId}`);
       return { received: true };
     }
 
     if (result.status === 'completed') {
-      await this.completeOrder(order.id, result.intentId ?? `banorte_${order.id}`);
+      await this.completeOrder(order.id, result.intentId ?? `${source}_${order.id}`);
     } else if (result.status === 'failed') {
       await this.prisma.order.updateMany({
         where: {
@@ -795,11 +826,37 @@ export class PaymentService {
         entityType: 'Order',
         entityId: order.id,
         organizationId: order.organizationId,
-        metadata: { source: 'banorte_webhook' },
+        metadata: { source: `${source}_webhook` },
       });
     }
 
     return { received: true, status: result.status };
+  }
+
+  /** Config pública de la pasarela online activa (lo que consume el storefront). */
+  getPublicPaymentConfig() {
+    if (isMercadoPagoConfigured()) {
+      const mp = getMercadoPagoConfig();
+      const validation = validateMercadoPagoProductionConfig();
+      return {
+        gateway: 'MERCADOPAGO' as const,
+        demo: false,
+        mode: mp.isTest ? ('test' as const) : ('live' as const),
+        productionReady: validation.ready && !mp.isTest,
+        methods: ['CARD', 'SPEI', 'OXXO'],
+        settlement: 'Cobro procesado por Mercado Pago; liquidación a la cuenta del organizador',
+        buyerNote: mp.isTest
+          ? 'Entorno de pruebas de Mercado Pago: usa tarjetas de prueba, no datos reales.'
+          : 'Pago seguro con Mercado Pago: tarjeta, OXXO, transferencia o saldo.',
+        accountClabeMasked: null,
+        validation: { ready: validation.ready, demo: false, ...validation },
+        ipn: {
+          webhookUrl: `${mp.apiUrl}/api/v1/payments/webhooks/mercadopago`,
+          returnUrlBase: mp.webUrl,
+        },
+      };
+    }
+    return this.getBanortePublicConfig();
   }
 
   getBanortePublicConfig() {

@@ -38,7 +38,7 @@ export class PaymentController {
   @Get('config')
   @ApiOperation({ summary: 'Public payment config (Banorte direct)' })
   getConfig() {
-    return this.paymentService.getBanortePublicConfig();
+    return this.paymentService.getPublicPaymentConfig();
   }
 
   @Get('config/validate')
@@ -105,6 +105,21 @@ export class PaymentController {
       user?.email || user?.sub || 'admin',
       dto.banorteReference,
     );
+  }
+
+  @Post('webhooks/mercadopago')
+  @ApiOperation({ summary: 'Mercado Pago webhook (payment notifications)' })
+  async handleMercadoPagoWebhook(
+    @Body() body: Record<string, unknown>,
+    @Query() query: Record<string, string | undefined>,
+    @Headers('x-signature') xSignature?: string,
+    @Headers('x-request-id') xRequestId?: string,
+  ) {
+    return this.paymentService.handleMercadoPagoWebhook({
+      body,
+      query,
+      headers: { 'x-signature': xSignature, 'x-request-id': xRequestId },
+    });
   }
 
   @Post('webhooks/banorte')

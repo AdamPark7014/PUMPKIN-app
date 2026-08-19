@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "check-types": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types src/banorte/webhook.test.ts src/security/redact.test.ts src/security/idempotency.test.ts src/security/retry.test.ts src/types.money.test.ts"
+    "test": "tsc && node --test --experimental-strip-types src/banorte/webhook.test.ts src/mercadopago/webhook.test.ts src/security/redact.test.ts src/security/idempotency.test.ts src/security/retry.test.ts src/types.money.test.ts"
   },
   "dependencies": {
     "@boletera/shared": "workspace:*"

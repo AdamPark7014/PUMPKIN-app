@@ -1440,6 +1440,8 @@ enum PaymentGateway {
   RAZORPAY
   WORLDPAY
   BANORTE
+  /// Mercado Pago Checkout Pro (redirect) — pasarela online de Pumpkin Zone.
+  MERCADOPAGO
   CLIP
   OXXO
   SPEI

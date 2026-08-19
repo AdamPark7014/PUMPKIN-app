@@ -11,6 +11,7 @@ import { SITE_NAME } from '@/lib/seo';
 import type { OrderDetail, OrderTicket } from '@/lib/storefront-types';
 import { SiteHeader } from '@/components/SiteHeader';
 import { OrderQrCards } from '@/components/OrderQrCards';
+import { PaymentReturnWatcher } from '@/components/PaymentReturnWatcher';
 import { SimulateDemoPaymentButton } from '@/components/SimulateDemoPaymentButton';
 import { Breadcrumbs } from '@/components/storefront/Breadcrumbs';
 import { PurchaseSteps } from '@/components/storefront/PurchaseSteps';
@@ -150,9 +151,11 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
   const failed = isFailedStatus(order.status);
   const isDemoFlow = gatewayDemo || pendingMeta?.demo === true;
   const recoverEventHref = order.event?.slug ? `/events/${order.event.slug}` : '/events';
-  const paymentHref = `/orders/${publicId}/pago${
-    order.paymentMethod ? `?method=${order.paymentMethod}` : ''
-  }`;
+  const isMercadoPago = pendingMeta?.type === 'MERCADOPAGO';
+  // Mercado Pago: retomar el pago es volver a su checkout; Banorte: la página /pago.
+  const paymentHref = isMercadoPago && pendingMeta?.redirectUrl
+    ? pendingMeta.redirectUrl
+    : `/orders/${publicId}/pago${order.paymentMethod ? `?method=${order.paymentMethod}` : ''}`;
   const pdfHref = `${API_BASE}/orders/${publicId}/tickets.pdf`;
   const speiReference =
     pendingMeta?.concept || pendingMeta?.reference || order.pendingPayment?.reference || publicId;
@@ -242,6 +245,12 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
           </p>
         </section>
 
+        <PaymentReturnWatcher
+          publicId={publicId}
+          initialStatus={order.status}
+          resumeUrl={isMercadoPago ? pendingMeta?.redirectUrl ?? null : null}
+        />
+
         {order.event && (
           <section className={styles.eventCard} aria-label="Evento">
             <div>
@@ -328,7 +337,7 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
             <p className={styles.mutedBlock}>
               {isDemoFlow
                 ? 'El pago demo no terminó de confirmarse. Puedes reintentar sin crear una orden nueva.'
-                : 'Si cerraste Banorte o hubo un error de red, reintenta el pago. La orden ya existe y el banco evita cargos duplicados.'}
+                : 'Si cerraste la ventana de pago o hubo un error de red, reintenta. La orden ya existe y no se cobra dos veces.'}
             </p>
             <Link href={paymentHref} className={styles.link}>
               Continuar pago

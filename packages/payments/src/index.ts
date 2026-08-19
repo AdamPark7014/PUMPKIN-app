@@ -5,6 +5,8 @@ export * from './providers/banorte.provider';
 export * from './banorte/config';
 export * from './banorte/payworks';
 export * from './providers/cash.provider';
+export * from './providers/mercadopago.provider';
+export * from './mercadopago/config';
 export * from './security/redact';
 export * from './security/idempotency';
 export * from './security/retry';

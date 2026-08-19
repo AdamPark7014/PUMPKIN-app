@@ -206,11 +206,14 @@ function VentaForm() {
         }));
         setEvents(mapped);
 
-        const activeId = eventId || eventIdParam;
+        // Evento único: si no viene eventId y sólo hay un evento en cartelera,
+        // se selecciona solo — el cajero abre /venta y ya está vendiendo.
+        const activeId = eventId || eventIdParam || (mapped.length === 1 ? mapped[0].id : '');
         if (!activeId) {
           setCatalogLoading(false);
           return;
         }
+        if (activeId !== eventId) setEventId(activeId);
         const ev = mapped.find((e) => e.id === activeId);
         if (!ev) {
           setLoadError('Evento no encontrado en catálogo');

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { AttractionIcon } from '@/components/AttractionIcon';
-import { EventCarousel } from '@/components/EventCarousel';
 import { EventCountdown } from '@/components/EventCountdown';
+import { HeroCarousel } from '@/components/HeroCarousel';
 import { EVENT, GALLERY, formatPrice } from '@/lib/event-config';
 import styles from './page.module.scss';
 
@@ -27,12 +27,6 @@ export default function Home() {
       <Hero />
 
       <main>
-        <section className={styles.gallery} aria-label="Galería del evento">
-          <div className={styles.shell}>
-            <EventCarousel slides={GALLERY} />
-          </div>
-        </section>
-
         <Attractions />
         <Tickets />
         <PracticalInfo />
@@ -46,6 +40,10 @@ export default function Home() {
 function Hero() {
   return (
     <header className={styles.hero}>
+      {/* Fondo: las escenas del evento rotando. El scrim de abajo garantiza
+          el contraste del texto sobre cualquier escena. */}
+      <HeroCarousel slides={GALLERY} />
+      <div className={styles.heroScrim} aria-hidden="true" />
       {/* Capas de ambiente: resplandor, niebla y viñeta. Puramente decorativas,
           fuera del árbol de accesibilidad. */}
       <div className={styles.heroGlow} aria-hidden="true" />

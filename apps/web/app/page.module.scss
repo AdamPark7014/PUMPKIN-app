@@ -58,15 +58,30 @@
 .hero {
   position: relative;
   overflow: hidden;
-  padding: clamp(4.5rem, 10vh, 7.5rem) 0 clamp(3rem, 7vh, 5rem);
+  display: flex;
+  align-items: center;
+  /* El hero ES el carrusel: pantalla casi completa, escenas de fondo. */
+  min-height: clamp(560px, 92vh, 900px);
+  padding: clamp(4.5rem, 10vh, 7rem) 0 clamp(4rem, 9vh, 6rem);
+  background: var(--pz-night);
+}
+
+/* Contraste del texto sobre cualquier escena: fuerte a la izquierda (donde
+   vive el contenido) y en el pie (donde viven countdown y picker). */
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   background:
-    radial-gradient(105% 70% at 50% 108%, #2b130a 0%, transparent 60%),
-    linear-gradient(185deg, #0d0812 0%, var(--pz-night) 55%);
+    linear-gradient(90deg, rgba(11, 7, 9, 0.92) 0%, rgba(11, 7, 9, 0.72) 34%, rgba(11, 7, 9, 0.25) 62%, rgba(11, 7, 9, 0.05) 100%),
+    linear-gradient(180deg, rgba(11, 7, 9, 0.55) 0%, transparent 22%, transparent 62%, rgba(11, 7, 9, 0.85) 100%);
+  pointer-events: none;
 }
 
 /* El resplandor naranja que sube desde abajo: la "fogata" de la escena. */
 .heroGlow {
   position: absolute;
+  z-index: 1;
   left: 50%;
   bottom: -32%;
   width: 130%;
@@ -79,6 +94,7 @@
 
 .heroFog {
   position: absolute;
+  z-index: 1;
   inset: 0;
   background:
     radial-gradient(60% 34% at 18% 78%, rgba(157, 78, 221, 0.09), transparent 70%),
@@ -88,6 +104,7 @@
 
 .heroVignette {
   position: absolute;
+  z-index: 1;
   inset: 0;
   background: radial-gradient(120% 95% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.5));
   pointer-events: none;
@@ -95,7 +112,7 @@
 
 .heroInner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -250,15 +267,16 @@
   color: var(--pz-dim);
 }
 
-/* La calabaza del hero: anclada a la esquina, recortada, como decoración de
-   escenario y no como clipart flotando. */
+/* La calabaza de marca: discreta, arriba a la derecha, sin pelear con las
+   escenas del fondo. */
 .mark {
   position: absolute;
-  right: clamp(-3rem, -1vw, 0rem);
-  bottom: -2.5rem;
-  width: clamp(180px, 26vw, 330px);
-  opacity: 0.9;
-  filter: drop-shadow(0 0 44px rgba(255, 106, 19, 0.3));
+  z-index: 2;
+  top: clamp(1rem, 3vh, 2rem);
+  right: clamp(1rem, 3vw, 2.5rem);
+  width: clamp(64px, 7vw, 96px);
+  opacity: 0.95;
+  filter: drop-shadow(0 0 24px rgba(255, 106, 19, 0.35));
   pointer-events: none;
 }
 
@@ -291,14 +309,6 @@
   margin: var(--space-3) 0 0;
   font-size: var(--text-sm);
   color: var(--pz-dim);
-}
-
-/* ============ Galería ============ */
-
-.gallery {
-  position: relative;
-  padding-top: clamp(2rem, 5vw, 3.5rem);
-  padding-bottom: clamp(3rem, 7vw, 5rem);
 }
 
 /* ============ Atracciones ============ */

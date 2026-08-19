@@ -26,11 +26,21 @@ export function PriceBreakdown({
   if (!pricing) return null;
 
   const discount = Number(pricing.discount);
+  const fees = Number(pricing.fees);
+  const taxes = Number(pricing.taxes);
   const rows: { label: string; value: string; tone?: 'muted' | 'discount' | 'total' }[] = [
     { label: 'Subtotal', value: moneyExact(pricing.subtotal, currency) },
-    { label: 'Cargos de servicio', value: moneyExact(pricing.fees, currency), tone: 'muted' },
-    { label: 'Impuestos', value: moneyExact(pricing.taxes, currency), tone: 'muted' },
   ];
+  // Sólo se listan cargos que existen. Con precio final (IVA incluido, sin
+  // cargo por servicio) una fila "$0.00" confunde más de lo que informa.
+  if (fees > 0) {
+    rows.push({ label: 'Cargos de servicio', value: moneyExact(pricing.fees, currency), tone: 'muted' });
+  }
+  if (taxes > 0) {
+    rows.push({ label: 'Impuestos', value: moneyExact(pricing.taxes, currency), tone: 'muted' });
+  } else {
+    rows.push({ label: 'IVA', value: 'incluido en el precio', tone: 'muted' });
+  }
   if (Number.isFinite(discount) && discount > 0) {
     rows.push({
       label: 'Descuento',

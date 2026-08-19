@@ -184,5 +184,19 @@ export const APPLIED_REASON_PREFIX = 'applied_recommendation|';
 export const DEFAULT_AUTO_APPLY_MAX_DELTA = 0.1;
 export const DEFAULT_FLOOR_MULTIPLIER = 0.7;
 export const DEFAULT_CEILING_MULTIPLIER = 2.5;
-export const SERVICE_FEE_RATE = 0.1;
-export const TAX_RATE = 0.16;
+/**
+ * Cargos sobre el subtotal, configurables por entorno.
+ *
+ * Pumpkin Zone vende a precio final: el precio anunciado ya incluye IVA y no
+ * hay cargo por servicio ("Impuestos incluidos · Sin cargos ocultos"). Por eso
+ * los defaults son 0. Si un despliegue cobra cargos aparte, se fijan aquí:
+ *   PRICING_SERVICE_FEE_RATE=0.10   PRICING_TAX_RATE=0.16
+ */
+function rateFromEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw.trim() === '') return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 && n < 1 ? n : fallback;
+}
+export const SERVICE_FEE_RATE = rateFromEnv('PRICING_SERVICE_FEE_RATE', 0);
+export const TAX_RATE = rateFromEnv('PRICING_TAX_RATE', 0);

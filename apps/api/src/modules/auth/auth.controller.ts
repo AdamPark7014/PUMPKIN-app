@@ -28,7 +28,9 @@ export class AuthController {
   constructor(private auth: AuthService) {}
 
   @Post('login')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  // 30/min por IP: en la sede varios cajeros comparten IP pública. Sigue
+  // frenando fuerza bruta (bcrypt + bloqueo por intentos fallidos).
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   async login(
     @Body() body: LoginDto,
     @Request() request: ExpressRequest,
@@ -130,7 +132,7 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   async refresh(
     @Request() request: ExpressRequest,
     @Res({ passthrough: true }) response: Response,

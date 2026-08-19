@@ -54,11 +54,13 @@ import { AppService } from './app.service';
     }),
     ThrottlerModule.forRoot([
       {
-        // Generous default so normal browsing/polling isn't affected;
-        // brute-force-sensitive routes (login, manager PIN) set their own
-        // tighter @Throttle() limits.
+        // Límite global por IP. En la sede TODOS los dispositivos (cajeros,
+        // admins, escáneres) salen por una sola IP pública y el admin hace
+        // ~15 peticiones por pantalla: 120/min se agotaba en minutos. Las
+        // rutas sensibles a fuerza bruta (login, PIN) llevan su propio
+        // @Throttle más estricto.
         ttl: 60_000,
-        limit: 120,
+        limit: Number(process.env.THROTTLE_LIMIT_PER_MIN) || 1200,
       },
     ]),
 

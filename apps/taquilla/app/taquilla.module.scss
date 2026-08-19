@@ -12,7 +12,7 @@
   position: fixed;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(180deg, #141416 0%, var(--bg-deep) 100%);
+  background: linear-gradient(180deg, #0f0b0d 0%, var(--bg-deep) 100%);
 }
 
 .topbar {
@@ -151,7 +151,7 @@
 
   &:hover {
     color: var(--text);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 214, 170, 0.12);
     border-color: var(--border-strong);
   }
 
@@ -511,8 +511,8 @@
   }
 
   &:hover {
-    background: #e4e4e7;
-    border-color: #e4e4e7;
+    background: #e8ddd0;
+    border-color: #e8ddd0;
   }
 }
 

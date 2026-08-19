@@ -1,10 +1,10 @@
 .wrap {
-  --ink: #18181b;
-  --muted: #71717a;
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
+  --ink: #1a1412;
+  --muted: #786d64;
+  --border: #e6dccf;
+  --border-strong: #d4c7b7;
   --surface: #ffffff;
-  --sunken: #fafafa;
+  --sunken: #fbf7f1;
   --success: #16a34a;
   --danger: #dc2626;
   --warning: #ca8a04;
@@ -353,7 +353,7 @@
 .fieldLabel {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #3f3f46;
+  color: #443a34;
 }
 
 .input {
@@ -447,7 +447,7 @@
 .alertAction {
   margin: 0;
   font-size: 0.8125rem;
-  color: #3f3f46;
+  color: #443a34;
   line-height: 1.45;
 }
 
@@ -458,7 +458,7 @@
 .skeleton {
   min-height: 6rem;
   border-radius: 0.9rem;
-  background: linear-gradient(90deg, #f4f4f5 25%, #fafafa 45%, #f4f4f5 65%);
+  background: linear-gradient(90deg, #f3ece2 25%, #fbf7f1 45%, #f3ece2 65%);
   background-size: 220% 100%;
   animation: pulse 1.4s infinite;
 }
@@ -473,7 +473,7 @@
   height: 3rem;
   width: 100%;
   border-radius: 8px;
-  background: linear-gradient(90deg, #f4f4f5 0%, #e4e4e7 50%, #f4f4f5 100%);
+  background: linear-gradient(90deg, #f3ece2 0%, #e6dccf 50%, #f3ece2 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }

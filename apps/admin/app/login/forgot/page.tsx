@@ -124,7 +124,7 @@ export default function AdminForgotPasswordPage() {
                   if (emailError) setEmailError('');
                   if (error) setError('');
                 }}
-                placeholder="tu@empresa.com"
+                placeholder="tu@pumpkinzone.mx"
                 required
                 disabled={loading}
                 aria-invalid={emailError ? true : undefined}

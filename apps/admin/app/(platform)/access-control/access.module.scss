@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
-  color: var(--color-fg, #18181b);
+  color: var(--color-fg, #1a1412);
   padding-bottom: 2rem;
 }
 
@@ -37,7 +37,7 @@
   min-width: 0;
   padding: 1.1rem 1.2rem 1.25rem;
   background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e4e4e7);
+  border: 1px solid var(--color-border, #e6dccf);
   border-radius: 14px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
@@ -58,7 +58,7 @@
 
   p {
     margin: 0.25rem 0 0;
-    color: var(--color-fg-muted, #71717a);
+    color: var(--color-fg-muted, #786d64);
     font-size: 0.8rem;
   }
 }
@@ -81,7 +81,7 @@
   display: grid;
   gap: 0.35rem;
   padding: 0.85rem 0.95rem;
-  border: 1px solid var(--color-border, #e4e4e7);
+  border: 1px solid var(--color-border, #e6dccf);
   border-radius: 12px;
   background: var(--color-surface, #fff);
 }
@@ -111,7 +111,7 @@
 .policyHint,
 .incidentHint {
   margin: 0;
-  color: var(--color-fg-muted, #71717a);
+  color: var(--color-fg-muted, #786d64);
   font-size: 0.78rem;
   line-height: 1.45;
 }
@@ -119,14 +119,14 @@
 .barTrack {
   height: 0.35rem;
   border-radius: 999px;
-  background: #f4f4f5;
+  background: #f3ece2;
   overflow: hidden;
 }
 
 .barFill {
   height: 100%;
   border-radius: inherit;
-  background: #3f3f46;
+  background: #443a34;
 }
 
 .permList {
@@ -140,7 +140,7 @@
 
 .muted {
   margin: 0;
-  color: var(--color-fg-muted, #71717a);
+  color: var(--color-fg-muted, #786d64);
   font-size: 0.8rem;
 }
 
@@ -159,8 +159,8 @@
   gap: 0.75rem;
   padding: 0.55rem 0.65rem;
   border-radius: 10px;
-  background: #fafafa;
-  border: 1px solid #f4f4f5;
+  background: #fbf7f1;
+  border: 1px solid #f3ece2;
   font-size: 0.8125rem;
 }
 

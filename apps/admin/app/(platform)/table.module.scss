@@ -8,11 +8,11 @@
   :global(td) {
     padding: 0.75rem;
     text-align: left;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid #e8dfd3;
   }
 
   :global(th) {
-    color: #737373;
+    color: #7b6f66;
     font-weight: 500;
   }
 }
@@ -26,13 +26,13 @@
   :global(article) {
     padding: 1rem;
     background: #fff;
-    border: 1px solid #e5e5e5;
+    border: 1px solid #e8dfd3;
     border-radius: 8px;
 
     :global(span) {
       display: block;
       font-size: 0.75rem;
-      color: #737373;
+      color: #7b6f66;
       margin-bottom: 0.25rem;
     }
 
@@ -42,6 +42,6 @@
   }
 }
 .muted {
-  color: #737373;
+  color: #7b6f66;
   margin-top: 0.5rem;
 }

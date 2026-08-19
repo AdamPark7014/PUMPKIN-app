@@ -1,5 +1,5 @@
 const KEYS = {
-  theme: 'ticketos.admin.theme',
+  theme: 'pumpkin.admin.theme',
   collapsed: 'ticketos.admin.nav.collapsed',
   favorites: 'ticketos.admin.nav.favorites',
   compact: 'ticketos.admin.nav.compact',
@@ -31,10 +31,10 @@ function writeJsonArray(key: string, value: readonly string[]): void {
 }
 
 export function readThemePreference(): ThemePreference {
-  if (!canUseStorage()) return 'system';
+  if (!canUseStorage()) return 'light';
   const raw = window.localStorage.getItem(KEYS.theme);
   if (raw === 'light' || raw === 'dark' || raw === 'system') return raw;
-  return 'system';
+  return 'light';
 }
 
 export function writeThemePreference(value: ThemePreference): void {

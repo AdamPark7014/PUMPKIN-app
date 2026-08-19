@@ -1,10 +1,10 @@
 .page {
-  --pay-ink: #18181b;
-  --pay-muted: #71717a;
-  --pay-border: #e4e4e7;
-  --pay-border-strong: #d4d4d8;
+  --pay-ink: #1a1412;
+  --pay-muted: #786d64;
+  --pay-border: #e6dccf;
+  --pay-border-strong: #d4c7b7;
   --pay-surface: #ffffff;
-  --pay-sunken: #fafafa;
+  --pay-sunken: #fbf7f1;
   --pay-radius: 12px;
 
   display: flex;
@@ -115,7 +115,7 @@
 
 .note {
   margin: 0 0 0.75rem;
-  color: #52525b;
+  color: #594e47;
   font-size: 0.9rem;
   line-height: 1.45;
 }
@@ -163,7 +163,7 @@
 
 .methodReason {
   margin-top: 0.25rem !important;
-  color: #3f3f46 !important;
+  color: #443a34 !important;
   font-weight: 550;
 }
 
@@ -260,7 +260,7 @@
   background: var(--pay-sunken);
   border: 1px solid var(--pay-border);
   border-radius: 0.7rem;
-  color: #52525b;
+  color: #594e47;
   font-size: 0.8rem;
   line-height: 1.45;
 
@@ -272,10 +272,10 @@
 .secureCallout {
   margin: 0;
   padding: 0.85rem;
-  border: 1px solid #d4d4d8;
+  border: 1px solid #d4c7b7;
   border-radius: 0.7rem;
-  background: #fafafa;
-  color: #3f3f46;
+  background: #fbf7f1;
+  color: #443a34;
   font-size: 0.8rem;
   line-height: 1.45;
 }
@@ -296,7 +296,7 @@
   ul {
     margin: 0;
     padding-left: 1.1rem;
-    color: #3f3f46;
+    color: #443a34;
     font-size: 0.84rem;
     line-height: 1.45;
   }

@@ -22,7 +22,7 @@
     min-height: 4.5rem;
     padding: 0.75rem 0.875rem;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 214, 170, 0.12);
     border-radius: 10px;
   }
 
@@ -40,7 +40,7 @@
     display: block;
     font-size: 0.875rem;
     font-weight: 650;
-    color: #fafafa;
+    color: #f5efe6;
     overflow-wrap: anywhere;
   }
 }
@@ -51,7 +51,7 @@
   gap: 0.25rem;
   margin-bottom: 0.875rem;
   padding: 0.875rem 1rem;
-  color: #fcd34d;
+  color: #ffb454;
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: 10px;
@@ -71,7 +71,7 @@
 }
 
 .valueWarn {
-  color: #fcd34d !important;
+  color: #ffb454 !important;
 }
 
 .hero {
@@ -106,7 +106,7 @@
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 700;
   letter-spacing: -0.04em;
-  color: #fafafa;
+  color: #f5efe6;
   font-variant-numeric: tabular-nums;
 }
 
@@ -125,7 +125,7 @@
   > div {
     padding: 0.75rem;
     background: rgba(0, 0, 0, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 214, 170, 0.12);
     border-radius: 10px;
   }
 
@@ -141,7 +141,7 @@
     margin: 0.3rem 0 0;
     font-size: 1rem;
     font-weight: 650;
-    color: #fafafa;
+    color: #f5efe6;
     font-variant-numeric: tabular-nums;
   }
 }
@@ -161,7 +161,7 @@
   margin-bottom: 0.875rem;
   padding: 1rem 1.125rem 1.125rem;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 214, 170, 0.12);
   border-radius: 14px;
   outline: none;
 }
@@ -182,7 +182,7 @@
     margin: 0.2rem 0 0;
     font-size: 1.0625rem;
     font-weight: 650;
-    color: #fafafa;
+    color: #f5efe6;
   }
 }
 
@@ -204,8 +204,8 @@
     font-size: 0.6875rem;
     font-family: ui-monospace, monospace;
     font-weight: 700;
-    color: #fafafa;
-    background: rgba(255, 255, 255, 0.06);
+    color: #f5efe6;
+    background: rgba(255, 214, 170, 0.09);
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-bottom-width: 2px;
     border-radius: 5px;
@@ -222,7 +222,7 @@
   > div {
     padding: 0.75rem 0.875rem;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 214, 170, 0.09);
     border-radius: 10px;
   }
 
@@ -238,7 +238,7 @@
     margin: 0.3rem 0 0;
     font-size: 0.9375rem;
     font-weight: 650;
-    color: #fafafa;
+    color: #f5efe6;
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
   }
@@ -292,7 +292,7 @@
     font: inherit;
     font-size: 1.0625rem;
     font-variant-numeric: tabular-nums;
-    color: #fafafa;
+    color: #f5efe6;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(244, 244, 245, 0.28);
     border-radius: 10px;
@@ -334,13 +334,13 @@
 }
 
 .modeActive {
-  color: #18181b;
-  background: #f4f4f5;
-  border: 1px solid #f4f4f5;
+  color: #141013;
+  background: #f0e9dd;
+  border: 1px solid #f0e9dd;
 }
 
 .modeIdle {
-  color: #fafafa;
+  color: #f5efe6;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -377,7 +377,7 @@
   input {
     min-height: 44px;
     font: inherit;
-    color: #fafafa;
+    color: #f5efe6;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
@@ -401,11 +401,11 @@
   font-size: 0.875rem;
   color: rgba(250, 250, 250, 0.7);
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 214, 170, 0.12);
   border-radius: 8px;
 
   strong {
-    color: #fafafa;
+    color: #f5efe6;
     font-variant-numeric: tabular-nums;
   }
 }
@@ -430,8 +430,8 @@
 .varianceSobrante,
 .varianceBad {
   color: #422006;
-  background: #fcd34d;
-  border: 1px solid #f59e0b;
+  background: #ffb454;
+  border: 1px solid #ff8a3c;
 }
 
 .varianceFaltante {
@@ -496,7 +496,7 @@
   li {
     padding: 0.75rem;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 214, 170, 0.12);
     border-radius: 10px;
   }
 
@@ -514,7 +514,7 @@
     display: block;
     font-size: 0.9375rem;
     font-weight: 700;
-    color: #fafafa;
+    color: #f5efe6;
     font-variant-numeric: tabular-nums;
 
     small {
@@ -549,13 +549,13 @@
     margin-bottom: 0.35rem;
     font-size: 0.875rem;
     font-weight: 550;
-    color: #fafafa;
+    color: #f5efe6;
   }
 }
 
 .bar {
   height: 6px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 214, 170, 0.09);
   border-radius: 999px;
   overflow: hidden;
 
@@ -563,14 +563,14 @@
     display: block;
     height: 100%;
     border-radius: 999px;
-    background: #d4d4d8;
+    background: #d5c8b8;
   }
 }
 
 .amount {
   font-size: 0.9375rem;
   font-weight: 650;
-  color: #fafafa;
+  color: #f5efe6;
   font-variant-numeric: tabular-nums;
 }
 
@@ -601,13 +601,13 @@
     gap: 0.75rem;
     padding: 0.625rem 0.75rem;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 214, 170, 0.09);
     border-radius: 8px;
   }
 
   strong {
     font-variant-numeric: tabular-nums;
-    color: #fafafa;
+    color: #f5efe6;
   }
 
   span {
@@ -678,14 +678,14 @@
   }
 
   &:focus-visible {
-    outline: 3px solid #fafafa;
+    outline: 3px solid #f5efe6;
     outline-offset: 2px;
   }
 }
 
 .secondaryBtn {
-  color: #fafafa;
-  background: rgba(255, 255, 255, 0.06);
+  color: #f5efe6;
+  background: rgba(255, 214, 170, 0.09);
   border: 1px solid rgba(255, 255, 255, 0.12);
 
   &:hover:not(:disabled) {
@@ -695,8 +695,8 @@
 
 .closeBtn {
   width: 100%;
-  color: #18181b;
-  background: linear-gradient(180deg, #f4f4f5 0%, #d4d4d8 100%);
+  color: #141013;
+  background: linear-gradient(180deg, #f0e9dd 0%, #d5c8b8 100%);
   box-shadow: 0 12px 24px -6px rgba(244, 244, 245, 0.35);
 
   &:hover:not(:disabled) {
@@ -733,7 +733,7 @@
   text-align: center;
 
   a {
-    color: #e4e4e7;
+    color: #e8ddd0;
   }
 }
 

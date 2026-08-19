@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
-  color: #18181b;
+  color: #1a1412;
 }
 
 .layout {
@@ -27,7 +27,7 @@
   min-width: 0;
   padding: 1.1rem 1.2rem 1.25rem;
   background: #fff;
-  border: 1px solid #e4e4e7;
+  border: 1px solid #e6dccf;
   border-radius: 14px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
@@ -48,7 +48,7 @@
 
   p {
     margin: 0.25rem 0 0;
-    color: #71717a;
+    color: #786d64;
     font-size: 0.8rem;
   }
 }
@@ -64,8 +64,8 @@
   gap: 0.65rem;
   padding: 0.7rem 0.9rem;
   border-radius: 10px;
-  border: 1px solid #e4e4e7;
-  background: #fafafa;
+  border: 1px solid #e6dccf;
+  background: #fbf7f1;
   font-size: 0.8125rem;
 }
 
@@ -130,7 +130,7 @@
 
   code {
     font-size: 0.75rem;
-    color: #71717a;
+    color: #786d64;
   }
 }
 
@@ -162,7 +162,7 @@
   align-items: center;
   padding: 0.55rem 0.65rem;
   border-radius: 8px;
-  background: #fafafa;
+  background: #fbf7f1;
   border: 1px solid transparent;
   cursor: pointer;
   text-align: left;
@@ -171,7 +171,7 @@
   width: 100%;
 
   &:hover {
-    border-color: #d4d4d8;
+    border-color: #d4c7b7;
     background: #fff;
   }
 
@@ -183,7 +183,7 @@
 
   span {
     font-size: 0.72rem;
-    color: #71717a;
+    color: #786d64;
   }
 }
 
@@ -220,9 +220,9 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.55rem 0.65rem;
-  border: 1px solid #e4e4e7;
+  border: 1px solid #e6dccf;
   border-radius: 8px;
-  background: #fafafa;
+  background: #fbf7f1;
   cursor: pointer;
   font-size: 0.8125rem;
 
@@ -231,7 +231,7 @@
   }
 
   &:has(input:checked) {
-    border-color: #a1a1aa;
+    border-color: #9f9388;
     background: #fff;
   }
 
@@ -252,7 +252,7 @@
 }
 
 .muted {
-  color: #71717a;
+  color: #786d64;
   font-size: 0.75rem;
 }
 
@@ -296,7 +296,7 @@
 
   dt {
     margin: 0;
-    color: #71717a;
+    color: #786d64;
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -328,13 +328,13 @@
     gap: 0.5rem;
     padding: 0.45rem 0.55rem;
     border-radius: 8px;
-    background: #fafafa;
+    background: #fbf7f1;
     border: 1px solid #f0f0f2;
   }
 
   code {
     font-size: 0.7rem;
-    color: #71717a;
+    color: #786d64;
   }
 }
 

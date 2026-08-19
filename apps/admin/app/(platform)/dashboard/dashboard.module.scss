@@ -24,12 +24,12 @@
   --bl-text-disabled: #9ba3b4;
   --bl-text-inverse: #ffffff;
 
-  --bl-accent: #e11d48;
-  --bl-accent-hover: #be123c;
+  --bl-accent: #ff6a13;
+  --bl-accent-hover: #e05a0e;
   --bl-accent-active: #9f1239;
   --bl-accent-subtle: #fff1f3;
   --bl-accent-border: #ffc6d2;
-  --bl-accent-text: #be123c;
+  --bl-accent-text: #e05a0e;
   --bl-on-accent: #ffffff;
 
   --bl-success: #059669;
@@ -48,12 +48,12 @@
   --bl-danger-border: #fca5a5;
   --bl-danger-text: #b91c1c;
 
-  --bl-info: #2563eb;
+  --bl-info: #e05a0e;
   --bl-info-subtle: #eff6ff;
   --bl-info-border: #93c5fd;
   --bl-info-text: #1d4ed8;
 
-  --bl-focus-ring: #3b82f6;
+  --bl-focus-ring: #ff6a13;
   --bl-overlay: rgba(11, 13, 17, 0.45);
   --bl-skeleton: #e9ebf1;
   --bl-skeleton-shine: rgba(255, 255, 255, 0.72);
@@ -881,7 +881,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #a1a1aa;
+  background: #9f9388;
 }
 
 .rtLive .rtDot {

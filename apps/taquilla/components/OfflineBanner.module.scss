@@ -14,7 +14,7 @@
 }
 
 .bannerOffline {
-  border-color: #f59e0b;
+  border-color: #ff8a3c;
   background: #422006;
   color: #fffbeb;
 }
@@ -101,10 +101,10 @@
 .retry {
   color: #1c1917;
   background: #fbbf24;
-  border-color: #fcd34d;
+  border-color: #ffb454;
 
   &:hover:not(:disabled) {
-    background: #f59e0b;
+    background: #ff8a3c;
   }
 
   &:focus-visible {

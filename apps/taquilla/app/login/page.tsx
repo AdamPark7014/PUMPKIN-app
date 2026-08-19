@@ -188,7 +188,7 @@ export default function TaquillaLoginPage() {
                     autoComplete="username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="cajero@boletera.com"
+                    placeholder="cajero@pumpkinzone.mx"
                     required
                   />
                 </div>

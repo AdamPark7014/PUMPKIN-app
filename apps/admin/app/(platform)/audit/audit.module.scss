@@ -22,7 +22,7 @@
   min-width: 0;
   padding: 1rem 1.1rem;
   background: #fff;
-  border: 1px solid #e4e4e7;
+  border: 1px solid #e6dccf;
   border-radius: 12px;
 }
 
@@ -63,12 +63,12 @@
   gap: 0.35rem;
   padding: 0.75rem 0.85rem;
   border-radius: 10px;
-  border: 1px solid #e4e4e7;
-  background: #fafafa;
+  border: 1px solid #e6dccf;
+  background: #fbf7f1;
 }
 
 .anomalyCritical {
-  background: linear-gradient(145deg, #fff 0%, #fff1f2 100%);
+  background: linear-gradient(145deg, #fff 0%, #fff3e8 100%);
   border-color: #fecdd3;
 }
 
@@ -87,19 +87,19 @@
   margin: 0;
   font-size: 0.78rem;
   line-height: 1.4;
-  color: #3f3f46;
+  color: #443a34;
 }
 
 .anomalyAction {
   margin: 0;
   font-size: 0.75rem;
-  color: #52525b;
+  color: #594e47;
 }
 
 .muted {
   margin: 0;
   font-size: 0.8125rem;
-  color: #71717a;
+  color: #786d64;
 }
 
 .metaCell {
@@ -126,7 +126,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8125rem;
-  color: #3f3f46;
+  color: #443a34;
   cursor: pointer;
 
   input {
@@ -140,10 +140,10 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8125rem;
-  color: #52525b;
+  color: #594e47;
 
   select {
-    border: 1px solid #e4e4e7;
+    border: 1px solid #e6dccf;
     border-radius: 8px;
     padding: 0.35rem 0.5rem;
     background: #fff;
@@ -156,19 +156,19 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8125rem;
-  color: #52525b;
+  color: #594e47;
 
   input {
     min-height: 2rem;
-    border: 1px solid #e4e4e7;
+    border: 1px solid #e6dccf;
     border-radius: 8px;
     padding: 0.3rem 0.5rem;
     background: #fff;
-    color: #18181b;
+    color: #1a1412;
     font: inherit;
 
     &:focus-visible {
-      outline: 2px solid #18181b;
+      outline: 2px solid #1a1412;
       outline-offset: 2px;
     }
   }
@@ -177,5 +177,5 @@
 .footerNote {
   margin: 0;
   font-size: 0.75rem;
-  color: #a1a1aa;
+  color: #9f9388;
 }

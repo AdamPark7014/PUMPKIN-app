@@ -1,12 +1,12 @@
 :root {
-  --sidebar: #18181b;
-  --bg: var(--bl-surface, #f4f4f5);
+  --sidebar: #1a1412;
+  --bg: var(--bl-surface, #f3ece2);
   --surface: var(--bl-elevated, #ffffff);
-  --border: var(--bl-border, #e4e4e7);
-  --text: var(--bl-text-primary, #18181b);
-  --muted: var(--bl-text-secondary, #71717a);
-  --accent: var(--bl-accent, #18181b);
-  --ink-900: var(--bl-text-primary, #18181b);
+  --border: var(--bl-border, #e6dccf);
+  --text: var(--bl-text-primary, #1a1412);
+  --muted: var(--bl-text-secondary, #786d64);
+  --accent: var(--bl-accent, #1a1412);
+  --ink-900: var(--bl-text-primary, #1a1412);
 }
 
 * {
@@ -34,7 +34,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--bl-focus-ring, #3b82f6);
+  outline: 2px solid var(--bl-focus-ring, #ff6a13);
   outline-offset: 2px;
 }
 

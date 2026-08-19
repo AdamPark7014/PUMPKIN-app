@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
-  color: #18181b;
+  color: #1a1412;
   padding-bottom: 2rem;
 }
 
@@ -28,7 +28,7 @@
   min-width: 0;
   padding: 1.1rem 1.2rem 1.25rem;
   background: #fff;
-  border: 1px solid #e4e4e7;
+  border: 1px solid #e6dccf;
   border-radius: 14px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
@@ -49,7 +49,7 @@
 
   p {
     margin: 0.25rem 0 0;
-    color: #71717a;
+    color: #786d64;
     font-size: 0.8rem;
   }
 }
@@ -65,8 +65,8 @@
   gap: 0.65rem;
   padding: 0.7rem 0.9rem;
   border-radius: 10px;
-  border: 1px solid #e4e4e7;
-  background: #fafafa;
+  border: 1px solid #e6dccf;
+  background: #fbf7f1;
   font-size: 0.8125rem;
 }
 
@@ -131,7 +131,7 @@
 
   code {
     font-size: 0.75rem;
-    color: #71717a;
+    color: #786d64;
   }
 }
 
@@ -163,7 +163,7 @@
   gap: 0.75rem;
   padding: 0.55rem 0.65rem;
   border-radius: 8px;
-  background: #fafafa;
+  background: #fbf7f1;
   border: 1px solid #f0f0f2;
   font-size: 0.8125rem;
 
@@ -188,7 +188,7 @@
   gap: 0.45rem;
   padding: 1rem;
   border-radius: 12px;
-  border: 1px solid #e4e4e7;
+  border: 1px solid #e6dccf;
   background: #fff;
 
   h3 {
@@ -198,7 +198,7 @@
 
   p {
     margin: 0;
-    color: #71717a;
+    color: #786d64;
     font-size: 0.8rem;
     line-height: 1.45;
   }
@@ -208,8 +208,8 @@
   margin: 0;
   padding: 0.75rem 0.9rem;
   border-radius: 10px;
-  background: #f4f4f5;
-  color: #52525b;
+  background: #f3ece2;
+  color: #594e47;
   font-size: 0.8rem;
   line-height: 1.45;
 }
@@ -247,9 +247,9 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.55rem 0.65rem;
-  border: 1px solid #e4e4e7;
+  border: 1px solid #e6dccf;
   border-radius: 8px;
-  background: #fafafa;
+  background: #fbf7f1;
   cursor: pointer;
   font-size: 0.8125rem;
 
@@ -258,7 +258,7 @@
   }
 
   &:has(input:checked) {
-    border-color: #a1a1aa;
+    border-color: #9f9388;
     background: #fff;
   }
 
@@ -279,7 +279,7 @@
 }
 
 .muted {
-  color: #71717a;
+  color: #786d64;
   font-size: 0.75rem;
 }
 
@@ -323,7 +323,7 @@
 
   dt {
     margin: 0;
-    color: #71717a;
+    color: #786d64;
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -355,13 +355,13 @@
     gap: 0.5rem;
     padding: 0.45rem 0.55rem;
     border-radius: 8px;
-    background: #fafafa;
+    background: #fbf7f1;
     border: 1px solid #f0f0f2;
   }
 
   code {
     font-size: 0.7rem;
-    color: #71717a;
+    color: #786d64;
   }
 }
 

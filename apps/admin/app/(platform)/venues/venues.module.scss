@@ -1,9 +1,9 @@
 .page {
-  --ink: #18181b;
-  --muted: #71717a;
-  --border: #e4e4e7;
+  --ink: #1a1412;
+  --muted: #786d64;
+  --border: #e6dccf;
   --surface: #fff;
-  --sunken: #fafafa;
+  --sunken: #fbf7f1;
   --radius: 12px;
 
   display: flex;
@@ -72,13 +72,13 @@
 }
 
 .venueCard:hover {
-  border-color: #d4d4d8;
+  border-color: #d4c7b7;
   background: var(--sunken);
 }
 
 .venueCardSelected {
-  border-color: #18181b;
-  box-shadow: inset 0 0 0 1px #18181b;
+  border-color: #1a1412;
+  box-shadow: inset 0 0 0 1px #1a1412;
 }
 
 .cardButton {
@@ -96,7 +96,7 @@
 }
 
 .cardButton:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #e05a0e;
   outline-offset: 2px;
   border-radius: 8px;
 }
@@ -188,7 +188,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid #2563eb;
+    outline: 2px solid #e05a0e;
     outline-offset: 2px;
   }
 }
@@ -272,7 +272,7 @@
   flex-direction: column;
   gap: 0.55rem;
   padding-top: 0.35rem;
-  border-top: 1px solid #f4f4f5;
+  border-top: 1px solid #f3ece2;
 
   h3 {
     margin: 0;
@@ -341,17 +341,17 @@
 }
 
 .primaryLink {
-  background: #18181b;
+  background: #1a1412;
   color: #fff;
 }
 
 .primaryLink:hover {
-  background: #27272a;
+  background: #2b2421;
 }
 
 .primaryLink:focus-visible,
 .secondaryLink:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #e05a0e;
   outline-offset: 2px;
 }
 
@@ -395,7 +395,7 @@
   }
 
   select:focus-visible {
-    outline: 2px solid #2563eb;
+    outline: 2px solid #e05a0e;
     outline-offset: 2px;
   }
 }

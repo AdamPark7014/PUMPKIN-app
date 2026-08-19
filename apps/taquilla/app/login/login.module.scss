@@ -11,7 +11,7 @@
   position: fixed;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(180deg, #141416 0%, var(--bg-deep) 100%);
+  background: linear-gradient(180deg, #0f0b0d 0%, var(--bg-deep) 100%);
 }
 
 .scan {
@@ -239,13 +239,13 @@
     background: var(--muted-2);
 
     &:nth-child(1) {
-      background: #a1a1aa;
+      background: #b3a89e;
     }
     &:nth-child(2) {
-      background: #71717a;
+      background: #8a7f74;
     }
     &:nth-child(3) {
-      background: #52525b;
+      background: #6e6359;
     }
   }
 }
@@ -387,7 +387,7 @@
     &:focus {
       outline: none;
       border-color: rgba(255, 255, 255, 0.35);
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 0 3px rgba(255, 214, 170, 0.09);
     }
   }
 }

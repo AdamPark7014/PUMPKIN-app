@@ -1,12 +1,12 @@
 /* Enterprise events list — Stripe/Linear density, es-MX portfolio */
 
 .page {
-  --ev-ink: #18181b;
-  --ev-muted: #71717a;
-  --ev-border: #e4e4e7;
+  --ev-ink: #1a1412;
+  --ev-muted: #786d64;
+  --ev-border: #e6dccf;
   --ev-surface: #ffffff;
-  --ev-sunken: #fafafa;
-  --ev-focus: #18181b;
+  --ev-sunken: #fbf7f1;
+  --ev-focus: #1a1412;
   --ev-radius: 12px;
   --ev-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
@@ -131,8 +131,8 @@
   flex-shrink: 0;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #fafafa;
-  background: #3f3f46;
+  color: #fbf7f1;
+  background: #443a34;
   border-radius: 8px;
 }
 

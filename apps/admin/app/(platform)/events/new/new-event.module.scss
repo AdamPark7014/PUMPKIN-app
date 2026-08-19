@@ -48,16 +48,16 @@
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.8125rem;
-  color: var(--color-fg-muted, #52525b);
+  color: var(--color-fg-muted, #594e47);
 }
 
 .field input,
 .field select,
 .field textarea {
   font: inherit;
-  color: var(--color-fg, #18181b);
+  color: var(--color-fg, #1a1412);
   background: var(--color-bg, #fff);
-  border: 1px solid var(--color-border, #e4e4e7);
+  border: 1px solid var(--color-border, #e6dccf);
   border-radius: var(--radius-md, 8px);
   padding: 0.55rem 0.7rem;
 }
@@ -70,14 +70,14 @@
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  outline: 2px solid var(--color-accent, #2563eb);
+  outline: 2px solid var(--color-accent, #e05a0e);
   outline-offset: 1px;
 }
 
 .hint {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--color-fg-muted, #71717a);
+  color: var(--color-fg-muted, #786d64);
   line-height: 1.45;
 }
 
@@ -86,7 +86,7 @@
   align-items: flex-start;
   gap: 0.55rem;
   font-size: 0.875rem;
-  color: var(--color-fg, #18181b);
+  color: var(--color-fg, #1a1412);
 }
 
 .phaseCard {
@@ -94,9 +94,9 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3, 0.75rem);
   padding: var(--space-3, 0.75rem);
-  border: 1px solid var(--color-border, #e4e4e7);
+  border: 1px solid var(--color-border, #e6dccf);
   border-radius: var(--radius-md, 8px);
-  background: var(--color-bg-subtle, #fafafa);
+  background: var(--color-bg-subtle, #fbf7f1);
 }
 
 .nav {
@@ -162,7 +162,7 @@
   gap: 0.5rem;
   align-items: center;
   font-size: 0.75rem;
-  color: var(--color-fg-muted, #71717a);
+  color: var(--color-fg-muted, #786d64);
 }
 
 .previewBlock {
@@ -189,7 +189,7 @@
   font-size: 0.75rem;
   padding: 0.4rem 0.5rem;
   border-radius: var(--radius-sm, 6px);
-  background: var(--color-bg-subtle, #f4f4f5);
+  background: var(--color-bg-subtle, #f3ece2);
 }
 
 @media (max-width: 960px) {

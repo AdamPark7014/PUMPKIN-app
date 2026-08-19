@@ -4,7 +4,7 @@
   max-width: 36rem;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 2.5rem;
-  color: #fafafa;
+  color: #f5efe6;
 }
 
 .bg {
@@ -12,14 +12,14 @@
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(180deg, #111113 0%, #0c0c0e 100%);
+    linear-gradient(180deg, #111113 0%, #070405 100%);
 }
 
 .toast {
   margin: 0 0 0.75rem;
   padding: 0.75rem 1rem;
   background: rgba(244, 244, 245, 0.15);
-  color: #a1a1aa;
+  color: #b3a89e;
   border-radius: 8px;
   font-size: 0.875rem;
 }
@@ -37,9 +37,9 @@
   justify-content: center;
   width: 2.25rem;
   height: 2.25rem;
-  color: #fafafa;
+  color: #f5efe6;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 214, 170, 0.12);
   border-radius: 9px;
   text-decoration: none;
 }
@@ -74,7 +74,7 @@
     min-width: 0;
     padding: 0.625rem 0.5rem;
     font-size: 0.9375rem;
-    color: #fafafa;
+    color: #f5efe6;
     background: transparent;
     border: none;
     outline: none;
@@ -83,8 +83,8 @@
   button {
     padding: 0.625rem 1rem;
     font-weight: 600;
-    color: #18181b;
-    background: #f4f4f5;
+    color: #141013;
+    background: #f0e9dd;
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -94,7 +94,7 @@
     font-size: 0.6875rem;
     font-family: ui-monospace, monospace;
     padding: 0.2rem 0.4rem;
-    color: #e4e4e7;
+    color: #e8ddd0;
     background: rgba(244, 244, 245, 0.1);
     border: 1px solid rgba(244, 244, 245, 0.25);
     border-radius: 4px;
@@ -109,7 +109,7 @@
 .result {
   padding: 1rem;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 214, 170, 0.12);
   border-radius: 12px;
 
   header {
@@ -137,7 +137,7 @@
 .bad {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #fcd34d;
+  color: #ffb454;
   background: rgba(245, 158, 11, 0.12);
   padding: 0.25rem 0.5rem;
   border-radius: 999px;
@@ -191,7 +191,7 @@
 
   code {
     font-family: ui-monospace, monospace;
-    color: #e4e4e7;
+    color: #e8ddd0;
   }
 }
 
@@ -204,8 +204,8 @@
     flex: 1;
     padding: 0.75rem;
     font-weight: 600;
-    color: #fafafa;
-    background: rgba(255, 255, 255, 0.06);
+    color: #f5efe6;
+    background: rgba(255, 214, 170, 0.09);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     cursor: pointer;
@@ -233,7 +233,7 @@
 
   input {
     padding: 0.6rem;
-    color: #fafafa;
+    color: #f5efe6;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;

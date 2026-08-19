@@ -158,7 +158,7 @@ export default function LoginPage() {
                 if (emailError) setEmailError('');
                 if (error) setError('');
               }}
-              placeholder="tu@empresa.com"
+              placeholder="tu@pumpkinzone.mx"
               required
               disabled={busy}
               aria-invalid={emailError ? true : undefined}

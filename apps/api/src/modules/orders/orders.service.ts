@@ -45,6 +45,12 @@ import type {
 initDefaultProviders();
 
 const ORDER_TTL_MS = 30 * 60 * 1000;
+/** Hold + orden pendientes con Mercado Pago (OXXO/SPEI pueden tardar horas). */
+const MP_PENDING_TTL_MS = (() => {
+  const fromEnv = Number(process.env.MP_PENDING_TTL_HOURS);
+  const hours = Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : 24;
+  return hours * 60 * 60 * 1000;
+})();
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
 
@@ -213,6 +219,10 @@ export class OrdersService {
         paymentMethod: method as 'CARD' | 'SPEI' | 'OXXO',
       }));
 
+    // MP: OXXO/SPEI no liquidan en el redirect; el hold debe vivir hasta el webhook.
+    const pendingTtlMs =
+      providerId === 'mercadopago' ? MP_PENDING_TTL_MS : ORDER_TTL_MS;
+
     // Claim idempotency key before mutating holds so concurrent retries share one order.
     if (dto.idempotencyKey) {
       try {
@@ -225,7 +235,7 @@ export class OrdersService {
             status: PaymentStatus.PENDING,
             channel,
             idempotencyKey: dto.idempotencyKey,
-            expiresAt: new Date(Date.now() + ORDER_TTL_MS),
+            expiresAt: new Date(Date.now() + pendingTtlMs),
             metadata: {
               holdIds,
               items: pricedLines.map((l) => ({
@@ -269,7 +279,7 @@ export class OrdersService {
               amount: totalAmount,
               currency: event.currency,
               channel,
-              expiresAt: new Date(Date.now() + ORDER_TTL_MS),
+              expiresAt: new Date(Date.now() + pendingTtlMs),
               metadata: {
                 ...((claimed.metadata as object) ?? {}),
                 holdIds,
@@ -303,7 +313,7 @@ export class OrdersService {
               data: {
                 status: asyncBanorte ? HoldStatus.ACTIVE : HoldStatus.CONVERTED,
                 ...(asyncBanorte
-                  ? { expiresAt: new Date(Date.now() + ORDER_TTL_MS) }
+                  ? { expiresAt: new Date(Date.now() + pendingTtlMs) }
                   : {}),
               },
             });
@@ -332,7 +342,7 @@ export class OrdersService {
               currency: event.currency,
               channel,
               cashierId: dto.cashierId,
-              expiresAt: new Date(Date.now() + ORDER_TTL_MS),
+              expiresAt: new Date(Date.now() + pendingTtlMs),
               paymentMethod: payMethodEnum,
               ...(Object.keys(posOps).length
                 ? { posOps: posOps as Prisma.InputJsonValue }
@@ -477,7 +487,13 @@ export class OrdersService {
         buyerEmail: dto.buyerEmail,
         buyerName: dto.buyerName,
         paymentMethod: method as 'CARD' | 'SPEI' | 'OXXO',
-        metadata: { publicId: order.publicId },
+        metadata: {
+          publicId: order.publicId,
+          eventId: event.id,
+          eventName: event.title ?? 'Evento',
+          eventDate: event.startsAt.toISOString(),
+          ticketQty: String(holds.length),
+        },
         idempotencyKey: dto.idempotencyKey,
       });
 

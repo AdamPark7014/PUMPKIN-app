@@ -32,8 +32,23 @@ import type {
 import { resolveContextMoney } from '../types';
 
 const MP_API = 'https://api.mercadopago.com';
-/** Una preferencia vive lo que vive el hold + margen para terminar en MP. */
-const PREFERENCE_TTL_MINUTES = 30;
+/**
+ * Preferencia viva mientras el hold de inventario (MP_PENDING_TTL_HOURS, default 24h).
+ * date_of_expiration (voucher OXXO) usa el mismo techo — MP recomienda >= 3 días;
+ * en boletera alineamos al hold para no sobrevender si el voucher vive más que el asiento.
+ */
+function pendingTtlMs(): number {
+  const fromEnv = Number(process.env.MP_PENDING_TTL_HOURS);
+  const hours = Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : 24;
+  return hours * 60 * 60 * 1000;
+}
+
+function splitName(full: string): { firstName: string; lastName: string } {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: 'Comprador', lastName: 'Pumpkin' };
+  if (parts.length === 1) return { firstName: parts[0], lastName: parts[0] };
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+}
 
 type MpPreference = { id: string; init_point: string; sandbox_init_point?: string };
 
@@ -135,27 +150,35 @@ export class MercadoPagoProvider implements PaymentProvider {
 
     const publicId = String(ctx.metadata?.publicId ?? ctx.orderId);
     const orderUrl = `${this.cfg.webUrl}/orders/${encodeURIComponent(publicId)}`;
-    const expiresAt = new Date(Date.now() + PREFERENCE_TTL_MINUTES * 60_000);
+    const ttlMs = pendingTtlMs();
+    const expiresAt = new Date(Date.now() + ttlMs);
+    const { firstName, lastName } = splitName(ctx.buyerName ?? '');
+    const eventName = ctx.metadata?.eventName?.trim() || 'Boletos';
+    const ticketQty = Number(ctx.metadata?.ticketQty) || 1;
+    const unitPrice = Number((money.amountMinor / 100).toFixed(2));
+    const eventDate = ctx.metadata?.eventDate?.trim();
+
+    const item: Record<string, unknown> = {
+      id: ctx.orderId,
+      title: `${eventName} · orden ${publicId}`,
+      description: `${ticketQty} acceso(s) · ${eventName}`,
+      // Industria tickets (mejora aprobación; docs MP tickets & entertainment).
+      category_id: 'tickets',
+      quantity: 1,
+      currency_id: money.currency,
+      unit_price: unitPrice,
+    };
+    if (eventDate) item.event_date = eventDate;
 
     const preference = await this.mpFetch<MpPreference>('/checkout/preferences', {
       method: 'POST',
       idempotencyKey: ctx.idempotencyKey,
       body: {
-        items: [
-          {
-            id: ctx.orderId,
-            title: `Boletos · orden ${publicId}`,
-            description: 'Accesos al evento',
-            category_id: 'tickets',
-            quantity: 1,
-            currency_id: money.currency,
-            // MP trabaja en unidades mayores con 2 decimales.
-            unit_price: Number((money.amountMinor / 100).toFixed(2)),
-          },
-        ],
+        items: [item],
         payer: {
           email: ctx.buyerEmail,
-          name: ctx.buyerName,
+          name: firstName,
+          surname: lastName,
         },
         // Con esto el webhook nos devuelve la orden sin tablas de cruce.
         external_reference: ctx.orderId,
@@ -169,10 +192,13 @@ export class MercadoPagoProvider implements PaymentProvider {
         statement_descriptor: this.cfg.statementDescriptor,
         expires: true,
         expiration_date_to: expiresAt.toISOString(),
+        // Voucher OXXO/efectivo: mismo techo que el hold (ver docs MP expiration-date).
+        date_of_expiration: expiresAt.toISOString(),
         metadata: {
           order_id: ctx.orderId,
           public_id: publicId,
           channel: ctx.channel,
+          event_id: ctx.metadata?.eventId ?? '',
         },
       },
     });

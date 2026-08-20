@@ -74,4 +74,14 @@ Pago](https://www.mercadopago.com.mx/developers/es/docs/checkout-pro/additional-
 - El dinero liquida a la cuenta de Mercado Pago de la empresa (de ahí al
   banco según la configuración de la cuenta).
 - La comisión de MP (~3.5% + IVA para Checkout Pro) la absorbe el cargo por
-  servicio — visible solo en la vista interna de reportes.
+  servicio — visible solo en la vista interna de reportes. **Verifica el % exacto
+  (con IVA y plazo de liberación) en el simulador de tu cuenta**; ver
+  `docs/research/MERCADO-PAGO-BOLETERAS.md`.
+
+## Nota operativa OXXO / SPEI
+
+El redirect a “éxito” **no** confirma el cobro. La orden se completa cuando el
+webhook recibe `payment` y la API de MP dice `approved`. Mientras tanto el
+inventario queda en hold hasta `MP_PENDING_TTL_HOURS` (default **24 h**), alineado
+con el patrón de boleteras (p. ej. Boletia) y con `date_of_expiration` de la
+preferencia.

@@ -1,0 +1,3 @@
+# IP de la impresora Epson Ethernet (una linea, sin espacios).
+# La ves imprimiendo la hoja de estado de la impresora (boton Feed al encender).
+192.168.1.100

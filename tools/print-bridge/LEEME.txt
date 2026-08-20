@@ -1,0 +1,28 @@
+PUENTE DE IMPRESION - TAQUILLA PUMPKIN ZONE
+===========================================
+
+Que es: un programa chiquito que corre en la PC de la taquilla y manda
+los boletos a la impresora termica Epson por red. Sin el, la taquilla
+imprime por una ventana del navegador (funciona, pero sin QR nativo
+ni corte automatico).
+
+REQUISITOS (una sola vez)
+  1. Node.js instalado (https://nodejs.org, version LTS).
+  2. La impresora Epson conectada por cable de red y encendida.
+  3. Saber la IP de la impresora: apaga la impresora, manten presionado
+     el boton FEED y enciendela; imprime su hoja de estado con la IP.
+
+CADA DIA DE EVENTO
+  1. Abre config-impresora.txt y verifica que la IP sea la correcta.
+  2. Doble clic a iniciar-puente.bat  (deja la ventana abierta).
+  3. En la taquilla (taq.experiencebt.com.mx) entra a Ajustes:
+       - "Guardar y probar puente"  ->  debe decir "en linea"
+       - "Imprimir boleto de prueba" -> debe salir un boleto con QR
+  4. Listo: cada venta imprime sola sus boletos y el comprobante.
+
+SI ALGO FALLA
+  - "Puente responde, pero NO ve la impresora": la IP esta mal o la
+    impresora esta apagada/desconectada del switch.
+  - "Sin conexion con el puente": la ventana del .bat esta cerrada.
+  - La venta NUNCA se pierde por un error de impresora: reimprime
+    desde la pantalla de venta (boton Reimprimir).

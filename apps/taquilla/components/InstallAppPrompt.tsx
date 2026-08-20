@@ -44,8 +44,7 @@ export function InstallAppPrompt({ appLabel }: { appLabel: string }) {
   return (
     <div className={styles.bar} role="region" aria-label="Instalar aplicación">
       <p>
-        Instala <strong>{appLabel}</strong> como app en este equipo (ventana propia, como
-        WhatsApp).
+        Instala <strong>{appLabel}</strong> como app en este equipo.
       </p>
       <div className={styles.actions}>
         <button

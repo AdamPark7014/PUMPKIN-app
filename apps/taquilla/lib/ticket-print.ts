@@ -1,33 +1,34 @@
 /**
- * Construcción de boletos térmicos individuales.
+ * Boleto térmico Pumpkin Zone — formato arte 80 × 148 mm (8 × 14,8 cm).
  *
- * Un boleto por asiento, con QR nativo de impresora y corte entre cada uno,
- * seguido de un comprobante de pago compacto. El QR lleva el `code` del
- * boleto: es lo que `POST /access/scan` acepta en puerta, así que el boleto
- * impreso se escanea tal cual.
+ * Papel: rollo Epson “80 mm” (79,5 ± 0,5 mm). Ancho útil ~72 mm / 42 cols Font A.
+ * Alto: variable por corte; el layout apunta a ~148 mm por persona (ahorro de papel).
  *
- * Datos en cada boleto: evento, sede/fecha, zona, localizador de orden,
- * código BLT, folio. La reimpresión SIEMPRE se marca.
+ * Estructura alineada al PDF de diseño:
+ *   marca → tagline → FECHA / HORARIO / LUGAR → acceso → LOC → QR BLT → folio
+ *
+ * El QR lleva el código durable `BLT-…` (mismo que PDA / PDF / correo).
+ * Ver docs/research/BOLETO-TERMICO-EPSON.md
  */
 
 import { escpos, padBetween, padCenter } from './escpos';
 import type { PosReceipt } from './pos/types';
 
-const WIDTH = 42; // Fuente A en papel de 80 mm.
+/** Columnas Font A en papel 80 mm (Epson TM). */
+export const TICKET_COLS = 42;
+
+/** Módulo QR: 5 ≈ legible PDA y cabe en el alto 148 mm. */
+const QR_MODULE = 5;
 
 export type TicketPrintOptions = {
-  /** Marca cada boleto como REIMPRESIÓN. */
   reprint?: boolean;
-  /** Patea el cajón al final (ventas en efectivo). */
   kickDrawer?: boolean;
-  /** Incluye el comprobante de pago después de los boletos. */
+  /** Stub de pago corto al final de la venta (un corte extra). Default true. */
   withReceipt?: boolean;
 };
 
 export type TicketPrintJob = {
-  /** ESC/POS listo para mandarse por serial. */
   bytes: Uint8Array;
-  /** Texto plano equivalente para el fallback de impresión por ventana. */
   fallbackText: string;
 };
 
@@ -35,26 +36,54 @@ function formatMoney(n: number): string {
   return `$${n.toFixed(2)}`;
 }
 
-function formatDate(iso: string): string {
+function formatSaleWhen(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString('es-MX');
 }
 
-function formatEventWhen(iso?: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString('es-MX', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+/** FECHA: 29 OCT - 2 NOV 2026 */
+function formatFecha(startsAt?: string | null, endsAt?: string | null): string {
+  if (!startsAt) return 'POR CONFIRMAR';
+  const start = new Date(startsAt);
+  if (Number.isNaN(start.getTime())) return 'POR CONFIRMAR';
+  const opts: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+  const a = start.toLocaleDateString('es-MX', opts).toUpperCase();
+  if (!endsAt) return a;
+  const end = new Date(endsAt);
+  if (Number.isNaN(end.getTime())) return a;
+  // Misma noche / medianoche: mostrar solo día de apertura si el fin es al día siguiente temprano.
+  const b = end.toLocaleDateString('es-MX', opts).toUpperCase();
+  return a === b ? a : `${a} - ${b}`;
+}
+
+/** HORARIO: 11:00 AM - MEDIANOCHE */
+function formatHorario(
+  startsAt?: string | null,
+  endsAt?: string | null,
+  hoursLabel?: string | null,
+): string {
+  if (hoursLabel?.trim()) return hoursLabel.trim().toUpperCase();
+  if (!startsAt) return 'CONSULTAR';
+  const start = new Date(startsAt);
+  if (Number.isNaN(start.getTime())) return 'CONSULTAR';
+  const t0 = start.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  if (!endsAt) return t0;
+  const end = new Date(endsAt);
+  if (Number.isNaN(end.getTime())) return t0;
+  const hours = end.getHours();
+  const mins = end.getMinutes();
+  if (hours === 0 && mins === 0) return `${t0} - MEDIANOCHE`;
+  const t1 = end.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  return `${t0} - ${t1}`;
+}
+
+function dashed(b: ReturnType<typeof escpos>, fb: string[]) {
+  b.align('center').line('-'.repeat(TICKET_COLS));
+  fb.push('-'.repeat(TICKET_COLS));
 }
 
 /**
- * Boletos individuales + comprobante, en un solo trabajo de impresión.
+ * Un boleto por acceso + stub de pago opcional (corto) al final.
  */
 export function buildTicketsJob(
   receipt: PosReceipt,
@@ -63,114 +92,105 @@ export function buildTicketsJob(
   const { reprint = false, kickDrawer = false, withReceipt = true } = opts;
   const b = escpos();
   const fallback: string[] = [];
-  const when = formatDate(receipt.timestamp);
   const localizador = (receipt.localizador || receipt.publicId || '').trim();
-  const eventWhen = formatEventWhen(receipt.eventStartsAt);
-  const venue = (receipt.venueLabel || '').trim();
+  const fecha = formatFecha(receipt.eventStartsAt, receipt.eventEndsAt);
+  const horario = formatHorario(receipt.eventStartsAt, receipt.eventEndsAt, receipt.hoursLabel);
+  const lugar = (receipt.venueLabel || '').trim().toUpperCase() || 'SEDE POR CONFIRMAR';
+  const saleWhen = formatSaleWhen(receipt.timestamp);
+  const folioShort = (receipt.receiptNumber || localizador || '—').replace(/^RCP-/i, '');
 
   receipt.ticketCodes.forEach((ticket, i) => {
     const nOfM = `${i + 1}/${receipt.ticketCodes.length}`;
+    const acceso = (ticket.seatInfo || 'GENERAL').toUpperCase();
 
     if (reprint) {
       b.align('center').bold(true).size(2, 1).line('* REIMPRESION *').size(1, 1).bold(false);
-      fallback.push(padCenter('* REIMPRESION *', WIDTH));
+      fallback.push(padCenter('* REIMPRESION *', TICKET_COLS));
     }
 
+    // —— Cabecera (arte: marca + tagline) ——
     b.align('center')
       .bold(true)
       .size(2, 2)
-      .line(receipt.eventName.toUpperCase().slice(0, 21))
+      .line('PUMPKIN ZONE')
       .size(1, 1)
       .bold(false)
-      .line(`Boleto ${nOfM}`)
-      .feed(1);
+      .line('DISFRUTA LA TEMPORADA');
+    fallback.push(padCenter('PUMPKIN ZONE', TICKET_COLS), padCenter('DISFRUTA LA TEMPORADA', TICKET_COLS));
+    dashed(b, fallback);
 
-    if (eventWhen) b.line(eventWhen.slice(0, WIDTH));
-    if (venue) b.line(venue.slice(0, WIDTH));
-
-    b.feed(1)
+    // —— Datos del evento ——
+    b.align('left')
       .bold(true)
-      .size(1, 2)
-      .line(ticket.seatInfo.slice(0, 21))
-      .size(1, 1)
+      .line(`FECHA: ${fecha}`.slice(0, TICKET_COLS))
+      .bold(false);
+    fallback.push(`FECHA: ${fecha}`.slice(0, TICKET_COLS));
+    dashed(b, fallback);
+
+    b.bold(true).line(`HORARIO: ${horario}`.slice(0, TICKET_COLS)).bold(false);
+    fallback.push(`HORARIO: ${horario}`.slice(0, TICKET_COLS));
+    dashed(b, fallback);
+
+    b.bold(true).line(`LUGAR: ${lugar}`.slice(0, TICKET_COLS)).bold(false);
+    fallback.push(`LUGAR: ${lugar}`.slice(0, TICKET_COLS));
+    dashed(b, fallback);
+
+    b.bold(true)
+      .line(`ACCESO: ${acceso}`.slice(0, TICKET_COLS))
       .bold(false)
-      .feed(1);
+      .line(`BOLETO ${nOfM}`.slice(0, TICKET_COLS));
+    fallback.push(`ACCESO: ${acceso}`.slice(0, TICKET_COLS), `BOLETO ${nOfM}`);
 
     if (localizador) {
-      b.bold(true).line(`LOC ${localizador}`.slice(0, WIDTH)).bold(false).feed(1);
+      b.bold(true).line(`LOC: ${localizador}`.slice(0, TICKET_COLS)).bold(false);
+      fallback.push(`LOC: ${localizador}`.slice(0, TICKET_COLS));
     }
+    dashed(b, fallback);
 
-    // El QR es el boleto: lo que la puerta escanea (código BLT-…).
-    b.qr(ticket.barcode, 7, 'M')
-      .feed(1)
+    // —— QR de acceso (BLT) ——
+    b.align('center')
+      .qr(ticket.barcode, QR_MODULE, 'M')
       .line(ticket.barcode)
-      .feed(1)
-      .align('left')
-      .line(padBetween(`Folio ${receipt.receiptNumber}`, when, WIDTH))
-      .rule('-', WIDTH)
+      .line('ESCANEA EN LA ENTRADA');
+    fallback.push(padCenter(`[QR] ${ticket.barcode}`, TICKET_COLS), padCenter('ESCANEA EN LA ENTRADA', TICKET_COLS));
+    dashed(b, fallback);
+
+    // —— Pie folio / gracias (arte) ——
+    b.align('left')
+      .line(padBetween(`FOLIO ${folioShort}`.slice(0, 18), 'GRACIAS POR SER PARTE'.slice(0, 22), TICKET_COLS))
       .align('center')
-      .line('Conserva este boleto. Una sola entrada.')
+      .line('Una sola entrada. Conserva este boleto.')
       .cut();
 
     fallback.push(
-      padCenter(receipt.eventName.toUpperCase(), WIDTH),
-      padCenter(`Boleto ${nOfM}`, WIDTH),
-      eventWhen ? padCenter(eventWhen, WIDTH) : '',
-      venue ? padCenter(venue, WIDTH) : '',
-      '',
-      padCenter(ticket.seatInfo, WIDTH),
-      localizador ? padCenter(`LOC ${localizador}`, WIDTH) : '',
-      padCenter(`[QR] ${ticket.barcode}`, WIDTH),
-      '',
-      padBetween(`Folio ${receipt.receiptNumber}`, when, WIDTH),
-      '-'.repeat(WIDTH),
+      padBetween(`FOLIO ${folioShort}`.slice(0, 18), 'GRACIAS'.slice(0, 22), TICKET_COLS),
+      padCenter('Una sola entrada. Conserva este boleto.', TICKET_COLS),
       '',
     );
   });
 
+  // Stub de pago: un solo corte corto al final (ahorra vs comprobante largo por boleto).
   if (withReceipt) {
-    b.align('center')
-      .bold(true)
-      .line('COMPROBANTE DE PAGO')
-      .bold(false)
-      .line(receipt.receiptNumber)
-      .line(when)
-      .feed(1)
-      .align('left');
-
-    if (localizador) b.line(padBetween('Localizador', localizador.slice(0, 24), WIDTH));
-    if (receipt.buyerName) {
-      b.line(padBetween('Cliente', receipt.buyerName.slice(0, 28), WIDTH));
+    b.align('center').bold(true).line('COMPROBANTE').bold(false).line(saleWhen);
+    fallback.push(padCenter('COMPROBANTE', TICKET_COLS), padCenter(saleWhen, TICKET_COLS));
+    b.align('left');
+    if (localizador) {
+      b.line(padBetween('Localizador', localizador.slice(0, 22), TICKET_COLS));
+      fallback.push(padBetween('Localizador', localizador.slice(0, 22), TICKET_COLS));
     }
-    b.line(padBetween('Evento', receipt.eventName.slice(0, 28), WIDTH));
-    if (venue) b.line(padBetween('Sede', venue.slice(0, 28), WIDTH));
-    b.line(padBetween('Boletos', String(receipt.quantity), WIDTH))
-      .rule('-', WIDTH)
-      .line(padBetween('Subtotal', formatMoney(receipt.subtotal), WIDTH))
-      .line(padBetween('Cargos', formatMoney(receipt.fees), WIDTH))
-      .line(padBetween('IVA', formatMoney(receipt.taxes), WIDTH))
+    b.line(padBetween('Boletos', String(receipt.quantity), TICKET_COLS))
       .bold(true)
-      .line(padBetween('TOTAL', formatMoney(receipt.total), WIDTH))
+      .line(padBetween('TOTAL', formatMoney(receipt.total), TICKET_COLS))
       .bold(false)
-      .line(padBetween('Pago', receipt.paymentMethod, WIDTH))
-      .feed(1)
+      .line(padBetween('Pago', receipt.paymentMethod, TICKET_COLS))
       .align('center')
       .line('Gracias por su compra')
       .cut();
-
     fallback.push(
-      padCenter('COMPROBANTE DE PAGO', WIDTH),
-      padCenter(receipt.receiptNumber, WIDTH),
-      padCenter(when, WIDTH),
-      '',
-      localizador ? padBetween('Localizador', localizador.slice(0, 24), WIDTH) : '',
-      padBetween('Subtotal', formatMoney(receipt.subtotal), WIDTH),
-      padBetween('Cargos', formatMoney(receipt.fees), WIDTH),
-      padBetween('IVA', formatMoney(receipt.taxes), WIDTH),
-      padBetween('TOTAL', formatMoney(receipt.total), WIDTH),
-      padBetween('Pago', receipt.paymentMethod, WIDTH),
-      '',
-      padCenter('Gracias por su compra', WIDTH),
+      padBetween('Boletos', String(receipt.quantity), TICKET_COLS),
+      padBetween('TOTAL', formatMoney(receipt.total), TICKET_COLS),
+      padBetween('Pago', receipt.paymentMethod, TICKET_COLS),
+      padCenter('Gracias por su compra', TICKET_COLS),
     );
   }
 

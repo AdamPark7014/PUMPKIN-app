@@ -142,6 +142,7 @@ export class WillcallService {
     const startsAt = order.event.startsAt
       ? new Date(order.event.startsAt).toISOString()
       : null;
+    const endsAt = order.event.endsAt ? new Date(order.event.endsAt).toISOString() : null;
 
     return {
       receiptNumber: `RCP-${order.publicId}`,
@@ -153,6 +154,8 @@ export class WillcallService {
       terminalId,
       eventName: order.event.title,
       eventStartsAt: startsAt,
+      eventEndsAt: endsAt,
+      hoursLabel: null,
       venueLabel,
       buyerName: order.buyerName,
       quantity: order.items.reduce((sum, item) => sum + item.quantity, 0),

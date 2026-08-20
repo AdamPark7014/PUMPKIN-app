@@ -16,21 +16,29 @@ import {
 import { buildTicketsJob } from '@/lib/ticket-print';
 import styles from './ajustes.module.scss';
 
-/** Boleto de prueba: valida QR, acentos y corte sin tocar ventas reales. */
+/** Boleto de prueba: layout 80×148 estilo arte Pumpkin (sin venta real). */
 function buildTestJob() {
+  const start = new Date('2026-10-29T11:00:00-06:00').toISOString();
+  const end = new Date('2026-11-02T00:00:00-06:00').toISOString();
   return buildTicketsJob(
     {
-      receiptNumber: 'PRUEBA',
+      receiptNumber: 'RCP-PRUEBA',
+      publicId: 'ORD-PRUEBA',
+      localizador: 'ORD-PRUEBA',
       timestamp: new Date().toISOString(),
       terminalId: 'test',
-      eventName: 'Pumpkin Zone · Impresión de prueba',
+      eventName: 'Pumpkin Zone',
+      eventStartsAt: start,
+      eventEndsAt: end,
+      hoursLabel: '11:00 am — Medianoche',
+      venueLabel: 'Downtown Lomas de Angelopolis · Puebla',
       quantity: 1,
       subtotal: 0,
       fees: 0,
       taxes: 0,
       total: 0,
       paymentMethod: 'CASH',
-      ticketCodes: [{ barcode: 'PRUEBA-QR-Ñ-ÁÉÍÓÚ', seatInfo: 'Entrada General' }],
+      ticketCodes: [{ barcode: 'BLT-PRUEBA00000001', seatInfo: 'Entrada General' }],
     },
     { reprint: true, kickDrawer: false, withReceipt: false },
   );

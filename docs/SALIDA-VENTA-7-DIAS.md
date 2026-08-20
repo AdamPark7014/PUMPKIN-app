@@ -92,8 +92,8 @@ Checklist operativo para abrir compra pública. Complementa
 - Reimpresión marcada `* REIMPRESION *`
 - Escáner de puerta: admin `/scanner` (`POST /access/scan`) — admite / rechaza duplicados
 - QR unificado: código durable **`BLT-…`** en papel, PDF, correo y pantalla (mismo payload que el láser del PDA)
-- Boleto térmico con **localizador** (`LOC ORD-…`), sede/fecha, zona, QR BLT y comprobante
-- PWA instalable (Chrome/Edge): taquilla + admin como ventana de app
+- Boleto térmico con **localizador** (`LOC ORD-…`), sede/fecha/horario, zona, QR BLT y stub de pago corto
+- Formato arte **80 × 148 mm** (Epson rollo 80 mm) — ver `docs/research/BOLETO-TERMICO-EPSON.md`
 
 ### Día de evento — Epson (taquilla PC)
 - [ ] Epson TM serie **80 mm** en Ethernet (recomendado TM-T20 / T88); IP conocida

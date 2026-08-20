@@ -8,6 +8,9 @@ export type PosReceipt = {
   terminalId: string;
   eventName: string;
   eventStartsAt?: string | null;
+  eventEndsAt?: string | null;
+  /** Texto de horario de puertas (ej. "11:00 am — Medianoche"). */
+  hoursLabel?: string | null;
   venueLabel?: string | null;
   buyerName?: string | null;
   quantity: number;

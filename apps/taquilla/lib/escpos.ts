@@ -111,8 +111,8 @@ export class EscPosBuilder {
    * QR nativo de la impresora vía `GS ( k`. Se renderiza en el firmware, así
    * que sale nítido y sin el costo de mandar un bitmap por el puerto.
    *
-   * @param data   Contenido del QR. Aquí va el payload firmado de `@boletera/crypto`.
-   * @param module Tamaño de módulo (1-16). 6 da un QR de ~25 mm, cómodo de escanear.
+ * @param data   Contenido del QR (código BLT-… o payload corto).
+ * @param module Tamaño de módulo (1-16). 5 ≈ legible en PDA y cabe en boleto ~148 mm.
    * @param ecc    Corrección de error: L, M, Q o H. M aguanta un doblez del boleto.
    */
   qr(data: string, module = 6, ecc: 'L' | 'M' | 'Q' | 'H' = 'M'): this {

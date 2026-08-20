@@ -340,6 +340,7 @@ export type OrderListItem = {
 
 /** Respuesta de `/orders/:publicId/qrcodes`. */
 export type OrderQrCodes = {
+  publicId: string;
   eventTitle: string;
   tickets: {
     id: string;

@@ -1,8 +1,6 @@
 import { InjectQueue, Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { Job, Queue } from 'bull';
-import { buildQrPayload } from '@boletera/crypto';
 import QRCode from 'qrcode';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from './mail.service';
@@ -17,7 +15,6 @@ export class NotificationProcessor {
     private prisma: PrismaService,
     private mail: MailService,
     private ticketPdf: TicketPdfService,
-    private config: ConfigService,
     @InjectQueue(NOTIFICATION_QUEUE) private readonly queue: Queue,
   ) {}
 
@@ -74,14 +71,6 @@ export class NotificationProcessor {
     await this.mail.send({ to: payload.to, subject: payload.subject, html });
   }
 
-  private qrSecret(): string {
-    const secret = this.config.get('TICKET_QR_SECRET') ?? this.config.get('JWT_SECRET');
-    if (!secret) {
-      throw new Error('Neither TICKET_QR_SECRET nor JWT_SECRET is configured.');
-    }
-    return secret;
-  }
-
   private async loadOrder(orderId: string) {
     return this.prisma.order.findUnique({
       where: { id: orderId },
@@ -94,12 +83,10 @@ export class NotificationProcessor {
     if (!order) return;
 
     const tickets = order.items.flatMap((i) => i.tickets);
-    const secret = this.qrSecret();
     const qrBlocks = await Promise.all(
       tickets.map(async (t) => {
-        const payloadQr = buildQrPayload(t.id, order.eventId, secret);
-        const img = await QRCode.toDataURL(payloadQr, { width: 120 });
-        return `<p><strong>${t.code}</strong><br/><img src="${img}" alt="QR" width="120"/></p>`;
+        const img = await QRCode.toDataURL(t.code, { width: 120 });
+        return `<p><strong>${t.code}</strong><br/><img src="${img}" alt="QR ${t.code}" width="120"/></p>`;
       }),
     );
 

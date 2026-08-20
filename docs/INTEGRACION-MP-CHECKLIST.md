@@ -14,7 +14,8 @@ Fecha: **2026-08-20**. Cruza código del repo con docs oficiales MX.
 | Completar orden solo con webhook+GET | **Listo** | No confiar back_urls |
 | Hold 24h OXXO/SPEI | **Listo** | `MP_PENDING_TTL_HOURS` |
 | Reembolso por gateway MP | **Listo** (fix 2026-08-20) | Antes iba a Banorte |
-| SMTP correo QR | **Pendiente ops** | Sin SMTP no hay entrega |
+| SMTP correo QR | **Código listo** | `MAIL_FROM` / `SMTP_FROM` + `MAIL_BRAND`; falta ops |
+| Confirm demo Banorte (`POST /confirm`) | **Cerrado en MP-only** | No free-complete en Pumpkin |
 | Contracargos defensa API | **Falta** | Solo mapea charged_back |
 | Quality measurement MP | **Pendiente** | Tras 1er pago prod |
 | Credenciales en VPS `.env` | **Pendiente** | Ver `deploy/pumpkin.env.example` |

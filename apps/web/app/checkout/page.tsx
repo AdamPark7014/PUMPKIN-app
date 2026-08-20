@@ -326,7 +326,7 @@ function CheckoutForm() {
           <p>
             {demo
               ? `Modo demo · ${holdIds.length} boleto${holdIds.length === 1 ? '' : 's'} · sin cargo real`
-              : `Pago Banorte · ${holdIds.length} boleto${holdIds.length === 1 ? '' : 's'}`}
+              : `Pago Mercado Pago · ${holdIds.length} boleto${holdIds.length === 1 ? '' : 's'}`}
             {!storedUser ? ' · Compra como invitado' : ''}
           </p>
         </header>

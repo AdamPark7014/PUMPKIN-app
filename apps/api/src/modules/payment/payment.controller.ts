@@ -64,7 +64,9 @@ export class PaymentController {
   }
 
   @Post('confirm')
-  @ApiOperation({ summary: 'Confirm Banorte payment (demo / return URL)' })
+  @ApiOperation({
+    summary: 'Confirm Banorte payment (dev demo only; blocked under Mercado Pago / production)',
+  })
   async confirmPayment(@Body() dto: ConfirmPaymentDto) {
     return this.paymentService.confirmBanortePayment(dto);
   }

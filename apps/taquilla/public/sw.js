@@ -1,8 +1,8 @@
 /* Boletera Taquilla — shell offline mínimo.
  * Cache-first para navegación GET same-origin; no intercepta API ni POST/PUT.
  */
-const CACHE = 'boletera-taquilla-v2';
-const PRECACHE = ['/', '/manifest.json'];
+const CACHE = 'pumpkin-taquilla-shell-v3';
+const PRECACHE = ['/', '/manifest.json', '/icon-192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

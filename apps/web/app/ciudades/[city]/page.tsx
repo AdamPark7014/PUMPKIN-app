@@ -18,7 +18,7 @@ export async function generateMetadata({
   const { city: raw } = await params;
   const city = decodeURIComponent(raw);
   const title = `Eventos en ${city}`;
-  const description = `Cartelera oficial en ${city}. Compra boletos con inventario real y pago Banorte.`;
+  const description = `Cartelera oficial en ${city}. Compra boletos con inventario real y pago Mercado Pago.`;
   const path = `/ciudades/${encodeURIComponent(city)}`;
   const url = canonical(path);
 

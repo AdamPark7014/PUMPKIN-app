@@ -2,9 +2,14 @@ export type PosReceipt = {
   receiptNumber: string;
   orderId?: string;
   publicId?: string;
+  /** Alias explícito del localizador de orden (mismo valor que publicId). */
+  localizador?: string;
   timestamp: string;
   terminalId: string;
   eventName: string;
+  eventStartsAt?: string | null;
+  venueLabel?: string | null;
+  buyerName?: string | null;
   quantity: number;
   subtotal: number;
   fees: number;

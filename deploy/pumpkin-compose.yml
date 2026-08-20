@@ -73,6 +73,7 @@ services:
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-}
       # Tenant fijo: modo evento único.
       DEMO_TENANT_SLUG: pumpkin-zone
+      PAYMENTS_GATEWAY: mercadopago
       CORS_ORIGIN: https://pumpkin.experiencebt.com.mx,https://app.experiencebt.com.mx,https://taquilla.experiencebt.com.mx
       WEB_URL: https://pumpkin.experiencebt.com.mx
       ADMIN_URL: https://app.experiencebt.com.mx
@@ -91,6 +92,8 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_BRAND: ${MAIL_BRAND:-Pumpkin Zone}
     networks: [proxy, internal]
     labels:
       - "traefik.enable=true"

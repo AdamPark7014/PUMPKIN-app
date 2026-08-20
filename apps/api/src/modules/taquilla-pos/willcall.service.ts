@@ -137,13 +137,24 @@ export class WillcallService {
       await this.access.requireTerminal(terminalId, order.organizationId);
     }
 
+    const venue = order.event.venue;
+    const venueLabel = [venue?.name, venue?.city].filter(Boolean).join(' · ') || null;
+    const startsAt = order.event.startsAt
+      ? new Date(order.event.startsAt).toISOString()
+      : null;
+
     return {
       receiptNumber: `RCP-${order.publicId}`,
       orderId: order.id,
+      /** Localizador de orden — lo que el cliente/staff busca en will-call. */
       publicId: order.publicId,
+      localizador: order.publicId,
       timestamp: new Date().toISOString(),
       terminalId,
       eventName: order.event.title,
+      eventStartsAt: startsAt,
+      venueLabel,
+      buyerName: order.buyerName,
       quantity: order.items.reduce((sum, item) => sum + item.quantity, 0),
       subtotal: Number(order.subtotal),
       fees: Number(order.fees),

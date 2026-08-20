@@ -8,7 +8,7 @@ import { canonical, SITE_NAME } from '@/lib/seo';
  */
 export const metadata: Metadata = {
   title: 'Cartelera',
-  description: `Cartelera oficial de ${SITE_NAME}. Boletos con inventario real y pago Banorte.`,
+  description: `Cartelera oficial de ${SITE_NAME}. Boletos con inventario real y pago Mercado Pago.`,
   alternates: { canonical: canonical('/') },
   robots: { index: false, follow: true },
 };

@@ -18,14 +18,14 @@ export default function TerminosPage() {
         </p>
         <h2>Compras</h2>
         <p>
-          Los precios y disponibilidad los define el organizador. El pago se procesa vía Banorte
+          Los precios y disponibilidad los define el organizador. El pago se procesa vía Mercado Pago
           (tarjeta, SPEI u OXXO según el flujo del evento). La confirmación genera boletos con QR
           de acceso.
         </p>
         <h2>Reembolsos</h2>
         <p>
           Las políticas de reembolso las define el promotor. Cuando apliquen, el personal puede
-          iniciar el reembolso desde el panel; la liquidación final depende de Banorte.
+          iniciar el reembolso desde el panel; la liquidación final depende de Mercado Pago.
         </p>
         <h2>Cuentas</h2>
         <p>

@@ -7,7 +7,7 @@ import styles from './SimulateDemoPaymentButton.module.scss';
 
 /**
  * Demo-only control: completes a pending SPEI/OXXO order via POST /payments/confirm.
- * Caller must only render when Banorte is in demo mode.
+ * Caller must only render when Mercado Pago is in demo mode.
  */
 export function SimulateDemoPaymentButton({
   orderId,
@@ -48,11 +48,11 @@ export function SimulateDemoPaymentButton({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Idempotency-Key': `banorte-demo-${publicId}`,
+          'Idempotency-Key': `Mercado Pago-demo-${publicId}`,
         },
         body: JSON.stringify({
           orderId: resolvedId,
-          externalId: `banorte_demo_${publicId}`,
+          externalId: `Mercado Pago_demo_${publicId}`,
         }),
       });
       if (!res.ok) {
@@ -80,7 +80,7 @@ export function SimulateDemoPaymentButton({
   return (
     <div className={[styles.wrap, className].filter(Boolean).join(' ')}>
       <p className={styles.note} role="status">
-        Modo demo — no transfieras dinero real. Este botón simula el acreditamiento Banorte.
+        Modo demo — no transfieras dinero real. Este botón simula el acreditamiento Mercado Pago.
       </p>
       <button
         type="button"

@@ -24,6 +24,7 @@ import {
   validateBanorteProductionConfig,
   getMercadoPagoConfig,
   isMercadoPagoConfigured,
+  isMercadoPagoOnlyMode,
   validateMercadoPagoProductionConfig,
   type MercadoPagoProvider,
   type MercadoPagoWebhookPayload,
@@ -206,11 +207,36 @@ export class PaymentService {
       return { orderId: order.id, alreadyCompleted: true };
     }
 
+    // Pumpkin / MP-only: nunca completar por este endpoint (evita free tickets
+    // cuando Banorte queda en "demo" por falta de BANORTE_MERCHANT_ID).
+    if (isMercadoPagoOnlyMode() || isMercadoPagoConfigured()) {
+      throw new BadRequestException(
+        'La confirmación llega vía webhook de Mercado Pago. No uses /payments/confirm.',
+      );
+    }
+
+    const mpIntent = await this.prisma.paymentIntent.findFirst({
+      where: { orderId: order.id, provider: PaymentGateway.MERCADOPAGO },
+      select: { id: true },
+    });
+    if (mpIntent) {
+      throw new BadRequestException(
+        'Esta orden se cobra con Mercado Pago; la confirmación llega por webhook.',
+      );
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+      throw new BadRequestException(
+        'En producción la confirmación llega vía IPN Banorte (webhook).',
+      );
+    }
+
     const cfg = getBanorteConfig();
     if (cfg.isDemo) {
       return this.completeOrder(
         order.id,
         data.externalId ?? data.intentId ?? `banorte_demo_${order.id}`,
+        { gateway: PaymentGateway.BANORTE, source: 'banorte_demo' },
       );
     }
 
@@ -223,7 +249,11 @@ export class PaymentService {
    * Idempotent order completion. Uses a conditional PENDING→COMPLETED update so
    * concurrent webhooks/reconciles cannot double-fulfill inventory.
    */
-  async completeOrder(orderId: string, externalId: string) {
+  async completeOrder(
+    orderId: string,
+    externalId: string,
+    opts?: { gateway?: PaymentGateway; source?: string },
+  ) {
     const prefetched = await this.prisma.order.findFirst({
       where: { id: orderId },
       select: { id: true, organizationId: true, status: true },
@@ -272,6 +302,21 @@ export class PaymentService {
         });
         if (!order) throw new NotFoundException('Order not found');
 
+        const pendingIntent = await tx.paymentIntent.findFirst({
+          where: { orderId, status: { in: [PaymentStatus.PENDING, PaymentStatus.COMPLETED] } },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const gateway =
+          opts?.gateway ??
+          pendingIntent?.provider ??
+          (isMercadoPagoOnlyMode() || isMercadoPagoConfigured()
+            ? PaymentGateway.MERCADOPAGO
+            : PaymentGateway.BANORTE);
+        const source =
+          opts?.source ??
+          (gateway === PaymentGateway.MERCADOPAGO ? 'mercadopago_complete' : 'banorte_complete');
+
         const existingPayment = await tx.payment.findFirst({
           where: { externalId },
           select: { id: true },
@@ -280,14 +325,14 @@ export class PaymentService {
           existingPayment ??
           (await tx.payment.create({
             data: {
-              gateway: PaymentGateway.BANORTE,
+              gateway,
               externalId,
               status: PaymentStatus.COMPLETED,
               amount: order.totalAmount,
               currency: order.currency,
               method: order.paymentMethod,
               processedAt: new Date(),
-              metadata: { source: 'banorte_complete' },
+              metadata: { source },
             },
           }));
 
@@ -296,10 +341,6 @@ export class PaymentService {
           data: { paymentId: payment.id },
         });
 
-        const pendingIntent = await tx.paymentIntent.findFirst({
-          where: { orderId, status: { in: [PaymentStatus.PENDING, PaymentStatus.COMPLETED] } },
-          orderBy: { createdAt: 'desc' },
-        });
         const intentMeta = (pendingIntent?.metadata as IntentMeta | null) ?? {};
         const holdIds = Array.isArray(intentMeta.holdIds) ? intentMeta.holdIds : [];
 
@@ -319,7 +360,7 @@ export class PaymentService {
           });
         }
 
-        this.logger.log(`Banorte: order ${orderId} completed`);
+        this.logger.log(`${gateway}: order ${orderId} completed`);
         return {
           order: { ...order, status: OrderStatus.COMPLETED, paymentId: payment.id },
           payment,
@@ -826,7 +867,13 @@ export class PaymentService {
     }
 
     if (result.status === 'completed') {
-      await this.completeOrder(order.id, result.intentId ?? `${source}_${order.id}`);
+      await this.completeOrder(order.id, result.intentId ?? `${source}_${order.id}`, {
+        gateway:
+          source === 'mercadopago'
+            ? PaymentGateway.MERCADOPAGO
+            : PaymentGateway.BANORTE,
+        source: `${source}_webhook`,
+      });
     } else if (result.status === 'failed') {
       await this.prisma.order.updateMany({
         where: {
@@ -850,21 +897,29 @@ export class PaymentService {
 
   /** Config pública de la pasarela online activa (lo que consume el storefront). */
   getPublicPaymentConfig() {
-    if (isMercadoPagoConfigured()) {
+    if (isMercadoPagoConfigured() || isMercadoPagoOnlyMode()) {
       const mp = getMercadoPagoConfig();
       const validation = validateMercadoPagoProductionConfig();
+      const configured = isMercadoPagoConfigured();
       return {
         gateway: 'MERCADOPAGO' as const,
         demo: false,
-        mode: mp.isTest ? ('test' as const) : ('live' as const),
-        productionReady: validation.ready && !mp.isTest,
+        mode: !configured ? ('live' as const) : mp.isTest ? ('test' as const) : ('live' as const),
+        productionReady: configured && validation.ready && !mp.isTest,
         methods: ['CARD', 'SPEI', 'OXXO'],
         settlement: 'Cobro procesado por Mercado Pago; liquidación a la cuenta del organizador',
-        buyerNote: mp.isTest
-          ? 'Entorno de pruebas de Mercado Pago: usa tarjetas de prueba, no datos reales.'
-          : 'Pago seguro con Mercado Pago: tarjeta, OXXO, transferencia o saldo.',
+        buyerNote: !configured
+          ? 'Mercado Pago pendiente de configurar (MP_ACCESS_TOKEN). La venta online no puede cobrar aún.'
+          : mp.isTest
+            ? 'Entorno de pruebas de Mercado Pago: usa tarjetas de prueba, no datos reales.'
+            : 'Pago seguro con Mercado Pago: tarjeta, OXXO, transferencia o saldo.',
         accountClabeMasked: null,
-        validation: { ready: validation.ready, demo: false, ...validation },
+        validation: {
+          ready: configured && validation.ready,
+          demo: false,
+          missing: configured ? validation.missing : ['MP_ACCESS_TOKEN', ...validation.missing],
+          warnings: validation.warnings,
+        },
         ipn: {
           webhookUrl: `${mp.apiUrl}/api/v1/payments/webhooks/mercadopago`,
           returnUrlBase: mp.webUrl,

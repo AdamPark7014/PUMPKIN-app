@@ -1,10 +1,9 @@
 /**
  * Configuración de Mercado Pago (Checkout Pro).
  *
- * Se activa con MP_ACCESS_TOKEN. Sin el token, `isConfigured` es false y la
- * API sigue usando la ruta Banorte (demo en desarrollo). Así el despliegue
- * no depende de tener credenciales: el día que lleguen, se ponen en el .env
- * y se reinicia la API.
+ * Se activa con MP_ACCESS_TOKEN. En Pumpkin (DEMO_TENANT_SLUG=pumpkin-zone
+ * o PAYMENTS_GATEWAY=mercadopago) la pasarela online es siempre Mercado Pago:
+ * sin token, createIntent falla con configuración faltante (no hay Banorte).
  *
  * Variables:
  *   MP_ACCESS_TOKEN     Access token del vendedor (APP_USR-… en producción,

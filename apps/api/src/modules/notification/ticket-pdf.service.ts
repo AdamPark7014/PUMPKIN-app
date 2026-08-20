@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
-import { buildQrPayload } from '@boletera/crypto';
 
 export type TicketPdfRow = {
   id: string;
@@ -16,6 +15,14 @@ export type TicketPdfRow = {
 export class TicketPdfService {
   constructor(private readonly config: ConfigService) {}
 
+  private brandName() {
+    const branded = this.config.get<string>('MAIL_BRAND')?.trim();
+    if (branded) return branded;
+    const tenant = (this.config.get<string>('DEMO_TENANT_SLUG') ?? '').trim().toLowerCase();
+    if (tenant === 'pumpkin-zone') return 'Pumpkin Zone';
+    return 'BOLETERA';
+  }
+
   async buildPdfBuffer(opts: {
     eventTitle: string;
     publicId: string;
@@ -23,11 +30,6 @@ export class TicketPdfService {
     eventId: string;
     tickets: TicketPdfRow[];
   }): Promise<Buffer> {
-    const secret = this.config.get('TICKET_QR_SECRET') ?? this.config.get('JWT_SECRET');
-    if (!secret) {
-      throw new Error('Neither TICKET_QR_SECRET nor JWT_SECRET is configured.');
-    }
-
     const doc = new PDFDocument({ size: 'A4', margin: 48 });
     const chunks: Buffer[] = [];
     doc.on('data', (c: Buffer) => chunks.push(c));
@@ -37,18 +39,21 @@ export class TicketPdfService {
       doc.on('error', reject);
     });
 
-    doc.fontSize(20).text('BOLETERA', { align: 'center' });
+    doc.fontSize(20).text(this.brandName(), { align: 'center' });
     doc.moveDown(0.5);
     doc.fontSize(14).text(opts.eventTitle, { align: 'center' });
-    doc.fontSize(10).text(`Orden ${opts.publicId} · ${opts.buyerName}`, { align: 'center' });
+    doc.fontSize(11).text(`Localizador ${opts.publicId}`, { align: 'center' });
+    doc.fontSize(10).text(opts.buyerName, { align: 'center' });
     doc.moveDown(1);
 
     for (const t of opts.tickets) {
       const seatLabel = [t.section, t.row, t.seatNumber].filter(Boolean).join(' · ') || 'General';
-      const qrPayload = buildQrPayload(t.id, opts.eventId, secret);
+      // Mismo payload que el boleto térmico Epson / PDA: código BLT-…
+      const qrPayload = t.code;
 
       doc.addPage();
       doc.fontSize(12).text(`Boleto ${t.code}`, { underline: true });
+      doc.text(`Localizador: ${opts.publicId}`);
       doc.text(`Asiento: ${seatLabel}`);
       doc.moveDown(0.5);
 
@@ -56,12 +61,10 @@ export class TicketPdfService {
       const base64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
       doc.image(Buffer.from(base64, 'base64'), { width: 140, align: 'center' });
       doc.moveDown(0.5);
-      doc.fontSize(8).text(qrPayload, { align: 'center' });
+      doc.fontSize(10).text(t.code, { align: 'center' });
     }
 
     doc.end();
     return done;
   }
 }
-
-

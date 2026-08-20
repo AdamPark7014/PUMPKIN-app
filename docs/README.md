@@ -87,6 +87,7 @@ de este repositorio. Cuando una funcionalidad está a medio construir se dice ex
 - **[ENV-SECRETS.md](./ENV-SECRETS.md)** — cómo generar y operar los secretos que la plataforma
   valida en runtime (`TICKET_QR_SECRET`, `JWT_SECRET`, `INTERNAL_API_SECRET`, Banorte, etc.).
 - **[ACTIVAR-MERCADO-PAGO.md](./ACTIVAR-MERCADO-PAGO.md)** — activar cobro online Pumpkin (credenciales + webhook).
+- **[SALIDA-VENTA-7-DIAS.md](./SALIDA-VENTA-7-DIAS.md)** — checklist día a día para abrir venta pública.
 - **[Manual-Mercado-Pago-Credenciales.pdf](./Manual-Mercado-Pago-Credenciales.pdf)** — PDF: Access Token, webhooks y Point.
 - **[INTEGRACION-MP-CHECKLIST.md](./INTEGRACION-MP-CHECKLIST.md)** — checklist online + terminales Point.
 - **[research/MERCADO-PAGO-BOLETERAS.md](./research/MERCADO-PAGO-BOLETERAS.md)** — deep research: MP + boleteras (comisiones, OXXO, holds).

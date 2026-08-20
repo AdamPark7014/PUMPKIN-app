@@ -28,10 +28,21 @@ export function initDefaultProviders(): void {
 }
 
 /**
- * Pasarela online activa: Mercado Pago cuando hay MP_ACCESS_TOKEN; si no,
- * Banorte (demo en desarrollo). Un solo lugar para esta decisión.
+ * Pumpkin / despliegues que fijan la pasarela: solo Mercado Pago.
+ * Sin token, createIntent falla con configuración faltante (no Banorte).
+ */
+export function isMercadoPagoOnlyMode(): boolean {
+  const gateway = (process.env.PAYMENTS_GATEWAY ?? '').trim().toLowerCase();
+  const tenant = (process.env.DEMO_TENANT_SLUG ?? '').trim().toLowerCase();
+  return gateway === 'mercadopago' || tenant === 'pumpkin-zone';
+}
+
+/**
+ * Pasarela online activa. En modo Pumpkin / PAYMENTS_GATEWAY=mercadopago
+ * siempre es Mercado Pago; en otros tenants cae a Banorte solo si no hay token.
  */
 export function onlinePaymentProviderId(): 'mercadopago' | 'banorte' {
+  if (isMercadoPagoOnlyMode()) return 'mercadopago';
   return isMercadoPagoConfigured() ? 'mercadopago' : 'banorte';
 }
 

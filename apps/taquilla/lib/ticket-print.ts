@@ -3,11 +3,11 @@
  *
  * Un boleto por asiento, con QR nativo de impresora y corte entre cada uno,
  * seguido de un comprobante de pago compacto. El QR lleva el `code` del
- * boleto: es lo que `POST /taquilla/scan` acepta en puerta, así que el boleto
+ * boleto: es lo que `POST /access/scan` acepta en puerta, así que el boleto
  * impreso se escanea tal cual.
  *
- * La reimpresión SIEMPRE se marca — dos papeles idénticos para el mismo
- * asiento son un incidente de puerta, no un favor al cliente.
+ * Datos en cada boleto: evento, sede/fecha, zona, localizador de orden,
+ * código BLT, folio. La reimpresión SIEMPRE se marca.
  */
 
 import { escpos, padBetween, padCenter } from './escpos';
@@ -40,6 +40,19 @@ function formatDate(iso: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString('es-MX');
 }
 
+function formatEventWhen(iso?: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 /**
  * Boletos individuales + comprobante, en un solo trabajo de impresión.
  */
@@ -51,6 +64,9 @@ export function buildTicketsJob(
   const b = escpos();
   const fallback: string[] = [];
   const when = formatDate(receipt.timestamp);
+  const localizador = (receipt.localizador || receipt.publicId || '').trim();
+  const eventWhen = formatEventWhen(receipt.eventStartsAt);
+  const venue = (receipt.venueLabel || '').trim();
 
   receipt.ticketCodes.forEach((ticket, i) => {
     const nOfM = `${i + 1}/${receipt.ticketCodes.length}`;
@@ -67,15 +83,25 @@ export function buildTicketsJob(
       .size(1, 1)
       .bold(false)
       .line(`Boleto ${nOfM}`)
-      .feed(1)
+      .feed(1);
+
+    if (eventWhen) b.line(eventWhen.slice(0, WIDTH));
+    if (venue) b.line(venue.slice(0, WIDTH));
+
+    b.feed(1)
       .bold(true)
       .size(1, 2)
-      .line(ticket.seatInfo)
+      .line(ticket.seatInfo.slice(0, 21))
       .size(1, 1)
       .bold(false)
-      .feed(1)
-      // El QR es el boleto: lo que la puerta escanea.
-      .qr(ticket.barcode, 7, 'M')
+      .feed(1);
+
+    if (localizador) {
+      b.bold(true).line(`LOC ${localizador}`.slice(0, WIDTH)).bold(false).feed(1);
+    }
+
+    // El QR es el boleto: lo que la puerta escanea (código BLT-…).
+    b.qr(ticket.barcode, 7, 'M')
       .feed(1)
       .line(ticket.barcode)
       .feed(1)
@@ -89,8 +115,11 @@ export function buildTicketsJob(
     fallback.push(
       padCenter(receipt.eventName.toUpperCase(), WIDTH),
       padCenter(`Boleto ${nOfM}`, WIDTH),
+      eventWhen ? padCenter(eventWhen, WIDTH) : '',
+      venue ? padCenter(venue, WIDTH) : '',
       '',
       padCenter(ticket.seatInfo, WIDTH),
+      localizador ? padCenter(`LOC ${localizador}`, WIDTH) : '',
       padCenter(`[QR] ${ticket.barcode}`, WIDTH),
       '',
       padBetween(`Folio ${receipt.receiptNumber}`, when, WIDTH),
@@ -107,9 +136,15 @@ export function buildTicketsJob(
       .line(receipt.receiptNumber)
       .line(when)
       .feed(1)
-      .align('left')
-      .line(padBetween('Evento', receipt.eventName.slice(0, 28), WIDTH))
-      .line(padBetween('Boletos', String(receipt.quantity), WIDTH))
+      .align('left');
+
+    if (localizador) b.line(padBetween('Localizador', localizador.slice(0, 24), WIDTH));
+    if (receipt.buyerName) {
+      b.line(padBetween('Cliente', receipt.buyerName.slice(0, 28), WIDTH));
+    }
+    b.line(padBetween('Evento', receipt.eventName.slice(0, 28), WIDTH));
+    if (venue) b.line(padBetween('Sede', venue.slice(0, 28), WIDTH));
+    b.line(padBetween('Boletos', String(receipt.quantity), WIDTH))
       .rule('-', WIDTH)
       .line(padBetween('Subtotal', formatMoney(receipt.subtotal), WIDTH))
       .line(padBetween('Cargos', formatMoney(receipt.fees), WIDTH))
@@ -128,6 +163,7 @@ export function buildTicketsJob(
       padCenter(receipt.receiptNumber, WIDTH),
       padCenter(when, WIDTH),
       '',
+      localizador ? padBetween('Localizador', localizador.slice(0, 24), WIDTH) : '',
       padBetween('Subtotal', formatMoney(receipt.subtotal), WIDTH),
       padBetween('Cargos', formatMoney(receipt.fees), WIDTH),
       padBetween('IVA', formatMoney(receipt.taxes), WIDTH),

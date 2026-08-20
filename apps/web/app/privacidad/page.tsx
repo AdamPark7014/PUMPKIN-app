@@ -20,7 +20,7 @@ export default function PrivacidadPage() {
         <ul>
           <li>Identificación y contacto (nombre, email, teléfono opcional)</li>
           <li>Datos de compra y asientos</li>
-          <li>Datos de pago procesados por Banorte (no almacenamos PAN completo)</li>
+          <li>Datos de pago procesados por Mercado Pago (no almacenamos PAN completo)</li>
           <li>RFC y razón social solo si pides factura</li>
         </ul>
         <h2>Derechos</h2>

@@ -139,7 +139,16 @@ export class PosAccessService {
   async requireOrder(orderId: string, organizationId?: string) {
     const ctx = this.tenant.current();
     const include = {
-      event: { select: { id: true, title: true, startsAt: true, organizationId: true } },
+      event: {
+        select: {
+          id: true,
+          title: true,
+          startsAt: true,
+          endsAt: true,
+          organizationId: true,
+          venue: { select: { name: true, city: true, address: true } },
+        },
+      },
       items: { include: { tickets: true } },
       refunds: { select: { id: true, status: true, amount: true } },
     } as const;

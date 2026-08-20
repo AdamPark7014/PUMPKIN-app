@@ -30,15 +30,21 @@ type EventHit = {
   sale?: { canPurchase?: boolean; state?: string };
 };
 
-type PaymentConfig = { gateway?: string; mode?: string; productionReady?: boolean };
+type PaymentConfig = {
+  gateway?: string;
+  mode?: string;
+  productionReady?: boolean;
+  validation?: { missing?: string[] };
+};
 
 /**
- * La compra online sólo se habilita con una pasarela real: Mercado Pago
- * (live o test). Banorte en modo demo está bloqueado por la API en
- * producción, así que ofrecer el checkout sería vender un error.
+ * Compra online sólo con Mercado Pago configurado (token presente).
+ * En Pumpkin el gateway se fuerza a MP, pero sin MP_ACCESS_TOKEN no se vende.
  */
 function onlineSalesOpen(cfg: PaymentConfig | null): boolean {
-  return cfg?.gateway === 'MERCADOPAGO';
+  if (cfg?.gateway !== 'MERCADOPAGO') return false;
+  const missing = cfg.validation?.missing ?? [];
+  return !missing.includes('MP_ACCESS_TOKEN');
 }
 
 export default async function BoletosPage() {

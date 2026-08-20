@@ -55,311 +55,93 @@
 
 /* ============ Hero ============ */
 
+
 .hero {
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  /* El hero ES el carrusel y mide exactamente una pantalla: ni sobra hueco
-     ni hay que scrollear para verlo completo. svh evita el salto de la barra
-     del navegador en móvil. */
+  width: 100%;
   min-height: 100vh;
   min-height: 100svh;
-  padding: clamp(2rem, 4vh, 3rem) 0 clamp(3.5rem, 7vh, 5rem);
   background: var(--pz-night);
 }
 
-/* Contraste del texto sobre cualquier escena: fuerte a la izquierda (donde
-   vive el contenido) y en el pie (donde viven countdown y picker). */
-.heroScrim {
+.heroVideo {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  background:
-    linear-gradient(90deg, rgba(11, 7, 9, 0.92) 0%, rgba(11, 7, 9, 0.72) 34%, rgba(11, 7, 9, 0.25) 62%, rgba(11, 7, 9, 0.05) 100%),
-    linear-gradient(180deg, rgba(11, 7, 9, 0.55) 0%, transparent 22%, transparent 62%, rgba(11, 7, 9, 0.85) 100%);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* El copy y los CTAs viven a la izquierda del MP4: al recortar en móvil
+     priorizamos ese lado para que los botones sigan visibles. */
+  object-position: left center;
+  display: block;
   pointer-events: none;
 }
 
-/* El resplandor naranja que sube desde abajo: la "fogata" de la escena. */
-.heroGlow {
+.heroHotspots {
   position: absolute;
-  z-index: 1;
-  left: 50%;
-  bottom: -32%;
-  width: 130%;
-  height: 78%;
-  transform: translateX(-50%);
-  background: radial-gradient(ellipse at center, rgba(255, 106, 19, 0.32), transparent 60%);
-  filter: blur(30px);
-  pointer-events: none;
-}
-
-.heroFog {
-  position: absolute;
-  z-index: 1;
   inset: 0;
-  background:
-    radial-gradient(60% 34% at 18% 78%, rgba(157, 78, 221, 0.09), transparent 70%),
-    radial-gradient(48% 30% at 84% 70%, rgba(255, 180, 84, 0.07), transparent 70%);
-  pointer-events: none;
-}
-
-.heroVignette {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  background: radial-gradient(120% 95% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.5));
-  pointer-events: none;
-}
-
-.heroInner {
-  position: relative;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  max-width: calc(var(--shell-narrow) + 6rem);
-}
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 0 0 var(--space-4);
-  font-size: var(--text-sm);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--pz-dim);
-}
-
-.edition {
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--pz-hairline);
-  border-radius: var(--radius-pill);
-  color: var(--pz-candle);
-  letter-spacing: 0.18em;
-}
-
-.sep { color: var(--pz-pumpkin); }
-
-.title {
   margin: 0;
-  font-family: var(--font-heading), sans-serif;
-  font-size: clamp(3.2rem, 1.9rem + 8vw, 7.2rem);
-  line-height: 0.9;
-  letter-spacing: 0.015em;
-  text-transform: uppercase;
-  color: var(--pz-bone);
+  pointer-events: none;
 }
 
-.titleAccent {
-  color: var(--pz-pumpkin);
-  /* La palabra acento emite luz — es el naranja-como-luz hecho tipografía. */
-  text-shadow:
-    0 0 22px rgba(255, 106, 19, 0.55),
-    0 0 90px rgba(255, 106, 19, 0.28);
-}
-
-.tagline {
-  margin: var(--space-4) 0 0;
-  font-size: var(--text-lg);
-  font-weight: 600;
-  color: var(--pz-candle);
-  max-width: 34ch;
-}
-
-.intro {
-  margin: var(--space-3) 0 0;
-  font-size: var(--text-base);
-  line-height: 1.55;
-  color: var(--pz-dim);
-  max-width: 52ch;
-}
-
-.facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem 0.7rem;
-  margin: var(--space-4) 0 0;
-  font-size: var(--text-md);
-  color: var(--pz-dim);
-
-  strong {
-    font-weight: 700;
-    color: var(--pz-bone);
-  }
-
-  span {
-    color: var(--pz-pumpkin);
-  }
-}
-
-.ctaRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3) var(--space-5);
-  margin-top: var(--space-5);
-}
-
-.ctaPrimary {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.95rem 2.1rem;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(180deg, #ff8a3c, var(--pz-pumpkin) 55%, #e05a0e);
-  color: #1a0d05;
-  font-size: var(--text-md);
-  font-weight: 700;
+.hotspotTickets,
+.hotspotMaps {
+  position: absolute;
+  pointer-events: auto;
+  display: block;
+  border-radius: 999px;
+  background: transparent;
   text-decoration: none;
-  box-shadow:
-    0 6px 26px rgba(255, 106, 19, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow:
-      0 10px 34px rgba(255, 106, 19, 0.5),
-      inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  }
 
   &:focus-visible {
-    outline: 2px solid var(--pz-bone);
+    outline: 2px solid var(--pz-candle);
     outline-offset: 3px;
   }
 }
 
-.ctaGhost {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.95rem 1.7rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--pz-hairline);
-  color: var(--pz-bone);
-  font-size: var(--text-md);
-  font-weight: 600;
-  text-decoration: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
-
-  &:hover {
-    border-color: var(--pz-pumpkin);
-    background: rgba(255, 106, 19, 0.08);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--pz-pumpkin);
-    outline-offset: 3px;
-  }
+/* Alineados al frame 1920×1080 del hero.mp4 (COMPRAR BOLETOS / CÓMO LLEGAR). */
+.hotspotTickets {
+  left: 5.2%;
+  top: 71.5%;
+  width: 18.5%;
+  height: 6.8%;
 }
 
-/* ---- Tira de accesos del hero ---- */
+.hotspotMaps {
+  left: 25.2%;
+  top: 71.5%;
+  width: 15.5%;
+  height: 6.8%;
+}
 
-.tierStrip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  margin: var(--space-5) 0 0;
+.hotspotLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   padding: 0;
-  list-style: none;
-}
-
-.tierPill {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 10.5rem;
-  padding: 0.8rem 1.1rem;
-  border: 1px solid var(--pz-hairline);
-  border-radius: var(--radius-lg);
-  background: rgba(20, 12, 10, 0.55);
-  backdrop-filter: blur(10px);
-  text-decoration: none;
-  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
-
-  &:hover {
-    border-color: var(--pz-pumpkin);
-    background: rgba(255, 106, 19, 0.14);
-    transform: translateY(-2px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--pz-pumpkin);
-    outline-offset: 3px;
-  }
-}
-
-.tierPillHot {
-  border-color: rgba(255, 106, 19, 0.6);
-  box-shadow: 0 8px 30px rgba(255, 106, 19, 0.22);
-}
-
-.tierPillName {
-  font-size: var(--text-xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--pz-dim);
-}
-
-.tierPillPrice {
-  font-family: var(--font-heading), sans-serif;
-  font-size: 1.55rem;
-  line-height: 1;
-  color: var(--pz-candle);
-}
-
-.tierPillTag {
-  position: absolute;
-  top: -0.55rem;
-  right: 0.8rem;
-  padding: 0.14rem 0.55rem;
-  border-radius: var(--radius-pill);
-  background: var(--pz-pumpkin);
-  color: #1a0d05;
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.tierStripNote {
-  flex-basis: 100%;
-  margin-top: 0.15rem;
-  font-size: var(--text-xs);
-  letter-spacing: 0.06em;
-  color: var(--pz-dim);
-}
-
-.countdownWrap {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.countdownLabel {
-  margin: 0;
-  font-size: var(--text-xs);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--pz-dim);
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
+  border: 0;
 }
 
-/* La calabaza de marca: discreta, arriba a la derecha, sin pelear con las
-   escenas del fondo. */
-.mark {
-  position: absolute;
-  z-index: 2;
-  top: clamp(1rem, 3vh, 2rem);
-  right: clamp(1rem, 3vw, 2.5rem);
-  width: clamp(64px, 7vw, 96px);
-  opacity: 0.95;
-  filter: drop-shadow(0 0 24px rgba(255, 106, 19, 0.35));
-  pointer-events: none;
+@media (max-width: 720px) {
+  .hotspotTickets {
+    left: 4%;
+    top: 70%;
+    width: 42%;
+    height: 8%;
+  }
+
+  .hotspotMaps {
+    left: 48%;
+    top: 70%;
+    width: 40%;
+    height: 8%;
+  }
 }
 
 /* ============ Secciones ============ */
@@ -716,7 +498,6 @@
 /* ============ Movimiento reducido ============ */
 
 @media (prefers-reduced-motion: reduce) {
-  .ctaPrimary,
   .tierCtaPrimary,
   .attractionCard { transition: none; }
 }

@@ -1,33 +1,46 @@
-const CACHE = 'boletera-admin-scanner-v1';
-const PRECACHE = ['/scanner', '/login'];
+/* Pumpkin Zone Admin — shell PWA (instalable en escritorio).
+ * Cache-first same-origin GET; no cachea /api.
+ */
+const CACHE = 'pumpkin-admin-shell-v2';
+const PRECACHE = ['/', '/login', '/manifest.json', '/icon-192.png'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE).catch(() => undefined)));
+  event.waitUntil(
+    caches.open(CACHE).then((cache) =>
+      Promise.all(PRECACHE.map((url) => cache.add(url).catch(() => undefined))),
+    ),
+  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  const url = new URL(event.request.url);
-  // Never cache API mutations responses via GET cache for scan endpoints incorrectly
-  if (url.pathname.includes('/api/')) return;
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/')) return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
+    caches.match(req).then((cached) => {
+      const network = fetch(req)
         .then((res) => {
-          if (res.ok && url.origin === self.location.origin) {
+          if (res && res.ok) {
             const clone = res.clone();
-            caches.open(CACHE).then((c) => c.put(event.request, clone));
+            void caches.open(CACHE).then((c) => c.put(req, clone));
           }
           return res;
         })
         .catch(() => cached);
-      return cached ?? network;
+      return cached || network;
     }),
   );
 });

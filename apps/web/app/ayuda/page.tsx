@@ -15,7 +15,7 @@ export default function AyudaPage() {
 
         <h2>Comprar boletos</h2>
         <p>
-          Elige un evento, selecciona asientos o zona, completa el checkout y paga con Banorte
+          Elige un evento, selecciona asientos o zona, completa el checkout y paga con Mercado Pago
           (CARD / SPEI / OXXO según disponibilidad). Al confirmar verás la orden y podrás descargar
           el PDF con QR.
         </p>

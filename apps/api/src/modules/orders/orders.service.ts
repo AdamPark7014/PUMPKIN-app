@@ -15,7 +15,7 @@ import {
   SalesChannel,
   TicketStatus,
 } from '@prisma/client';
-import { buildQrPayload, generateTicketCode } from '@boletera/crypto';
+import { generateTicketCode } from '@boletera/crypto';
 import {
   initDefaultProviders,
   getProvider,
@@ -26,7 +26,6 @@ import QRCode from 'qrcode';
 import { AuditService } from '../../common/audit.service';
 import { TenantContextService } from '../../common/tenant-context.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { requireJwtSecret } from '../auth/jwt-secret';
 import { PricingService } from '../pricing/pricing.service';
 import { FraudService } from '../fraud/fraud.service';
 import { NotificationService } from '../notification/notification.service';
@@ -113,6 +112,12 @@ export class OrdersService {
     if (!event) throw new NotFoundException('Event not found');
     this.assertTenantIfPresent(event.organizationId);
 
+    const org = await this.prisma.organization.findFirst({
+      where: { id: event.organizationId },
+      select: { commissionRate: true },
+    });
+    const commissionRate = Number(org?.commissionRate ?? 0);
+
     const userId = await this.resolveBuyerUserId(dto);
     const pricedLines = await this.priceLines(dto, event, lineGroups);
 
@@ -184,10 +189,9 @@ export class OrdersService {
 
     const method = isComp ? 'CASH' : (dto.paymentMethod ?? 'CARD').toUpperCase();
     // Efectivo y TODO lo presencial (canal TAQUILLA) van a 'cash': en taquilla
-    // la terminal bancaria física ya cobró y aquí sólo se registra el voucher
-    // (cardLast4/cardAuthCode en posOps) — pasar por la pasarela online
-    // duplicaría el cobro o reventaría sin credenciales. Lo online lo decide
-    // el registro de pasarelas (Mercado Pago si está configurado, si no Banorte).
+    // la terminal (MP Point / voucher) ya cobró y aquí sólo se registra el
+    // cobro (cardLast4/cardAuthCode en posOps) — pasar por Checkout Pro
+    // online duplicaría el cargo. Lo online es siempre Mercado Pago en Pumpkin.
     const providerId =
       method === 'CASH' || channel === SalesChannel.TAQUILLA
         ? 'cash'
@@ -338,7 +342,7 @@ export class OrdersService {
               totalAmount,
               discountAmount,
               promotionId,
-              commissionAmount: isComp ? 0 : subtotal * 0.15,
+              commissionAmount: isComp ? 0 : subtotal * commissionRate,
               currency: event.currency,
               channel,
               cashierId: dto.cashierId,
@@ -1008,11 +1012,13 @@ export class OrdersService {
     if (order.status !== OrderStatus.COMPLETED) {
       throw new BadRequestException('Order not completed');
     }
-    const secret = process.env.TICKET_QR_SECRET || requireJwtSecret();
+    // QR = código durable BLT-… (igual que el boleto térmico Epson). La firma
+    // rotativa HMAC sigue disponible en @boletera/crypto para anti-screenshot
+    // futuro; en puerta el PDA/láser escanea el mismo payload que el papel.
     const tickets = order.items.flatMap((i) => i.tickets);
     const mapped = await Promise.all(
       tickets.map(async (t) => {
-        const qrPayload = buildQrPayload(t.id, order.eventId, secret);
+        const qrPayload = t.code;
         const qrDataUrl = await QRCode.toDataURL(qrPayload, { width: 180, margin: 1 });
         return { id: t.id, code: t.code, qrPayload, qrDataUrl };
       }),

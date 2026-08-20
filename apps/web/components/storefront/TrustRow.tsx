@@ -23,8 +23,8 @@ export function trustPayment(demo: boolean): TrustItem {
         detail: 'Entorno de prueba: no se realiza ningún cargo real',
       }
     : {
-        title: 'Pago Banorte',
-        detail: 'Cobro cifrado y liquidado a la cuenta del organizador',
+        title: 'Pago Mercado Pago',
+        detail: 'Cobro cifrado con tarjeta, OXXO, transferencia o saldo',
       };
 }
 

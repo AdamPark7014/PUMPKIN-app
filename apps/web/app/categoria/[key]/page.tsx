@@ -30,7 +30,7 @@ export async function generateMetadata({
 
   const label = categoryLabel(key);
   const title = `${label} — boletos oficiales`;
-  const description = `Cartelera de ${label.toLowerCase()} en México. Compra boletos oficiales con inventario real y pago Banorte.`;
+  const description = `Cartelera de ${label.toLowerCase()} en México. Compra boletos oficiales con inventario real y pago Mercado Pago.`;
   const path = `/categoria/${key.toLowerCase()}`;
   const url = canonical(path);
 

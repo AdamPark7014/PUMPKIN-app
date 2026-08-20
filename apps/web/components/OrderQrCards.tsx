@@ -98,7 +98,8 @@ export function OrderQrCards({ publicId }: { publicId: string }) {
       <h2>Códigos QR de acceso</h2>
       <p className={styles.event}>{data.eventTitle}</p>
       <p className={styles.hint}>
-        Presenta un QR por persona en el acceso. Guárdalos en el celular o descárgalos en PDF.
+        Localizador <code>{data.publicId}</code>. Presenta un QR por persona (papel, PDF o
+        celular). El código <code>BLT-…</code> debajo también vale si el lector no toma el QR.
       </p>
       <ul className={styles.grid}>
         {data.tickets.map((ticket) => {

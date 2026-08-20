@@ -501,7 +501,7 @@ export default async function EventPage({
                 )}
                 <ul className={styles.railTrust}>
                   <li>Boletos oficiales</li>
-                  <li>Pago Banorte</li>
+                  <li>Pago Mercado Pago</li>
                   <li>Entrada con QR</li>
                   <li>Hold {holdMinutes} min al elegir</li>
                   {event.organization?.name && (

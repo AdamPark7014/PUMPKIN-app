@@ -95,7 +95,7 @@ function PagoContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Idempotency-Key': `banorte-demo-${publicId}`,
+          'Idempotency-Key': `mp-demo-${publicId}`,
         },
         body: JSON.stringify({
           orderId: order.id,
@@ -241,7 +241,7 @@ function PagoContent() {
               ? 'Pago confirmado'
               : method === 'CARD'
                 ? result === 'ok'
-                  ? 'Confirmando con Banorte'
+                  ? 'Confirmando con Mercado Pago'
                   : 'Pago pendiente'
                 : `Pendiente ${paymentMethodLabel(method)}`,
         done: completed || pollState === 'confirmed',
@@ -282,7 +282,7 @@ function PagoContent() {
           <PurchaseSteps current="checkout" />
           <header className={styles.hero}>
             <p className={styles.pending}>
-              Pago cancelado{isDemoFlow ? ' (demo)' : ' en Banorte'}
+              Pago cancelado{isDemoFlow ? ' (demo)' : ' en Mercado Pago'}
             </p>
             <h1>No se completó el cargo</h1>
             <p className={styles.sub}>
@@ -360,7 +360,7 @@ function PagoContent() {
             <p className={styles.nextStep} role="status">
               <strong>Siguiente paso:</strong>{' '}
               {isDemoFlow
-                ? 'Usa el botón de simulación Banorte. No transfieras dinero real.'
+                ? 'Usa el botón de simulación Mercado Pago. No transfieras dinero real.'
                 : method === 'SPEI'
                   ? 'Transfiere el monto exacto con la referencia indicada.'
                   : 'Paga en OXXO con la referencia y monto exactos.'}
@@ -383,7 +383,7 @@ function PagoContent() {
             {pollState === 'polling'
               ? isDemoFlow
                 ? 'Esperando simulación de acreditamiento…'
-                : 'Actualizamos el estado automáticamente al acreditarse tu pago Banorte.'
+                : 'Actualizamos el estado automáticamente al acreditarse tu pago Mercado Pago.'
               : pollState === 'confirmed'
                 ? 'Pago confirmado. Redirigiendo a tus boletos…'
                 : 'Cuando el pago se confirme, te llevamos a tus boletos.'}
@@ -394,7 +394,7 @@ function PagoContent() {
               <p>
                 {isDemoFlow
                   ? 'Datos SPEI de prueba (no uses en banca real):'
-                  : 'Realiza tu transferencia SPEI a la cuenta Banorte del promotor:'}
+                  : 'Realiza tu transferencia SPEI a la cuenta Mercado Pago del promotor:'}
               </p>
               {clabe && (
                 <p>
@@ -507,7 +507,7 @@ function PagoContent() {
 
         <header className={styles.hero}>
           <p className={styles.pending}>
-            {isDemoFlow ? 'Confirmación demo' : 'Confirmación Banorte'}
+            {isDemoFlow ? 'Confirmación demo' : 'Confirmación Mercado Pago'}
           </p>
           <h1>
             {needsRecovery
@@ -516,7 +516,7 @@ function PagoContent() {
                 ? 'No se confirmó el pago'
                 : isDemoFlow
                   ? 'Confirmando pago demo'
-                  : 'Confirmando pago Banorte'}
+                  : 'Confirmando pago Mercado Pago'}
           </h1>
           <p className={styles.sub}>
             Orden <code>{publicId}</code>
@@ -542,8 +542,8 @@ function PagoContent() {
               ? 'Revisa el error y reintenta. No pedimos datos de tarjeta aquí ni simulamos un éxito falso.'
               : waitingBank
                 ? isDemoFlow
-                  ? 'Estamos simulando la confirmación Banorte…'
-                  : 'Esperando IPN Banorte. Mantén esta pantalla abierta.'
+                  ? 'Estamos simulando la confirmación Mercado Pago…'
+                  : 'Esperando IPN Mercado Pago. Mantén esta pantalla abierta.'
                 : needsRecovery
                   ? 'Abre el estado de la orden para reintentar sin crear una compra nueva.'
                   : 'Cuando el banco confirme, te llevamos a tus boletos.'}
@@ -554,7 +554,7 @@ function PagoContent() {
           <p className={styles.statusLive} aria-live="polite">
             {isDemoFlow
               ? 'Simulando confirmación…'
-              : 'Esperando confirmación del banco (IPN Banorte)…'}
+              : 'Esperando confirmación del banco (IPN Mercado Pago)…'}
           </p>
         )}
 
@@ -564,7 +564,7 @@ function PagoContent() {
             <p className={styles.mutedBlock}>
               {isDemoFlow
                 ? 'Si saliste antes de confirmar el demo, vuelve a la orden e inicia de nuevo. No se crea una orden duplicada.'
-                : 'Si cerraste Banorte o la red falló, puedes reintentar desde la orden. El banco evita cargos duplicados para la misma compra.'}
+                : 'Si cerraste Mercado Pago o la red falló, puedes reintentar desde la orden. El banco evita cargos duplicados para la misma compra.'}
             </p>
             <div className={styles.actions}>
               <Link href={`/orders/${publicId}`} className={styles.link}>

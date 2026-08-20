@@ -87,7 +87,10 @@ de este repositorio. Cuando una funcionalidad está a medio construir se dice ex
 - **[ENV-SECRETS.md](./ENV-SECRETS.md)** — cómo generar y operar los secretos que la plataforma
   valida en runtime (`TICKET_QR_SECRET`, `JWT_SECRET`, `INTERNAL_API_SECRET`, Banorte, etc.).
 - **[ACTIVAR-MERCADO-PAGO.md](./ACTIVAR-MERCADO-PAGO.md)** — activar cobro online Pumpkin (credenciales + webhook).
+- **[Manual-Mercado-Pago-Credenciales.pdf](./Manual-Mercado-Pago-Credenciales.pdf)** — PDF: Access Token, webhooks y Point.
+- **[INTEGRACION-MP-CHECKLIST.md](./INTEGRACION-MP-CHECKLIST.md)** — checklist online + terminales Point.
 - **[research/MERCADO-PAGO-BOLETERAS.md](./research/MERCADO-PAGO-BOLETERAS.md)** — deep research: MP + boleteras (comisiones, OXXO, holds).
+- **[research/MERCADO-PAGO-POINT.md](./research/MERCADO-PAGO-POINT.md)** — deep research: Point / Orders API.
 - **[research/PASARELAS-BOLETERA-MX.md](./research/PASARELAS-BOLETERA-MX.md)** — Clip vs MP vs Stripe vs PayPal (costo + cableado del repo).
 
 ### Documentos fuera de `docs/`

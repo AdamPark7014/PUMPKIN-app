@@ -65,6 +65,27 @@ type MpPayment = {
   payment_type_id?: string;
 };
 
+type MpOrder = {
+  id: string;
+  status?: string;
+  status_detail?: string;
+  external_reference?: string;
+  type?: string;
+  transactions?: {
+    payments?: Array<{ id?: string; status?: string; status_detail?: string }>;
+  };
+};
+
+function mapOrderStatus(status: string | undefined, detail?: string): WebhookStatus {
+  const s = (status ?? '').toLowerCase();
+  const d = (detail ?? '').toLowerCase();
+  if (s === 'processed' || d === 'accredited') return 'completed';
+  if (s === 'canceled' || s === 'cancelled') return 'cancelled';
+  if (s === 'failed' || s === 'expired') return 'failed';
+  if (s === 'refunded') return 'cancelled';
+  return 'pending';
+}
+
 /** Lo que la API le pasa al provider desde el controller del webhook. */
 export type MercadoPagoWebhookPayload = {
   body: unknown;
@@ -310,16 +331,30 @@ export class MercadoPagoProvider implements PaymentProvider {
     const b = (body ?? {}) as { type?: string; action?: string; data?: { id?: string | number } };
 
     // Formato nuevo (Webhooks) y legado (IPN) comparten este parseo.
-    const type = q.type ?? q.topic ?? b.type ?? '';
+    const type = String(q.type ?? q.topic ?? b.type ?? '').toLowerCase();
     const dataId = String(q['data.id'] ?? b.data?.id ?? q.id ?? '').trim();
 
-    // merchant_order, chargebacks, etc. no cambian el estado de la orden.
-    if (type !== 'payment' || !dataId) {
+    if (!dataId) {
+      return { status: 'pending' };
+    }
+
+    // Point / Orders API: topic "order". Checkout Pro online: topic "payment".
+    if (type !== 'payment' && type !== 'order') {
       return { status: 'pending' };
     }
 
     if (!this.verifySignature(dataId, headers?.['x-request-id'], headers?.['x-signature'])) {
       throw new PaymentError('INVALID_SIGNATURE', 'Firma de webhook de Mercado Pago inválida');
+    }
+
+    if (type === 'order') {
+      const order = await this.mpFetch<MpOrder>(`/v1/orders/${encodeURIComponent(dataId)}`);
+      const payId = order.transactions?.payments?.[0]?.id;
+      return {
+        orderId: order.external_reference || undefined,
+        intentId: payId ? String(payId) : String(order.id),
+        status: mapOrderStatus(order.status, order.status_detail),
+      };
     }
 
     // Fuente de verdad: la API de MP, nunca el cuerpo del webhook.

@@ -21,8 +21,13 @@ enciende sola al detectar las credenciales.
 En la misma aplicación → **Webhooks / Notificaciones**:
 
 - URL: `https://pumpkin.experiencebt.com.mx/api/v1/payments/webhooks/mercadopago`
-- Evento: **Pagos** (payments)
+- Eventos:
+  - **Pagos** (`payment`) — Checkout Pro online (obligatorio)
+  - **Order (Mercado Pago)** (`order`) — si usas **Point** / terminales
 - Copia la **clave secreta** que Mercado Pago genera para la firma.
+
+Manual paso a paso (PDF): [`Manual-Mercado-Pago-Credenciales.pdf`](./Manual-Mercado-Pago-Credenciales.pdf)  
+Checklist completo: [`INTEGRACION-MP-CHECKLIST.md`](./INTEGRACION-MP-CHECKLIST.md)
 
 ## Paso 3 — Poner las credenciales en el servidor
 

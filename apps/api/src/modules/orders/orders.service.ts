@@ -177,9 +177,15 @@ export class OrdersService {
     await this.quotas.assertAvailable(dto.eventId, channel, holds.length);
 
     const method = isComp ? 'CASH' : (dto.paymentMethod ?? 'CARD').toUpperCase();
-    // Efectivo (taquilla/cortesía) va a 'cash'; lo online lo decide el registro
-    // de pasarelas (Mercado Pago si está configurado, Banorte si no).
-    const providerId = method === 'CASH' ? 'cash' : onlinePaymentProviderId();
+    // Efectivo y TODO lo presencial (canal TAQUILLA) van a 'cash': en taquilla
+    // la terminal bancaria física ya cobró y aquí sólo se registra el voucher
+    // (cardLast4/cardAuthCode en posOps) — pasar por la pasarela online
+    // duplicaría el cobro o reventaría sin credenciales. Lo online lo decide
+    // el registro de pasarelas (Mercado Pago si está configurado, si no Banorte).
+    const providerId =
+      method === 'CASH' || channel === SalesChannel.TAQUILLA
+        ? 'cash'
+        : onlinePaymentProviderId();
     const provider = getProvider(providerId);
     const gatewayEnum =
       providerId === 'mercadopago'

@@ -30,8 +30,20 @@ type EventHit = {
   sale?: { canPurchase?: boolean; state?: string };
 };
 
+type PaymentConfig = { gateway?: string; mode?: string; productionReady?: boolean };
+
+/**
+ * La compra online sólo se habilita con una pasarela real: Mercado Pago
+ * (live o test). Banorte en modo demo está bloqueado por la API en
+ * producción, así que ofrecer el checkout sería vender un error.
+ */
+function onlineSalesOpen(cfg: PaymentConfig | null): boolean {
+  return cfg?.gateway === 'MERCADOPAGO';
+}
+
 export default async function BoletosPage() {
   let event: EventHit | null = null;
+  let payConfig: PaymentConfig | null = null;
   let loadError = false;
 
   try {
@@ -39,9 +51,15 @@ export default async function BoletosPage() {
   } catch {
     loadError = true;
   }
+  try {
+    payConfig = await api<PaymentConfig>('/payments/config');
+  } catch {
+    payConfig = null;
+  }
 
+  const salesOpen = onlineSalesOpen(payConfig);
   const offers = (event?.offers ?? []).filter((o) => o.isAvailable !== false);
-  const canPurchase = event?.sale?.canPurchase !== false;
+  const canPurchase = salesOpen && event?.sale?.canPurchase !== false;
 
   // El orden y el copy vienen de la config; el precio y el cupo, del inventario
   // real. Así el sitio nunca anuncia un precio que la API no respalda.
@@ -72,6 +90,16 @@ export default async function BoletosPage() {
       </header>
 
       <main className={styles.shell}>
+        {!salesOpen && !loadError && (
+          <div className={styles.notice} role="status">
+            <h2>La venta en línea abre muy pronto</h2>
+            <p>
+              Estamos terminando de conectar el pago en línea. Mientras tanto, tus boletos
+              están disponibles en la taquilla del evento — efectivo y tarjeta.
+            </p>
+          </div>
+        )}
+
         {loadError || tiers.length === 0 ? (
           <div className={styles.empty} role="alert">
             <h2>No pudimos cargar los boletos</h2>

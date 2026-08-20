@@ -102,3 +102,24 @@
   font-weight: 700;
   text-decoration: none;
 }
+
+/* Aviso de venta online por abrir: informa sin parecer error. */
+.notice {
+  margin: 0 0 1.5rem;
+  padding: 1.1rem 1.4rem;
+  border: 1px solid rgba(255, 180, 84, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 106, 19, 0.09);
+
+  h2 {
+    margin: 0 0 0.3rem;
+    font-size: 1.1rem;
+    color: #f5efe6;
+  }
+
+  p {
+    margin: 0;
+    color: #b3a89e;
+    line-height: 1.55;
+  }
+}

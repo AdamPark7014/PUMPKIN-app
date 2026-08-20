@@ -68,10 +68,17 @@ const ZONES = [
 
 const ADMIN_EMAIL = 'admin@pumpkinzone.mx';
 const CASHIER_EMAIL = 'taquilla@pumpkinzone.mx';
-/** Contraseña inicial de ambos usuarios. Cámbiala el primer día. */
-const SEED_PASSWORD = 'PumpkinZone.2026';
-/** PIN de gerente para cortesías/void. Cámbialo el primer día. */
-const MANAGER_PIN = '4826';
+/**
+ * Contraseña inicial de ambos usuarios.
+ * Preferir SEED_PASSWORD en el entorno; el default solo sirve para demos locales.
+ * Cámbiala el primer día de ops (o pásala ya segura por env).
+ */
+const SEED_PASSWORD = process.env.SEED_PASSWORD?.trim() || 'PumpkinZone.2026';
+/**
+ * PIN de gerente para cortesías/void.
+ * Preferir SEED_MANAGER_PIN en el entorno.
+ */
+const MANAGER_PIN = process.env.SEED_MANAGER_PIN?.trim() || '4826';
 
 /** Igual que ManagerPinService.hashPin — mismo prefijo, mismo algoritmo. */
 function hashManagerPin(pin: string): string {
@@ -84,6 +91,12 @@ function ticketCode(zone: string, n: number): string {
 
 async function main(): Promise<void> {
   console.log('— Seed Pumpkin Zone 2026 —');
+  if (!process.env.SEED_PASSWORD?.trim() || !process.env.SEED_MANAGER_PIN?.trim()) {
+    console.warn(
+      '⚠ Usando password/PIN por defecto. En producción define SEED_PASSWORD y SEED_MANAGER_PIN, ' +
+        'o cámbialos en admin el primer día.',
+    );
+  }
 
   // 1. Organización -----------------------------------------------------------
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);

@@ -1,6 +1,9 @@
 # 🗺️ BOLETERA - MAPA DE CONTINUACIÓN
 
-> **¿Qué hacer ahora? Elige tu camino.**
+> **OBSOLETO para Pumpkin.** Ignorar Stripe / % inventados. Ver `deploy/README.md`
+> y `docs/Stack-Pumpkin.pdf`.
+
+> **¿Qué hacer ahora? Elige tu camino.** (histórico)
 
 ---
 

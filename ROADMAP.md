@@ -1,6 +1,10 @@
 # BOLETERA Platform - Execution Roadmap
 
-> **Goal:** Build the most advanced ticketing platform on Earth. Surpass Ticketmaster, StubHub, Palco4 in every metric that matters.
+> **OBSOLETO para operación Pumpkin / estado real del repo.** Habla de Stripe y
+> checklists frontend desactualizados. Usar `docs/arquitectura.md`, `docs/README.md`
+> y `deploy/README.md`. Pagos online actuales: Mercado Pago (+ Banorte/demo).
+
+> **Goal (histórico):** Build the most advanced ticketing platform on Earth. Surpass Ticketmaster, StubHub, Palco4 in every metric that matters.
 
 ---
 

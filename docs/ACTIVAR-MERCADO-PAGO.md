@@ -30,17 +30,23 @@ En la misma aplicación → **Webhooks / Notificaciones**:
 ssh -i C:\Users\adpoz\.ssh\id_ed25519_nexara_hetzner -p 2222 root@5.78.215.109
 ```
 
-Edita `/opt/pumpkin/.env` y llena las dos líneas que ya están esperando:
+Edita `/opt/pumpkin/.env` (plantilla: `deploy/pumpkin.env.example`) y llena:
 
 ```
 MP_ACCESS_TOKEN=APP_USR-xxxxxxxxxxxx
 MP_WEBHOOK_SECRET=xxxxxxxxxxxx
+WEB_PUBLIC_URL=https://pumpkin.experiencebt.com.mx
+API_PUBLIC_URL=https://pumpkin.experiencebt.com.mx
 ```
+
+`deploy/pumpkin-compose.yml` inyecta esas variables al contenedor `api`
+(`env_file` + `environment`). Sin ellas en el `.env`, la API no ve Mercado Pago
+aunque el archivo exista.
 
 Aplica:
 
 ```bash
-cd /opt/pumpkin && docker compose up -d api
+cd /opt/pumpkin && docker compose -f pumpkin-compose.yml up -d api
 ```
 
 ## Paso 4 — Verificar (2 minutos)

@@ -1,12 +1,16 @@
 name: pumpkin
 
 # Stack de producción de Pumpkin Zone.
-#   pumpkin.experiencebt.com.mx  → storefront público (web)
-#   app.experiencebt.com.mx      → panel de gestión (admin)
-#   api.pumpkin.experiencebt...  → API (consumida por ambos desde el navegador)
+#   pumpkin.experiencebt.com.mx     → storefront público (web)
+#   app.experiencebt.com.mx         → panel de gestión (admin)
+#   taquilla.experiencebt.com.mx    → POS taquilla
+#   PathPrefix /api en pumpkin…     → API (consumida por todos)
 #
 # Traefik v2.11 ya corre en la red externa `proxy` y resuelve TLS con
 # letsencrypt. Sólo hay que etiquetar los servicios que deben publicarse.
+#
+# Secretos: ponerlos en /opt/pumpkin/.env (mismo directorio que este compose).
+# Ver deploy/pumpkin.env.example y docs/ACTIVAR-MERCADO-PAGO.md.
 
 networks:
   proxy:
@@ -57,6 +61,8 @@ services:
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -64,12 +70,26 @@ services:
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
       TICKET_QR_SECRET: ${TICKET_QR_SECRET}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-}
       # Tenant fijo: modo evento único.
       DEMO_TENANT_SLUG: pumpkin-zone
-      CORS_ORIGIN: https://pumpkin.experiencebt.com.mx,https://app.experiencebt.com.mx
+      CORS_ORIGIN: https://pumpkin.experiencebt.com.mx,https://app.experiencebt.com.mx,https://taquilla.experiencebt.com.mx
       WEB_URL: https://pumpkin.experiencebt.com.mx
       ADMIN_URL: https://app.experiencebt.com.mx
       COOKIE_DOMAIN: .experiencebt.com.mx
+      # Mercado Pago / URLs públicas (también vía env_file; se reafirman aquí)
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-https://pumpkin.experiencebt.com.mx}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-https://pumpkin.experiencebt.com.mx}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
+      MP_STATEMENT: ${MP_STATEMENT:-PUMPKIN ZONE}
+      PRICING_SERVICE_FEE_RATE: ${PRICING_SERVICE_FEE_RATE:-0}
+      PRICING_TAX_RATE: ${PRICING_TAX_RATE:-0}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
     networks: [proxy, internal]
     labels:
       - "traefik.enable=true"
@@ -80,22 +100,25 @@ services:
       - "traefik.http.routers.pumpkin-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.pumpkin-api.loadbalancer.server.port=4000"
 
+  # Expira holds y jobs Bull — imagen dedicada (docker/worker.Dockerfile).
   worker:
-    image: pumpkin-api:latest
+    image: pumpkin-worker:latest
     container_name: pumpkin-worker
     restart: unless-stopped
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
-    command: ["node", "dist/worker/main.js"]
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://pumpkin:${POSTGRES_PASSWORD}@db:5432/pumpkin?schema=public
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
       TICKET_QR_SECRET: ${TICKET_QR_SECRET}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:4000/api/v1}
     networks: [internal]
-    profiles: ["with-worker"]
 
   web:
     image: pumpkin-web:latest
@@ -130,3 +153,20 @@ services:
       - "traefik.http.routers.pumpkin-admin.entrypoints=websecure"
       - "traefik.http.routers.pumpkin-admin.tls.certresolver=letsencrypt"
       - "traefik.http.services.pumpkin-admin.loadbalancer.server.port=3001"
+
+  taquilla:
+    image: pumpkin-taquilla:latest
+    container_name: pumpkin-taquilla
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+    networks: [proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.pumpkin-taquilla.rule=Host(`taquilla.experiencebt.com.mx`)"
+      - "traefik.http.routers.pumpkin-taquilla.entrypoints=websecure"
+      - "traefik.http.routers.pumpkin-taquilla.tls.certresolver=letsencrypt"
+      - "traefik.http.services.pumpkin-taquilla.loadbalancer.server.port=3002"

@@ -1,6 +1,9 @@
 # 🔥 BOLETERA - PLAN DE ACCIÓN INMEDIATO
 
-> **Start Here: 8-Hour Sprint to Production-Ready**
+> **OBSOLETO.** Stripe ya no es la pasarela; Pumpkin usa Mercado Pago
+> (`docs/ACTIVAR-MERCADO-PAGO.md`). No seguir este sprint.
+
+> **Start Here (histórico): 8-Hour Sprint to Production-Ready**
 
 ---
 

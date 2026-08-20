@@ -55,14 +55,26 @@
 
 /* ============ Hero ============ */
 
-
+/*
+ * El MP4 es 1920×1080. Con object-fit:cover el viewport (más ancho que 16:9
+ * por la chrome del browser) recorta arriba/abajo — corta el badge y los CTAs
+ * y desalinea los hotspots. El stage contiene el video completo.
+ */
 .hero {
-  position: relative;
-  overflow: hidden;
+  display: grid;
+  place-items: center;
   width: 100%;
   min-height: 100vh;
   min-height: 100svh;
   background: var(--pz-night);
+  overflow: hidden;
+}
+
+.heroStage {
+  position: relative;
+  width: min(100%, calc(100svh * 16 / 9));
+  height: min(100svh, calc(100vw * 9 / 16));
+  background: #000;
 }
 
 .heroVideo {
@@ -70,10 +82,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  /* El copy y los CTAs viven a la izquierda del MP4: al recortar en móvil
-     priorizamos ese lado para que los botones sigan visibles. */
-  object-position: left center;
+  object-fit: fill;
   display: block;
   pointer-events: none;
 }
@@ -94,6 +103,7 @@
   border-radius: 999px;
   background: transparent;
   text-decoration: none;
+  cursor: pointer;
 
   &:focus-visible {
     outline: 2px solid var(--pz-candle);
@@ -101,19 +111,19 @@
   }
 }
 
-/* Alineados al frame 1920×1080 del hero.mp4 (COMPRAR BOLETOS / CÓMO LLEGAR). */
+/* CTAs del frame 1920×1080 — un poco más grandes que el píxel del botón. */
 .hotspotTickets {
-  left: 5.2%;
-  top: 71.5%;
-  width: 18.5%;
-  height: 6.8%;
+  left: 4.2%;
+  top: 84.5%;
+  width: 20%;
+  height: 9%;
 }
 
 .hotspotMaps {
-  left: 25.2%;
-  top: 71.5%;
-  width: 15.5%;
-  height: 6.8%;
+  left: 25.5%;
+  top: 84.5%;
+  width: 16.5%;
+  height: 9%;
 }
 
 .hotspotLabel {
@@ -130,17 +140,17 @@
 
 @media (max-width: 720px) {
   .hotspotTickets {
-    left: 4%;
-    top: 70%;
-    width: 42%;
-    height: 8%;
+    left: 3.5%;
+    top: 83%;
+    width: 44%;
+    height: 11%;
   }
 
   .hotspotMaps {
-    left: 48%;
-    top: 70%;
-    width: 40%;
-    height: 8%;
+    left: 49%;
+    top: 83%;
+    width: 42%;
+    height: 11%;
   }
 }
 

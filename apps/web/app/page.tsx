@@ -36,36 +36,38 @@ export default function Home() {
 }
 
 /**
- * Hero = video full-bleed. Tipografía y CTAs van embebidos en el MP4;
- * encima solo hay hotspots transparentes alineados a esos botones.
+ * Hero = video 16:9 contenido (sin crop). Tipografía/CTAs van en el MP4;
+ * hotspots transparentes viven en el mismo stage para no desalinear.
  */
 function Hero() {
   return (
     <header className={styles.hero}>
-      <video
-        className={styles.heroVideo}
-        src="/pumpkin/hero.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        aria-label={`${EVENT.name} ${EVENT.edition}`}
-      />
+      <div className={styles.heroStage}>
+        <video
+          className={styles.heroVideo}
+          src="/pumpkin/hero.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-label={`${EVENT.name} ${EVENT.edition}`}
+        />
 
-      <nav className={styles.heroHotspots} aria-label="Acciones">
-        <Link href="/boletos" className={styles.hotspotTickets}>
-          <span className={styles.hotspotLabel}>Comprar boletos</span>
-        </Link>
-        <a
-          href={EVENT.venue.mapsUrl}
-          target="_blank"
-          rel="noreferrer noopener"
-          className={styles.hotspotMaps}
-        >
-          <span className={styles.hotspotLabel}>Cómo llegar</span>
-        </a>
-      </nav>
+        <nav className={styles.heroHotspots} aria-label="Acciones">
+          <Link href="/boletos" className={styles.hotspotTickets}>
+            <span className={styles.hotspotLabel}>Comprar boletos</span>
+          </Link>
+          <a
+            href={EVENT.venue.mapsUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className={styles.hotspotMaps}
+          >
+            <span className={styles.hotspotLabel}>Cómo llegar</span>
+          </a>
+        </nav>
+      </div>
     </header>
   );
 }

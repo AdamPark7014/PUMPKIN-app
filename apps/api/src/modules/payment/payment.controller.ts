@@ -73,7 +73,7 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN', 'PROMOTER')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Request refund via Banorte (audited, tenant-scoped)' })
+  @ApiOperation({ summary: 'Request refund via payment gateway of the order (audited, tenant-scoped)' })
   async createRefund(
     @Param() params: OrderIdParamDto,
     @Body() dto: CreateRefundDto,

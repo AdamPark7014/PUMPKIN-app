@@ -543,7 +543,8 @@ export class PaymentService {
       if (prior) {
         return {
           refund: prior,
-          banorte: { success: prior.status === RefundStatus.COMPLETED, refundId: prior.id },
+          provider: 'cached',
+          result: { success: prior.status === RefundStatus.COMPLETED, refundId: prior.id },
           nextStep: null,
           reused: true,
         };
@@ -563,7 +564,15 @@ export class PaymentService {
       throw new ConflictException('Refund would exceed remaining refundable amount');
     }
 
-    const result = await this.banorte.refund(order.payment.externalId, refundAmount);
+    const gateway = order.payment.gateway;
+    const providerId =
+      gateway === PaymentGateway.MERCADOPAGO
+        ? 'mercadopago'
+        : gateway === PaymentGateway.CASH
+          ? 'cash'
+          : 'banorte';
+    const provider = getProvider(providerId);
+    const result = await provider.refund(order.payment.externalId, refundAmount);
     const requestedBy = data.requestedBy ?? 'admin';
     const reasonCode = data.reasonCode ?? RefundReason.CUSTOMER_REQUEST;
     const notes = [
@@ -572,8 +581,10 @@ export class PaymentService {
       data.idempotencyKey ? `idempotency:${data.idempotencyKey}` : null,
       result.error,
       result.success
-        ? 'Refund completed via Banorte'
-        : 'Pending manual Banorte portal refund — call POST /payments/refunds/:id/complete when done',
+        ? `Refund completed via ${providerId}`
+        : providerId === 'banorte'
+          ? 'Pending manual Banorte portal refund — call POST /payments/refunds/:id/complete when done'
+          : `Refund pending / failed via ${providerId}`,
     ]
       .filter(Boolean)
       .join(' | ');
@@ -599,8 +610,9 @@ export class PaymentService {
       metadata: {
         orderId: order.id,
         amount: refundAmount,
-        banorteSuccess: result.success,
-        banorteError: result.error,
+        provider: providerId,
+        providerSuccess: result.success,
+        providerError: result.error,
         requestedBy,
         idempotencyKey: data.idempotencyKey ?? null,
       },
@@ -614,10 +626,13 @@ export class PaymentService {
 
     return {
       refund,
-      banorte: result,
+      provider: providerId,
+      result,
       nextStep: result.success
         ? null
-        : `Process refund in Banorte portal, then POST /api/v1/payments/refunds/${refund.id}/complete`,
+        : providerId === 'banorte'
+          ? `Process refund in Banorte portal, then POST /api/v1/payments/refunds/${refund.id}/complete`
+          : null,
     };
   }
 

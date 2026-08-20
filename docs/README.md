@@ -88,6 +88,7 @@ de este repositorio. Cuando una funcionalidad está a medio construir se dice ex
   valida en runtime (`TICKET_QR_SECRET`, `JWT_SECRET`, `INTERNAL_API_SECRET`, Banorte, etc.).
 - **[ACTIVAR-MERCADO-PAGO.md](./ACTIVAR-MERCADO-PAGO.md)** — activar cobro online Pumpkin (credenciales + webhook).
 - **[research/MERCADO-PAGO-BOLETERAS.md](./research/MERCADO-PAGO-BOLETERAS.md)** — deep research: MP + boleteras (comisiones, OXXO, holds).
+- **[research/PASARELAS-BOLETERA-MX.md](./research/PASARELAS-BOLETERA-MX.md)** — Clip vs MP vs Stripe vs PayPal (costo + cableado del repo).
 
 ### Documentos fuera de `docs/`
 

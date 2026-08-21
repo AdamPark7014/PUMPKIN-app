@@ -180,8 +180,14 @@ export function writeHighVisibility(enabled: boolean): void {
   }
 }
 
+export type ScanDirection = 'ENTRY' | 'EXIT';
+
 /** Construye el cuerpo de `/access/scan` según el contenido escaneado. */
-export function scanBody(raw: string): { ticketCode: string } | { qrPayload: string } {
+export function scanBody(
+  raw: string,
+  direction: ScanDirection = 'ENTRY',
+): ({ ticketCode: string } | { qrPayload: string }) & { direction: ScanDirection } {
   const value = raw.trim();
-  return value.startsWith('{') ? { qrPayload: value } : { ticketCode: value };
+  const base = value.startsWith('{') ? { qrPayload: value } : { ticketCode: value };
+  return { ...base, direction };
 }

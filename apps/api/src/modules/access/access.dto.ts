@@ -42,6 +42,16 @@ export class ScanTicketDto {
   @MaxLength(120)
   scannedBy?: string;
 
+  @ApiPropertyOptional({
+    enum: ['ENTRY', 'EXIT'],
+    default: 'ENTRY',
+    description: 'ENTRY admite (SOLD→USED). EXIT registra salida (USED→SOLD) para reingreso.',
+  })
+  @IsOptional()
+  @Transform(upperCase)
+  @IsString()
+  direction?: 'ENTRY' | 'EXIT';
+
   @ApiPropertyOptional({ enum: SalesChannel, default: SalesChannel.TAQUILLA })
   @IsOptional()
   @Transform(upperCase)

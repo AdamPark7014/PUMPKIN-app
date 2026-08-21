@@ -206,6 +206,16 @@ export default function ScannerPage() {
             >
               Alta visibilidad
             </Button>
+            <SegmentedControl
+              label="Modo de acceso"
+              size="sm"
+              value={station.direction}
+              onValueChange={(value) => station.setDirection(value)}
+              options={[
+                { value: 'ENTRY', label: 'Entrada' },
+                { value: 'EXIT', label: 'Salida' },
+              ]}
+            />
             <Button
               type="button"
               variant={station.soundEnabled ? 'secondary' : 'outline'}

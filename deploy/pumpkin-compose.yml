@@ -94,6 +94,8 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_BRAND: ${MAIL_BRAND:-Pumpkin Zone}
+      # Brevo API (xkeysib-…). Preferido sobre SMTP cuando está presente.
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
     networks: [proxy, internal]
     labels:
       - "traefik.enable=true"

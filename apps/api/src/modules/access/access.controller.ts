@@ -20,7 +20,7 @@ export class AccessController {
   @Roles('SCANNER', 'TAQUILLA', 'VENUE_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Admit a ticket at the gate. Send Idempotency-Key to make retries safe.',
+    summary: 'ENTRY or EXIT at the gate. Send Idempotency-Key to make retries safe.',
   })
   scan(
     @CurrentUser() user: AuthenticatedUser,
@@ -34,6 +34,7 @@ export class AccessController {
       qrPayload: body.qrPayload,
       zoneId: body.zoneId,
       station: body.scannedBy,
+      direction: body.direction === 'EXIT' ? 'EXIT' : 'ENTRY',
       channel: body.channel ?? SalesChannel.TAQUILLA,
       scannedByUserId: user.sub,
       idempotencyKey: idempotencyKey?.slice(0, 128),

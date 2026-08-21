@@ -33,6 +33,8 @@ export interface ScanTicketCommand {
   zoneId?: string;
   /** Station label supplied by the client; never used as an identity. */
   station?: string;
+  /** ENTRY admits (SOLD→USED). EXIT checks out (USED→SOLD) so the ticket can re-enter. */
+  direction?: 'ENTRY' | 'EXIT';
   channel: SalesChannel;
   scannedByUserId: string;
   idempotencyKey?: string;
@@ -42,6 +44,7 @@ export interface ScanTicketCommand {
 
 export interface ScanTicketResult {
   success: true;
+  direction: 'ENTRY' | 'EXIT';
   ticket: {
     code: string;
     section: string | null;
@@ -88,6 +91,7 @@ export class AccessService {
   ) {}
 
   async scanTicket(command: ScanTicketCommand): Promise<ScanTicketResult> {
+    const direction = command.direction === 'EXIT' ? 'EXIT' : 'ENTRY';
     const envelope = command.qrPayload ? this.parseQrPayload(command.qrPayload) : undefined;
     if (!envelope && !command.ticketCode) {
       throw new BadRequestException('ticketCode or qrPayload is required');
@@ -106,12 +110,30 @@ export class AccessService {
     const zoneId = await this.resolveZone(ticket, command.zoneId);
 
     if (command.idempotencyKey) {
-      const alreadyAdmitted = await this.hasAdmissionWithKey(ticket.id, command.idempotencyKey);
-      if (alreadyAdmitted) return { ...this.buildResult(ticket), replayed: true };
+      const alreadyHandled = await this.hasAdmissionWithKey(ticket.id, command.idempotencyKey);
+      if (alreadyHandled) return { ...this.buildResult(ticket, direction), replayed: true };
     }
 
+    if (direction === 'EXIT') {
+      return this.checkoutTicket(ticket, command, zoneId);
+    }
+    return this.admitTicket(ticket, command, zoneId);
+  }
+
+  /** Gate entry: SOLD → USED. Second entry without EXIT is rejected. */
+  private async admitTicket(
+    ticket: ScannableTicket,
+    command: ScanTicketCommand,
+    zoneId: string | undefined,
+  ): Promise<ScanTicketResult> {
     if (ticket.status === TicketStatus.USED) {
-      await this.rejectScan(ticket, command, zoneId, 'Already used', 'Ticket already scanned');
+      await this.rejectScan(
+        ticket,
+        command,
+        zoneId,
+        'Already used',
+        'Boleto ya usado — escanea salida para permitir reingreso',
+      );
     }
     if (ticket.status !== TicketStatus.SOLD) {
       await this.rejectScan(
@@ -124,8 +146,6 @@ export class AccessService {
     }
 
     const admittedAt = new Date();
-    // Conditional update: only the request that observes SOLD flips the row, so
-    // concurrent gates can never admit the same ticket twice.
     const admission = await this.prisma.ticket.updateMany({
       where: { id: ticket.id, status: TicketStatus.SOLD },
       data: { status: TicketStatus.USED, usedAt: admittedAt, checkedInAt: admittedAt },
@@ -140,7 +160,7 @@ export class AccessService {
       );
     }
 
-    await this.recordScan(ticket.id, command, zoneId, true);
+    await this.recordScan(ticket.id, command, zoneId, true, 'ENTRY');
     await this.audit.log({
       action: SCAN_ACTION,
       entityType: 'Ticket',
@@ -150,6 +170,7 @@ export class AccessService {
       ipAddress: command.ipAddress,
       userAgent: command.userAgent,
       metadata: {
+        direction: 'ENTRY',
         zoneId,
         channel: command.channel,
         station: command.station,
@@ -158,7 +179,68 @@ export class AccessService {
       },
     });
 
-    return this.buildResult(ticket);
+    return this.buildResult(ticket, 'ENTRY');
+  }
+
+  /** Gate exit: USED → SOLD so the same QR can enter again later. */
+  private async checkoutTicket(
+    ticket: ScannableTicket,
+    command: ScanTicketCommand,
+    zoneId: string | undefined,
+  ): Promise<ScanTicketResult> {
+    if (ticket.status === TicketStatus.SOLD) {
+      await this.rejectScan(
+        ticket,
+        command,
+        zoneId,
+        'Not inside',
+        'Boleto no está dentro — no hay salida que registrar',
+      );
+    }
+    if (ticket.status !== TicketStatus.USED) {
+      await this.rejectScan(
+        ticket,
+        command,
+        zoneId,
+        `Invalid status: ${ticket.status}`,
+        'Ticket not valid for exit',
+      );
+    }
+
+    const checkout = await this.prisma.ticket.updateMany({
+      where: { id: ticket.id, status: TicketStatus.USED },
+      data: { status: TicketStatus.SOLD, usedAt: null, checkedInAt: null },
+    });
+    if (checkout.count === 0) {
+      await this.rejectScan(
+        ticket,
+        command,
+        zoneId,
+        'Concurrent exit lost the race',
+        'Boleto ya no está marcado como dentro',
+      );
+    }
+
+    await this.recordScan(ticket.id, command, zoneId, true, 'EXIT');
+    await this.audit.log({
+      action: SCAN_ACTION,
+      entityType: 'Ticket',
+      entityId: ticket.id,
+      organizationId: ticket.event.organizationId,
+      userId: command.scannedByUserId,
+      ipAddress: command.ipAddress,
+      userAgent: command.userAgent,
+      metadata: {
+        direction: 'EXIT',
+        zoneId,
+        channel: command.channel,
+        station: command.station,
+        eventId: ticket.eventId,
+        ...(command.idempotencyKey ? { idempotencyKey: command.idempotencyKey } : {}),
+      },
+    });
+
+    return this.buildResult(ticket, 'EXIT');
   }
 
   async getQrForTicket(ticketId: string, actor: QrActor): Promise<{ payload: string }> {
@@ -300,9 +382,13 @@ export class AccessService {
     throw new BadRequestException(message);
   }
 
-  private buildResult(ticket: ScannableTicket): ScanTicketResult {
+  private buildResult(
+    ticket: ScannableTicket,
+    direction: 'ENTRY' | 'EXIT',
+  ): ScanTicketResult {
     return {
       success: true,
+      direction,
       ticket: {
         code: ticket.code,
         section: ticket.section,
@@ -327,7 +413,7 @@ export class AccessService {
         scannedBy: command.scannedByUserId,
         channel: command.channel,
         success,
-        reason,
+        reason: reason ?? null,
       },
     });
   }

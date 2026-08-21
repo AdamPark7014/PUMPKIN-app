@@ -159,12 +159,12 @@ export function buildTicketsJob(
     b.align('left')
       .line(padBetween(`FOLIO ${folioShort}`.slice(0, 18), 'GRACIAS POR SER PARTE'.slice(0, 22), TICKET_COLS))
       .align('center')
-      .line('Una sola entrada. Conserva este boleto.')
+      .line('Conserva este boleto. Reingreso solo con salida registrada.')
       .cut();
 
     fallback.push(
       padBetween(`FOLIO ${folioShort}`.slice(0, 18), 'GRACIAS'.slice(0, 22), TICKET_COLS),
-      padCenter('Una sola entrada. Conserva este boleto.', TICKET_COLS),
+      padCenter('Conserva este boleto. Reingreso solo con salida registrada.', TICKET_COLS),
       '',
     );
   });

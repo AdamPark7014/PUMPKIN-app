@@ -37,6 +37,8 @@ export type ScanFeedback = {
 type UseScanStationResult = {
   station: string;
   setStation: (value: string) => void;
+  direction: 'ENTRY' | 'EXIT';
+  setDirection: (value: 'ENTRY' | 'EXIT') => void;
   soundEnabled: boolean;
   setSoundEnabled: (value: boolean) => void;
   online: boolean;
@@ -251,7 +253,7 @@ export function useScanStation(): UseScanStationResult {
         const res = await http<ScanApiResponse>('/access/scan', {
           method: 'POST',
           body: {
-            ...scanBody(item.raw),
+            ...scanBody(item.raw, directionRef.current),
             scannedBy: item.station || stationRef.current || 'admin-scanner',
             channel: 'ADMIN',
           },
@@ -344,7 +346,7 @@ export function useScanStation(): UseScanStationResult {
           const res = await http<ScanApiResponse>('/access/scan', {
             method: 'POST',
             body: {
-              ...scanBody(value),
+              ...scanBody(value, directionRef.current),
               scannedBy: stationName,
               channel: 'ADMIN',
             },
@@ -429,6 +431,8 @@ export function useScanStation(): UseScanStationResult {
   return {
     station,
     setStation,
+    direction,
+    setDirection,
     soundEnabled,
     setSoundEnabled,
     online,

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { AttractionIcon } from '@/components/AttractionIcon';
+import { HeroVideo } from '@/components/HeroVideo';
 import { EVENT, formatPrice } from '@/lib/event-config';
 import styles from './page.module.scss';
 
@@ -36,39 +37,100 @@ export default function Home() {
 }
 
 /**
- * Hero = video 16:9 contenido (sin crop). Tipografía/CTAs van en el MP4;
- * hotspots transparentes viven en el mismo stage para no desalinear.
+ * Hero full-bleed: video limpio (desktop 16:9 / móvil 9:16) + tipografía y
+ * CTAs en HTML para que siempre sean clicables y legibles.
  */
 function Hero() {
   return (
     <header className={styles.hero}>
-      <div className={styles.heroStage}>
-        <video
+      <div className={styles.heroMedia} aria-hidden>
+        <HeroVideo
           className={styles.heroVideo}
-          src="/pumpkin/hero.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-label={`${EVENT.name} ${EVENT.edition}`}
+          label={`${EVENT.name} ${EVENT.edition}`}
         />
+        <div className={styles.heroScrim} />
+      </div>
 
-        <nav className={styles.heroHotspots} aria-label="Acciones">
-          <Link href="/boletos" className={styles.hotspotTickets}>
-            <span className={styles.hotspotLabel}>Comprar boletos</span>
+      <div className={styles.heroCopy}>
+        <p className={styles.heroEyebrow}>
+          <span className={styles.heroEdition}>{EVENT.edition}</span>
+          <span className={styles.heroCity}>{EVENT.venue.city}</span>
+        </p>
+
+        <div className={styles.heroBrand}>
+          <BrandPumpkin />
+          <p className={styles.heroScript}>Pumpkin</p>
+          <p className={styles.heroZone}>zone</p>
+        </div>
+
+        <h1 className={styles.heroYear}>
+          <span aria-hidden className={styles.yearSpark} />
+          2026
+          <span aria-hidden className={styles.yearSpark} />
+        </h1>
+
+        <p className={styles.heroIntro}>{EVENT.intro}</p>
+
+        <dl className={styles.heroMeta}>
+          <div>
+            <dt>Fechas</dt>
+            <dd>{EVENT.scheduleLabel}</dd>
+          </div>
+          <div>
+            <dt>Horario</dt>
+            <dd>{EVENT.hoursLabel}</dd>
+          </div>
+          <div>
+            <dt>Sede</dt>
+            <dd>{EVENT.venue.name}</dd>
+          </div>
+        </dl>
+
+        <div className={styles.heroCtas}>
+          <Link href="/boletos" className={styles.ctaPrimary}>
+            Comprar boletos
           </Link>
           <a
             href={EVENT.venue.mapsUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className={styles.hotspotMaps}
+            className={styles.ctaGhost}
           >
-            <span className={styles.hotspotLabel}>Cómo llegar</span>
+            Cómo llegar
+            <span aria-hidden>→</span>
           </a>
-        </nav>
+        </div>
       </div>
     </header>
+  );
+}
+
+function BrandPumpkin() {
+  return (
+    <svg
+      className={styles.brandMark}
+      width="36"
+      height="36"
+      viewBox="0 0 36 36"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M18 8c-1-2.4.4-4.4 2.8-5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <ellipse cx="18" cy="21" rx="13" ry="11" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M11 20.5l4-2.4.6 3.4-4.6.6zm14 0l-4-2.4-.6 3.4 4.6.6z"
+        fill="currentColor"
+      />
+      <path
+        d="M12 25c2 2.6 10 2.6 12 0-1 .5-2.4.4-3.1-.4-.8.9-2.2.9-3 .1-.8.8-2.2.8-3-.1-.7.8-2.1.9-2.9.4z"
+        fill="currentColor"
+      />
+    </svg>
   );
 }
 

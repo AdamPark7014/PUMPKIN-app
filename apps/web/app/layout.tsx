@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Bebas_Neue, Space_Grotesk } from 'next/font/google';
+import { Bebas_Neue, Great_Vibes, Space_Grotesk } from 'next/font/google';
 import { CartBar } from '@/components/CartBar';
 import { SiteFooterHost } from '@/components/SiteFooterHost';
 import { SITE_NAME, SITE_URL, absoluteUrl } from '@/lib/seo';
@@ -15,6 +15,13 @@ const headingFont = Bebas_Neue({
 const bodyFont = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-body',
+  display: 'swap',
+});
+
+const scriptFont = Great_Vibes({
+  subsets: ['latin'],
+  variable: '--font-script',
+  weight: '400',
   display: 'swap',
 });
 
@@ -61,7 +68,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es-MX">
-      <body className={`${headingFont.variable} ${bodyFont.variable}`}>
+      <body className={`${headingFont.variable} ${bodyFont.variable} ${scriptFont.variable}`}>
         <a href="#contenido" className="skip-link">
           Saltar al contenido
         </a>

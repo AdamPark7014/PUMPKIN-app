@@ -194,6 +194,7 @@ function errorMessage(cause: unknown): string {
 
 export function useScanStation(): UseScanStationResult {
   const [station, setStationState] = useState('');
+  const [direction, setDirectionState] = useState<'ENTRY' | 'EXIT'>('ENTRY');
   const [soundEnabled, setSoundState] = useState(true);
   const [online, setOnline] = useState(true);
   const [degraded, setDegraded] = useState(false);
@@ -203,8 +204,10 @@ export function useScanStation(): UseScanStationResult {
   const [lastResult, setLastResult] = useState<ScanFeedback | null>(null);
 
   const stationRef = useRef(station);
+  const directionRef = useRef<'ENTRY' | 'EXIT'>(direction);
   const soundRef = useRef(soundEnabled);
   const busyRef = useRef(false);
+  directionRef.current = direction;
   stationRef.current = station;
   soundRef.current = soundEnabled;
 
@@ -410,6 +413,11 @@ export function useScanStation(): UseScanStationResult {
   const setStation = useCallback((value: string) => {
     setStationState(value);
     writeStation(value);
+  }, []);
+
+  const setDirection = useCallback((value: 'ENTRY' | 'EXIT') => {
+    setDirectionState(value);
+    directionRef.current = value;
   }, []);
 
   const setSoundEnabled = useCallback((value: boolean) => {

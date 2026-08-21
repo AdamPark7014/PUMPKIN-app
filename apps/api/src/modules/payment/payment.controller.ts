@@ -150,8 +150,13 @@ export class PaymentController {
     @Query('orderId') orderId?: string,
     @Query('result') result?: string,
   ) {
+    // Pumpkin / MP-only: never free-complete via Banorte demo return.
+    const { isMercadoPagoOnlyMode, getBanorteConfig } = await import('@boletera/payments');
+    if (isMercadoPagoOnlyMode()) {
+      return { ok: false, orderId: orderId ?? null, ignored: 'mercadopago_only' };
+    }
     if (result === 'ok' && orderId) {
-      const cfg = await import('@boletera/payments').then((m) => m.getBanorteConfig());
+      const cfg = getBanorteConfig();
       if (cfg.isDemo) {
         await this.paymentService.completeOrder(orderId, `banorte_return_${Date.now()}`);
       }
